@@ -13,6 +13,9 @@ import XYZ from 'ol/source/XYZ';
 export class MapComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
+
+    const imageExtent = [-180, -90, 180, 90];
+
     new Map({
       target: 'map',
       layers: [
