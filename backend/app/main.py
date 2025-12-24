@@ -7,4 +7,4 @@ app.include_router(mola.router, prefix="/mola")
 
 @app.get("/")
 def root():
-    return {"status": "API running"}
+    return {"status": "API running!"}
