@@ -18,7 +18,7 @@ export class MapComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) {
-      return; // 🚫 Do not run OpenLayers on the server
+      return; // Do not run OpenLayers on the server
     }
 
     new Map({
