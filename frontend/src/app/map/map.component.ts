@@ -1,4 +1,6 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { Component, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -12,9 +14,12 @@ import XYZ from 'ol/source/XYZ';
 })
 export class MapComponent implements AfterViewInit {
 
-  ngAfterViewInit(): void {
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
-    const imageExtent = [-180, -90, 180, 90];
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return; // 🚫 Do not run OpenLayers on the server
+    }
 
     new Map({
       target: 'map',
@@ -32,5 +37,4 @@ export class MapComponent implements AfterViewInit {
     });
   }
 }
-export { Map };
-
+export { Map }
