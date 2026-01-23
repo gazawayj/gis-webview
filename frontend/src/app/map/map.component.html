@@ -1,3 +1,7 @@
-<div id="map">
-
+<div class="toolbar">
+  <button (click)="setPlanet('earth')">Earth</button>
+  <button (click)="setPlanet('mars')">Mars</button>
+  <button (click)="setPlanet('moon')">Moon</button>
 </div>
+
+<div #mapContainer class="map"></div>

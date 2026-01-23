@@ -1,10 +1,14 @@
-import { Component, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import {
+  Component,
+  AfterViewInit,
+  ViewChild,
+  ElementRef
+} from '@angular/core';
 
 import Map from 'ol/Map';
 import View from 'ol/View';
-import TileLayer from 'ol/layer/Tile';
-import XYZ from 'ol/source/XYZ';
+import ImageLayer from 'ol/layer/Image';
+import ImageStatic from 'ol/source/ImageStatic';
 
 @Component({
   selector: 'app-map',
@@ -14,27 +18,58 @@ import XYZ from 'ol/source/XYZ';
 })
 export class MapComponent implements AfterViewInit {
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  @ViewChild('mapContainer', { static: true })
+  mapContainer!: ElementRef<HTMLDivElement>;
+
+  private map!: Map;
+  private earthLayer!: ImageLayer<ImageStatic>;
+  private marsLayer!: ImageLayer<ImageStatic>;
+  private moonLayer!: ImageLayer<ImageStatic>;
 
   ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return; // Do not run OpenLayers on the server
-    }
 
-    new Map({
-      target: 'map',
+    const extent: [number, number, number, number] =
+      [-180, -90, 180, 90];
+
+    this.earthLayer = this.createLayer('./src/assets/earth/earth.png', extent, true);
+    this.marsLayer  = this.createLayer('./src/assets/mars/mars.png', extent, false);
+    this.moonLayer  = this.createLayer('./src/assets/moon/moon.png', extent, false); 
+
+    this.map = new Map({
+      target: this.mapContainer.nativeElement, 
       layers: [
-        new TileLayer({
-          source: new XYZ({
-            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-          })
-        })
+        this.earthLayer,
+        this.marsLayer,
+        this.moonLayer
       ],
       view: new View({
+        projection: 'EPSG:4326',
         center: [0, 0],
-        zoom: 2
+        zoom: 1,
+        maxZoom: 5
       })
     });
   }
+
+  private createLayer(
+    url: string,
+    extent: [number, number, number, number],
+    visible: boolean
+  ): ImageLayer<ImageStatic> {
+
+    return new ImageLayer({
+      visible,
+      source: new ImageStatic({
+        url,
+        imageExtent: extent,
+        projection: 'EPSG:4326'
+      })
+    });
+  }
+
+  setPlanet(planet: 'earth' | 'mars' | 'moon'): void {
+    this.earthLayer.setVisible(planet === 'earth');
+    this.marsLayer.setVisible(planet === 'mars');
+    this.moonLayer.setVisible(planet === 'moon');
+  }
 }
-export { Map }
