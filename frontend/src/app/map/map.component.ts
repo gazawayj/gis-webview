@@ -9,6 +9,9 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import ImageLayer from 'ol/layer/Image';
 import ImageStatic from 'ol/source/ImageStatic';
+import proj4 from 'proj4';
+import { register } from 'ol/proj/proj4.js';
+import { get as getProjection } from 'ol/proj.js';
 
 @Component({
   selector: 'app-map',
@@ -28,12 +31,20 @@ export class MapComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
 
-    const extent: [number, number, number, number] =
-      [-9356484.534, -2139739.1418, -1324835.2291, 14775954.5102];
+    // Define IAU2000:49900 (Mars Geographic)
+    // a=equatorial radius, b=polar radius in meters
+    proj4.defs("IAU2000:49900", "+proj=longlat +a=3396190 +b=3376200 +no_defs");
+    register(proj4);
 
-    this.earthLayer = this.createLayer('./src/assets/earth/earth.png', extent, true);
-    this.marsLayer  = this.createLayer('./src/assets/mars/mars.png', extent, false);
-    this.moonLayer  = this.createLayer('./src/assets/moon/moon.png', extent, false); 
+    const extent: [number, number, number, number] =
+      [-180, -90, 180, 90];
+
+    const marsProj = getProjection('IAU2000:49900');
+    marsProj?.setExtent(extent);
+    
+    this.earthLayer = this.createLayer('/assets/earth/earth.png', extent, true);
+    this.marsLayer  = this.createLayer('/assets/mars/mars.png', extent, false);
+    this.moonLayer  = this.createLayer('/assets/moon/moon.png', extent, false); 
 
     this.map = new Map({
       target: this.mapContainer.nativeElement, 
@@ -43,10 +54,12 @@ export class MapComponent implements AfterViewInit {
         this.moonLayer
       ],
       view: new View({
-        projection: 'EPSG:4326',
-        center: [0, 0],
-        zoom: 1,
-        maxZoom: 5
+      projection: 'IAU2000:49900',
+      center: [0, 0],
+      zoom: 1,
+      minZoom: 1,
+      maxZoom: 7,
+      extent: extent
       })
     });
   }
@@ -62,7 +75,7 @@ export class MapComponent implements AfterViewInit {
       source: new ImageStatic({
         url,
         imageExtent: extent,
-        projection: 'EPSG:4326'
+        projection: 'IAU2000:49900'
       })
     });
   }
