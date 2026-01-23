@@ -29,7 +29,7 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit(): void {
 
     const extent: [number, number, number, number] =
-      [-180, -90, 180, 90];
+      [-9356484.534, -2139739.1418, -1324835.2291, 14775954.5102];
 
     this.earthLayer = this.createLayer('./src/assets/earth/earth.png', extent, true);
     this.marsLayer  = this.createLayer('./src/assets/mars/mars.png', extent, false);
@@ -73,3 +73,5 @@ export class MapComponent implements AfterViewInit {
     this.moonLayer.setVisible(planet === 'moon');
   }
 }
+export { Map };
+
