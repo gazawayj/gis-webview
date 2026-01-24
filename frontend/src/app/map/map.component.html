@@ -1,32 +1,25 @@
-<Header>
-  <div class="toolbar" margin="5">
-    Select Your Planetary Body: 
-    <button style="width: 150px; height: 40px; font-size: 20px; margin: 2px;" (click)="setPlanet('earth')">Earth</button>
-    <button style="width: 150px; height: 40px; font-size: 20px; margin: 2px;" (click)="setPlanet('mars')">Mars</button>
-    <button style="width: 150px; height: 40px; font-size: 20px; margin: 2px;" (click)="setPlanet('moon')">Moon</button> 
+<header>
+  <div class="toolbar">
+    Select Your Planetary Body:
+    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('earth')">Earth</button>
+    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('mars')">Mars</button>
+    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('moon')">Moon</button>
   </div>
-</Header>
-<Section>
-  <nav margin="25">
-  <fieldset >
-    <legend>Layer Select:</legend>
+</header>
+
+<section>
+  <nav>
+    <fieldset>
+      <legend>Layer Select:</legend>
       <ul id="leftNav">
-        <li>
-          <input type="checkbox" id="layer1" name="layer1" value="layer1">
-          <label for="layer1">Layer 1</label>
-        </li>
-        <li>
-          <input type="checkbox" id="layer2" name="layer2" value="layer2">
-          <label for="layer2">Layer 2</label>
-        </li><li>
-          <input type="checkbox" id="layer3" name="layer3" value="layer3">
-          <label for="layer3">Layer 3</label>
-        </li>
+        <li><input type="checkbox"> Layer 1</li>
+        <li><input type="checkbox"> Layer 2</li>
+        <li><input type="checkbox"> Layer 3</li>
       </ul>
-  </fieldset>
+    </fieldset>
   </nav>
+
   <article>
-    <div #mapContainer id="map" class="map">
-    </div>
+    <div #mapContainer id="map" class="map"></div>
   </article>
-</Section>
+</section>
