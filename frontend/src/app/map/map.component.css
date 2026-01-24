@@ -13,6 +13,7 @@
   color: white;
   border-color: #6f5c80;
 }
+
 header{
   font-size: 27px;
   background-color: #f9f9f9;
@@ -20,7 +21,7 @@ header{
 
 .main-layout {
   display: flex;
-  height: calc(100vh - 80px);
+  height: 100vh;
   overflow: hidden;
 }
 
