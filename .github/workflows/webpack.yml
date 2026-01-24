@@ -1,1 +1,11 @@
-
+name: GitHub Actions Demo
+on: [push]
+jobs:
+  explore-github-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+      - name: List files in the repository
+        run: ls ${{ github.workspace }}
+      - run: echo "This job's status is ${{ job.status }}."
