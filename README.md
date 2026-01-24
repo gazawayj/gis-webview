@@ -1,4 +1,7 @@
 # GIS Webview
+<p align="center">
+  <strong>A modern, high-performance web interface for advanced geospatial data visualization and analysis.</strong>
+</p>
 
 Lint Pipeline [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
 
@@ -11,9 +14,7 @@ Frontend CI Pipeline [![Frontend Node Status](https://github.com/gazawayj/gis-we
 
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
-<p align="center">
-  <strong>A modern, high-performance web interface for advanced geospatial data visualization and analysis.</strong>
-</p>
+
 
 
 ---
