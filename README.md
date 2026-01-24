@@ -1,5 +1,5 @@
 # GIS Webview
-# A modern, high-performance web interface for advanced geospatial data visualization and analysis.
+A modern, high-performance web interface for advanced geospatial data visualization and analysis.
 
 
 Lint Pipeline [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
