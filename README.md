@@ -13,22 +13,22 @@
 
 ---
 
-### Overview
+## Overview
 **GIS WebView** is a specialized geospatial interface designed to handle complex spatial infrastructures. It provides an opinionated, high-performance stack for managing and visualizing diverse spatial datasets—from raster imagery to dynamic vector layers—directly in any modern web browser.
 
-### Key Features
+## Key Features
 *   **Unified Map Engine:** Interactive rendering of global-scale spatial data.
 *   **Automated Quality Control:** Integrated CI/CD using GitHub Actions for build validation and code linting.
 *   **Optimized Module Bundling:** Powered by **Webpack** for minimal load times and efficient asset management.
 *   **Spatial Protocol Support:** Native compatibility for GeoJSON and standard web mapping protocols.
 
-### Getting Started
+## Getting Started
 
-#### Prerequisites
+### Prerequisites
 *   **Node.js** (v18.0 or higher recommended)
 *   **NPM** or **Yarn**
 
-#### Installation
+### Installation
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com
@@ -51,7 +51,7 @@
     npm run build
     ```
 
-### 📈 CI/CD Integration
+## 📈 CI/CD Integration
 This project maintains high code standards through automated workflows:
 - **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
 - **Super-Lint:** Enforces consistent coding styles across all supported languages.
