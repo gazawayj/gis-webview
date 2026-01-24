@@ -1,15 +1,15 @@
 <header>
   <div class="toolbar">
-    <span class="label">Select Planetary Body:</span>
+    <span class="label" style="padding-left: 60px;">Select Planetary Body:</span>
     <button 
       [class.active]="currentPlanet === 'mars'" 
       (click)="setPlanet('mars')">Mars</button>
     <button 
-      [class.active]="currentPlanet === 'earth'" 
-      (click)="setPlanet('earth')">Earth</button>
-    <button 
       [class.active]="currentPlanet === 'moon'" 
       (click)="setPlanet('moon')">Moon</button>
+    <button 
+      [class.active]="currentPlanet === 'earth'" 
+      (click)="setPlanet('earth')">Earth</button>
   </div>
 </header>
 
