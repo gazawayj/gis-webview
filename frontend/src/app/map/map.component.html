@@ -1,15 +1,16 @@
 <Header>
-  <div class="toolbar">
-    <button (click)="setPlanet('earth')">Earth</button>
-    <button (click)="setPlanet('mars')">Mars</button>
-    <button (click)="setPlanet('moon')">Moon</button>
+  <div class="toolbar" margin="5">
+    Select Your Planetary Body: 
+    <button style="width: 150px; height: 40px; font-size: 20px;" (click)="setPlanet('earth')">Earth</button>
+    <button style="width: 150px; height: 40px; font-size: 20px;" (click)="setPlanet('mars')">Mars</button>
+    <button style="width: 150px; height: 40px; font-size: 20px;" (click)="setPlanet('moon')">Moon</button> 
   </div>
 </Header>
 <Section>
-  <nav>
-  <fieldset>
+  <nav margin="25">
+  <fieldset >
     <legend>Layer Select:</legend>
-      <ul>
+      <ul id="leftNav">
         <li>
           <input type="checkbox" id="layer1" name="layer1" value="layer1">
           <label for="layer1">Layer 1</label>

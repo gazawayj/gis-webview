@@ -1,28 +1,33 @@
 
 html, body {
+  width: 100%;
   height: 100%; /* Ensure html and body take full viewport height */
-  overflow-y: hidden; /* Hide vertical scrollbar */
-  overflow-x: hidden; /* Hide horizontal scrollbar */
+  background-color: #eeeeee;
 }
 
 header {
-  background-color: #666;
-  text-align: center;
-  font-size: 35px;
-  color: white;
-  height: 50px;
+  text-align: left;
+  font-size: 30px;
+  background-color: #eeeeee;
+  padding: 5px;
+}
+
+nav, article {
+  width: 100%;
+  background-color: #eeeeee;
 }
 
 nav {
   float: left;
   width: 15%;
-  background-color: #b6b4b4;
   height: 100vh;
+  background-color: #eeeeee;
 }
 
 article {
   float: right;
   width: 85%;
+  background-color: #eeeeee;
   .map {
     height: 100vh;
   }
