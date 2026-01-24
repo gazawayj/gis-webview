@@ -25,12 +25,6 @@
 *   **Optimized Module Bundling:** Powered by **Webpack** for minimal load times and efficient asset management.
 *   **Spatial Protocol Support:** Native compatibility for GeoJSON and standard web mapping protocols.
 
-### 🛠️ Tech Stack
-| Core | Build & Quality | Standards |
-| :--- | :--- | :--- |
-| ![JavaScript](https://img.shields.io) | ![Webpack](https://img.shields.io) | ![GeoJSON](https://img.shields.io) |
-| ![PostGIS](https://img.shields.io) | ![Super-Linter](https://img.shields.io) | ![WMS](https://img.shields.io) |
-
 ### Getting Started
 
 #### Prerequisites
