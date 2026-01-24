@@ -1,4 +1,4 @@
-## GIS Webview
+# GIS Webview
 
 # Lint Pipeline [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
 
