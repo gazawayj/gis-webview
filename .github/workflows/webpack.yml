@@ -1,11 +1,28 @@
-name: GitHub Actions
-on: [push]
+name: NodeJS with Webpack
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
-  explore-github-actions:
+  build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v5
-      - name: List files in the repository
-        run: ls ${{ github.workspace }}
-      - run: echo "This job's status is ${{ job.status }}."
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Build
+      run: |
+        npm install
+        npx webpack
