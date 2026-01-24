@@ -1,9 +1,4 @@
-Frontend Pipeline [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
-
-Frontend Super-Lint [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
-
 <p align="center">
-  <img src="https://img.icons8.com" width="100" alt="GIS Logo" />
   <h1 align="center">GIS WebView</h1>
 </p>
 
@@ -12,12 +7,12 @@ Frontend Super-Lint [![Lint Code Base](https://github.com/gazawayj/gis-webview/a
 </p>
 
 <p align="center">
-  <a href="https://github.com">
-    <img src="https://img.shields.io" alt="Build Pipeline">
-  </a>
-  <a href="https://github.com">
-    <img src="https://img.shields.io" alt="Super-Lint">
-  </a>
+  <p>
+    [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
+  </p>
+  <p>
+    [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
+  </p>
 </p>
 
 ---
