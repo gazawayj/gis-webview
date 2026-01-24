@@ -34,7 +34,7 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ### Installation
 1. **Clone the repository:**
     ```bash
-    git clone https://github.com
+    git clone https://github.com/gazawayj/gis-webview
     
     cd gis-webview
     ```
