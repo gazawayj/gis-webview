@@ -21,7 +21,7 @@ header{
 
 .main-layout {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 51px);
   overflow: hidden;
 }
 
@@ -29,8 +29,13 @@ header{
   width: 300px;
   padding: 20px;
   background: #f9f9f9;
-  border-right: 1px solid #ddd;
-  overflow-y: auto;
+  overflow-y: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+}
+
+sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .map-area {
