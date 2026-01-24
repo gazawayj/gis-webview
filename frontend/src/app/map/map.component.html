@@ -1,8 +1,31 @@
-<div class="toolbar">
-  <button (click)="setPlanet('earth')">Earth</button>
-  <button (click)="setPlanet('mars')">Mars</button>
-  <button (click)="setPlanet('moon')">Moon</button>
-</div>
-
-<div #mapContainer id="map" class="map">
-</div>
+<Header>
+  <div class="toolbar">
+    <button (click)="setPlanet('earth')">Earth</button>
+    <button (click)="setPlanet('mars')">Mars</button>
+    <button (click)="setPlanet('moon')">Moon</button>
+  </div>
+</Header>
+<Section>
+  <nav>
+  <fieldset>
+    <legend>Layer Select:</legend>
+      <ul>
+        <li>
+          <input type="checkbox" id="layer1" name="layer1" value="layer1">
+          <label for="layer1">Layer 1</label>
+        </li>
+        <li>
+          <input type="checkbox" id="layer2" name="layer2" value="layer2">
+          <label for="layer2">Layer 2</label>
+        </li><li>
+          <input type="checkbox" id="layer3" name="layer3" value="layer3">
+          <label for="layer3">Layer 3</label>
+        </li>
+      </ul>
+  </fieldset>
+  </nav>
+  <article>
+    <div #mapContainer id="map" class="map">
+    </div>
+  </article>
+</Section>
