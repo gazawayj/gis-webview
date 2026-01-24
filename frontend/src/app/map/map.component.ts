@@ -31,11 +31,12 @@ export class MapComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
 
-    // Define IAU2000:49900 (Mars Geographic)
+    // Define IAU2000:49900 (Mars Geographic) Projection for web map
     // a=equatorial radius, b=polar radius in meters
     proj4.defs("IAU2000:49900", "+proj=longlat +a=3396190 +b=3376200 +no_defs");
     register(proj4);
 
+    //extent is in degrees
     const extent: [number, number, number, number] =
       [-180, -90, 180, 90];
 
