@@ -7,6 +7,8 @@ Frontend CI Pipeline [![Frontend Node Status](https://github.com/gazawayj/gis-we
 <p align="center">
   <strong> </strong>
 </p> 
+
+
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
 <p align="center">
