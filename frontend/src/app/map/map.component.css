@@ -5,6 +5,7 @@
   cursor: pointer;
   border: 1px solid #ccc;
   background: #f0f0f0;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* Highlight the selected planet button */
@@ -13,8 +14,7 @@
   color: white;
   border-color: #6f5c80;
 }
-
-header{
+eader{
   font-size: 27px;
   background-color: #f9f9f9;
 }
@@ -34,7 +34,7 @@ header{
   scrollbar-width: none;
 }
 
-sidebar::-webkit-scrollbar {
+.sidebar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
 
@@ -69,4 +69,15 @@ box-shadow: 0 3px 8px rgba(0,0,0,0.25);
   font-size: 0.9em;
   color: #666;
   margin-top: 5px;
+}
+
+.layer-item {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-item > div:first-child {
+display: flex;
+align-items: center;
 }

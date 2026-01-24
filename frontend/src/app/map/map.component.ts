@@ -14,6 +14,7 @@ interface LayerItem {
   name: string;
   description: string;
   visible: boolean;
+  type: 'basemap' | 'overlay';
 }
 
 type Planet = 'earth' | 'mars' | 'moon';
@@ -29,29 +30,74 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
   private map!: Map;
-  private baseLayer!: ImageLayer<ImageStatic>; 
+  private baseLayer!: ImageLayer<ImageStatic>;
   private olOverlays: { [key: string]: ImageLayer<ImageStatic> } = {};
-  
+
   currentPlanet: Planet = 'mars';
   private readonly globalExtent: [number, number, number, number] = [-180, -90, 180, 90];
 
-  layersByPlanet: Record<Planet, LayerItem[]> = {
+  layersByPlanet: Record<Planet, LayerItem[]> = {  //Temp until loading from streams
     earth: [
-      { id: 'continent', name: 'Continent Outline of Earth', description: 'Layer showing the boundaries of the continents.', visible: false }
+      {
+        id: 'earth-base',
+        name: 'Earth Basemap',
+        description: 'Primary Earth surface reference',
+        visible: true,
+        type: 'basemap'
+      },
+      {
+        id: 'continent',
+        name: 'Continent Outline',
+        description: 'Boundaries of Earth’s continents',
+        visible: false,
+        type: 'overlay'
+      }
     ],
     mars: [
-      { id: 'mola', name: 'MOLA Elevation', description: 'Global Mars elevation data derived from MGS MOLA. Useful for terrain and slope analysis.', visible: false },
-      { id: 'imagery', name: 'THEMIS Imagery', description: 'High-resolution orbital imagery for surface feature inspection.', visible: false }
+      {
+        id: 'mars-base',
+        name: 'Mars Basemap',
+        description: 'Global Mars reference imagery',
+        visible: true,
+        type: 'basemap'
+      },
+      {
+        id: 'mola',
+        name: 'MOLA Elevation',
+        description: 'Mars Global Surveyor elevation model',
+        visible: false,
+        type: 'overlay'
+      },
+      {
+        id: 'imagery',
+        name: 'THEMIS Imagery',
+        description: 'High-resolution surface imagery',
+        visible: false,
+        type: 'overlay'
+      }
     ],
     moon: [
-      { id: 'imagery', name: 'LROC Details', description: 'High-res lunar camera data.', visible: false }
+      {
+        id: 'moon-base',
+        name: 'Moon Basemap',
+        description: 'Global lunar reference',
+        visible: true,
+        type: 'basemap'
+      },
+      {
+        id: 'lroc',
+        name: 'LROC Details',
+        description: 'High-resolution lunar imagery',
+        visible: false,
+        type: 'overlay'
+      }
     ]
   };
 
   ngAfterViewInit(): void {
     this.initProjections();
     this.initMap();
-    this.setPlanet(this.currentPlanet); 
+    this.setPlanet(this.currentPlanet);
   }
 
   // --- 1. PROJECTION LOGIC ---
@@ -80,22 +126,44 @@ export class MapComponent implements AfterViewInit {
   // --- 3. PLANET SELECTION ---
   setPlanet(planet: Planet) {
     this.currentPlanet = planet;
-
-    // Clear existing overlays and reset checkboxes
-    Object.values(this.olOverlays).forEach(layer => this.map.removeLayer(layer));
+    // Remove all existing overlay layers from the map ---
+    Object.values(this.olOverlays).forEach(layer => {
+      this.map.removeLayer(layer);
+    });
     this.olOverlays = {};
-    this.layersByPlanet[planet].forEach(l => l.visible = false);
-
-    // Update Basemap Source
-    this.baseLayer.setSource(new ImageStatic({
-      url: this.getBasemapUrl(planet),
-      imageExtent: this.globalExtent,
-      projection: 'IAU2000:49900'
-    }));
+    // Reset all layer visibility flags ---
+    this.layersByPlanet[planet].forEach(layer => {
+      // Basemap starts ON, overlays start OFF
+      layer.visible = layer.type === 'basemap';
+    });
+    // Find the basemap layer item ---
+    const basemap = this.layersByPlanet[planet].find(
+      layer => layer.type === 'basemap'
+    );
+    // Update basemap source + visibility ---
+    if (basemap) {
+      this.baseLayer.setSource(
+        new ImageStatic({
+          url: this.getBasemapUrl(planet),
+          imageExtent: this.globalExtent,
+          projection: 'IAU2000:49900'
+        })
+      );
+      this.baseLayer.setVisible(basemap.visible);
+    }
+    // Force redraw (helps when switching projections/images) ---
+    this.map.render();
   }
 
   // --- 4. LAYER TOGGLING ---
   toggleLayer(layer: LayerItem) {
+    if (layer.type === 'basemap') {
+      this.baseLayer.setVisible(layer.visible);
+      return;
+    }
+
+
+    // overlays (existing logic)
     if (layer.visible) {
       if (!this.olOverlays[layer.id]) {
         const overlay = new ImageLayer({
@@ -138,6 +206,17 @@ export class MapComponent implements AfterViewInit {
 
   get layers(): LayerItem[] {
     return this.layersByPlanet[this.currentPlanet];
+  }
+
+  private getProjectionForPlanet(planet: Planet): string {
+    switch (planet) {
+      case 'earth':
+        return 'EPSG:4326';
+      case 'moon':
+        return 'IAU2000:30100'; // Moon
+      case 'mars':
+        return 'IAU2000:49900';
+    }
   }
 }
 export { Map };
