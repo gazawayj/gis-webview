@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Node.js CI SETUP
 on: [push]
 
 jobs:
@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22.x] # Use a specific Node.js version sdfsdfdsf
+        node-version: [22.x] # Use a specific Node.js version 
 
     steps:
     - uses: actions/checkout@v4 # Checkout the repository code
