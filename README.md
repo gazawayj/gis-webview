@@ -12,10 +12,10 @@
 
 ---
 
-### 🌐 Overview
+### Overview
 **GIS WebView** is a specialized geospatial interface designed to handle complex spatial infrastructures. It provides an opinionated, high-performance stack for managing and visualizing diverse spatial datasets—from raster imagery to dynamic vector layers—directly in any modern web browser.
 
-### ✨ Key Features
+### Key Features
 *   **Unified Map Engine:** Interactive rendering of global-scale spatial data.
 *   **Automated Quality Control:** Integrated CI/CD using GitHub Actions for build validation and code linting.
 *   **Optimized Module Bundling:** Powered by **Webpack** for minimal load times and efficient asset management.
@@ -27,7 +27,7 @@
 | ![JavaScript](https://img.shields.io) | ![Webpack](https://img.shields.io) | ![GeoJSON](https://img.shields.io) |
 | ![PostGIS](https://img.shields.io) | ![Super-Linter](https://img.shields.io) | ![WMS](https://img.shields.io) |
 
-### 🚀 Getting Started
+### Getting Started
 
 #### Prerequisites
 *   **Node.js** (v18.0 or higher recommended)
