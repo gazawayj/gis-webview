@@ -61,8 +61,8 @@
 
 ### 📈 CI/CD Integration
 This project maintains high code standards through automated workflows:
-- **Build Pipeline:** Every push to `main` triggers a Webpack compilation check.
-- **Super-Lint:** Enforces consistent coding styles across all supported languages in the repo.
+- **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
+- **Super-Lint:** Enforces consistent coding styles across all supported languages.
 
 ---
 
