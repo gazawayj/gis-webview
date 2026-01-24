@@ -2,10 +2,10 @@
 A modern, high-performance web interface for advanced geospatial data visualization and analysis.
 
 ## Pipeline Status
-### Frontend CI Pipeline 
+### Frontend CI Pipeline
 [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
 
-### Lint Pipeline 
+### Lint Pipeline
 [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
 
 ## Technology
