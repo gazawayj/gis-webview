@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [21.x] # Use a specific Node.js version sdfsdfdsf
+        node-version: [22.x] # Use a specific Node.js version sdfsdfdsf
 
     steps:
     - uses: actions/checkout@v4 # Checkout the repository code
