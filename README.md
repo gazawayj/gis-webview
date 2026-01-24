@@ -62,5 +62,5 @@ This project maintains high code standards through automated workflows:
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com">gazawayj</a>
+  Made by Jim Gazaway<a href="https://github.com">gazawayj</a>
 </p>
