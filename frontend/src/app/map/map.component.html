@@ -1,25 +1,33 @@
 <header>
   <div class="toolbar">
-    Select Your Planetary Body:
-    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('earth')">Earth</button>
-    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('mars')">Mars</button>
-    <button style="font-size: 20px; margin: 2px;" (click)="setPlanet('moon')">Moon</button>
+    <span class="label">Select Planetary Body:</span>
+    <button 
+      [class.active]="currentPlanet === 'mars'" 
+      (click)="setPlanet('mars')">Mars</button>
+    <button 
+      [class.active]="currentPlanet === 'earth'" 
+      (click)="setPlanet('earth')">Earth</button>
+    <button 
+      [class.active]="currentPlanet === 'moon'" 
+      (click)="setPlanet('moon')">Moon</button>
   </div>
 </header>
 
-<section>
-  <nav>
+<section class="main-layout">
+  <nav class="sidebar">
     <fieldset>
-      <legend>Layer Select:</legend>
-      <ul id="leftNav">
-        <li><input type="checkbox"> Layer 1</li>
-        <li><input type="checkbox"> Layer 2</li>
-        <li><input type="checkbox"> Layer 3</li>
-      </ul>
+      <legend>{{ currentPlanet | titlecase }} Overlays:</legend>
+      <div class="layer-item" *ngFor="let layer of layers">
+        <label class="layer-header">
+          <input type="checkbox" [(ngModel)]="layer.visible" (change)="toggleLayer(layer)" />
+          <span class="layer-name">{{ layer.name }}</span>
+        </label>
+        <div class="layer-card">{{ layer.description }}</div>
+      </div>
     </fieldset>
   </nav>
 
-  <article>
-    <div #mapContainer id="map" class="map"></div>
+  <article class="map-area">
+    <div #mapContainer class="map-container"></div>
   </article>
 </section>
