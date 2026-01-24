@@ -4,6 +4,9 @@ Lint Pipeline [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions
 
 Frontend CI Pipeline [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
 
+<p align="center">
+  <strong> </strong>
+</p> 
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
 <p align="center">
