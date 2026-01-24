@@ -56,7 +56,7 @@ Frontend CI Pipeline [![Frontend Node Status](https://github.com/gazawayj/gis-we
     npm run build
     ```
 
-## 📈 CI/CD Integration
+## CI/CD Integration
 This project maintains high code standards through automated workflows:
 - **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
 - **Super-Lint:** Enforces consistent coding styles across all supported languages.
