@@ -43,8 +43,8 @@ export class MapComponent implements AfterViewInit {
     const marsProj = getProjection('IAU2000:49900');
     marsProj?.setExtent(extent);
     
-    this.earthLayer = this.createLayer('/assets/earth/earth.png', extent, true);
-    this.marsLayer  = this.createLayer('/assets/mars/mars.png', extent, false);
+    this.earthLayer = this.createLayer('/assets/earth/earth.png', extent, false);
+    this.marsLayer  = this.createLayer('/assets/mars/mars.png', extent, true);
     this.moonLayer  = this.createLayer('/assets/moon/moon.png', extent, false); 
 
     this.map = new Map({
