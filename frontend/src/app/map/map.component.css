@@ -12,7 +12,7 @@
 .toolbar button.active {
   background-color: #6f5c80;
   color: white;
-  border-color: #6f5c80;
+  border-color: #ececec;
 }
 
 header{
