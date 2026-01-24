@@ -1,7 +1,7 @@
 # GIS Webview
 A modern, high-performance web interface for advanced geospatial data visualization and analysis.
 
-## Pipelines
+## Pipeline Status
 ### Frontend CI Pipeline 
 [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
 
