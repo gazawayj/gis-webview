@@ -16,11 +16,11 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm' # Cache npm dependencies for faster installs
     - name: Install dependencies
-      run: npm install # or 'npm ci' for clean installs with a lock file
-      working-directory: ./frontend #Point it to the frontend directory for building
-    - name: Build project
-      run: npm run build --if-present # Runs the build script if present in package.json
       working-directory: ./frontend
+      run: npm install # or 'npm ci' for clean installs with a lock file
+    - name: Build project
+      working-directory: ./frontend
+      run: npm run build --if-present # Runs the build script if present in package.json
     #- name: Run tests
     #  run: npm test --if-present # Runs the test script if present in package.json
     #  working-directory: ./frontend
