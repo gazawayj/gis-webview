@@ -221,3 +221,5 @@ export class MapComponent implements AfterViewInit {
     });
   }
 }
+
+export { Map };
