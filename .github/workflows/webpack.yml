@@ -1,4 +1,4 @@
-name: Test
+name: Building
 on: [push]
 
 jobs:
