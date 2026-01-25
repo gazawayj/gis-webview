@@ -1,4 +1,4 @@
-name: Frontpage Node.js CI Setup Pipeline
+name: Frontend CI Pipeline
 on: [push]
 
 jobs:
