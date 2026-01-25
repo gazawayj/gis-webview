@@ -13,6 +13,7 @@ jobs:
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4 # Configure the specified Node.js version
       with:
+        working-directory: ./frontend
         node-version: ${{ matrix.node-version }}
         cache: 'npm' # Cache npm dependencies for faster installs
     - name: Install dependencies
