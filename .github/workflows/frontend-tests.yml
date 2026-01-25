@@ -1,0 +1,40 @@
+name: Frontend Tests
+
+on:
+  push:
+    paths:
+      - 'frontend/**' # Only run when files in frontend/ change
+  pull_request:
+    paths:
+      - 'frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # Sets the default directory for all 'run' steps in this job
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          # Required for subdirectories
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci # 'npm ci' is preferred for automated environments
+
+      - name: Run Tests
+        run: npm test --if-present
