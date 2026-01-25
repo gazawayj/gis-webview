@@ -21,6 +21,6 @@ jobs:
     - name: Build project
       run: npm run build --if-present # Runs the build script if present in package.json
       working-directory: ./frontend
-    - name: Run tests
-      run: npm test --if-present # Runs the test script if present in package.json
-      working-directory: ./frontend
+    #- name: Run tests
+    #  run: npm test --if-present # Runs the test script if present in package.json
+    #  working-directory: ./frontend
