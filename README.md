@@ -31,12 +31,6 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 * **Optimized Module Bundling:** Powered by **Webpack** for minimal load times and efficient asset management.
 * **Spatial Protocol Support:** Native compatibility for GeoJSON and standard web mapping protocols.
 
-## Getting Started
-
-### Prerequisites
-* **Node.js** (v18.0 or higher recommended)
-* **NPM** or **Yarn**
-
 ## CI Integration
 This project maintains high code standards through automated workflows:
 - **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
