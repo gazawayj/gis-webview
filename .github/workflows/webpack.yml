@@ -4,6 +4,9 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     strategy:
       matrix:
         node-version: [22.x] # Use a specific Node.js version 
@@ -13,7 +16,6 @@ jobs:
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4 # Configure the specified Node.js version
       with:
-        working-directory: ./frontend
         node-version: ${{ matrix.node-version }}
         cache: 'npm' # Cache npm dependencies for faster installs
         cache-dependency-path: './frontend/package-lock.json' 
