@@ -14,8 +14,17 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ## Technology
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
+| Frontend CI Pipeline | Backend CI Pipeline |
+|:---|---:|
+| [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml) | |
 
+| Frontend Lint Test | Backend Lint Test |
+|:---|---:|
+| [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml) | |
 
+| Frontend Tests | Backend Tests |
+|:---|---:|
+| [![Frontend Tests](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml) | |
 
 ---
 
@@ -34,30 +43,7 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 * **Node.js** (v18.0 or higher recommended)
 * **NPM** or **Yarn**
 
-### Installation
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/gazawayj/gis-webview
-    
-    cd gis-webview
-    ```
-
-2. **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3. **Launch the development environment:**
-    ```bash
-    npm start
-    ```
-
-4. **Build for production:**
-    ```bash
-    npm run build
-    ```
-
-## CI/CD Integration
+## CI Integration
 This project maintains high code standards through automated workflows:
 - **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
 - **Super-Lint:** Enforces consistent coding styles across all supported languages.
