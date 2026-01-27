@@ -2,6 +2,8 @@ import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { get as getProjection } from 'ol/proj';
+import { isPlatformBrowser } from '@angular/common';
+import { Inject, PLATFORM_ID } from '@angular/core';
 
 import TileGrid from 'ol/tilegrid/TileGrid';
 import Map from 'ol/Map';
@@ -29,6 +31,8 @@ interface LayerItem {
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   //  RESTful API to pull base map sources.
   private getBasemapSource(planet: Planet): TileArcGISRest {
@@ -76,9 +80,13 @@ export class MapComponent implements AfterViewInit {
 
   // Lifecycle
   ngAfterViewInit(): void {
-    this.initMap();
-    this.setPlanet(this.currentPlanet);
+  if (!isPlatformBrowser(this.platformId)) {
+    return;
   }
+
+  this.initMap();
+  this.setPlanet(this.currentPlanet);
+}
 
   // Layer definitions per planet (temporary hardcoded)
   layersByPlanet: Record<Planet, LayerItem[]> = {  //Temp until loading from streams
@@ -140,7 +148,7 @@ export class MapComponent implements AfterViewInit {
   };
 
   // Convenience getter for template access
-  protected get layers(): LayerItem[] {
+  get layers(): LayerItem[] {
     return this.layersByPlanet[this.currentPlanet];
   }
 
@@ -221,5 +229,3 @@ export class MapComponent implements AfterViewInit {
     });
   }
 }
-
-export { Map };
