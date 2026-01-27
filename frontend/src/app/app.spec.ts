@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app';
+import { vi, beforeAll, beforeEach, describe, it, expect } from 'vitest';
 
 describe('App', () => {
   beforeAll(() => {
-    (globalThis as any).ResizeObserver = class {
+    // Use a proper class to satisfy the 'new' constructor requirement
+    vi.stubGlobal('ResizeObserver', class {
       observe() { }
       unobserve() { }
       disconnect() { }
-    };
+    });
   });
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -23,9 +26,10 @@ describe('App', () => {
 
   it('should render title', async () => {
     const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges(); // Ensure change detection runs
     await fixture.whenStable();
+
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.title')?.textContent).toContain('GIS Web Viewer');
   });
-
 });

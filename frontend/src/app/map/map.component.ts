@@ -171,7 +171,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   // Planet switching
-  protected setPlanet(planet: Planet): void {
+  setPlanet(planet: Planet): void {
     this.currentPlanet = planet;
     // Clear existing overlays
     Object.values(this.overlayLayers).forEach(layer => this.map.removeLayer(layer));
@@ -200,7 +200,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   // Layer toggling
-  protected toggleLayer(layer: LayerItem): void {
+  toggleLayer(layer: LayerItem): void {
     if (layer.type === 'basemap') {
       this.baseLayer.setVisible(layer.visible);
       return;
