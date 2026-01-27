@@ -6,15 +6,15 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ## Application Status
 | Frontend Build Status | Backend Build Status |
 |:---:|:---:|
-| [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml) | |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg" width="160"></a> | |
 
 | Frontend Lint Test | Backend Lint Test |
 |:---:|:---:|
-| [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml) | |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg" width="160"></a> | |
 
 | Frontend Tests | Backend Tests |
 |:---:|:---:|
-| [![Frontend Tests](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml) | |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg" width="160"></a> | |
 
 
 ## Technology
