@@ -4,7 +4,7 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ---
 
 ## Application Status
-| Frontend CI Pipeline | Backend CI Pipeline |
+| Frontend Build Status | Backend Build Status |
 |:---:|:---:|
 | [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml) | |
 
