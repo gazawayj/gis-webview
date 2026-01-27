@@ -1,19 +1,7 @@
 # GIS Webview
 A modern, high-performance web interface for advanced geospatial data visualization and analysis.
 
-## Pipeline Status
-### Frontend CI Pipeline
-[![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml)
-
-### Frontend Tests
-[![Frontend Tests](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml)
-
-### Lint Pipeline
-[![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml)
-
-## Technology
-[![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
-
+## Application Status
 | Frontend CI Pipeline | Backend CI Pipeline |
 |:---|---:|
 | [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml) | |
@@ -25,6 +13,11 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 | Frontend Tests | Backend Tests |
 |:---|---:|
 | [![Frontend Tests](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml) | |
+
+---
+
+## Technology
+[![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
 ---
 
