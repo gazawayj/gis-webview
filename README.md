@@ -1,20 +1,21 @@
 # GIS Webview
 A modern, high-performance web interface for advanced geospatial data visualization and analysis.
 
+---
+
 ## Application Status
 | Frontend CI Pipeline | Backend CI Pipeline |
-|:---|---:|
+|:---:|:---:|
 | [![Frontend Node Status](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/webpack.yml) | |
 
 | Frontend Lint Test | Backend Lint Test |
-|:---|---:|
+|:---:|:---:|
 | [![Lint Code Base](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/super-linter.yml) | |
 
 | Frontend Tests | Backend Tests |
-|:---|---:|
+|:---:|:---:|
 | [![Frontend Tests](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml) | |
 
----
 
 ## Technology
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
@@ -44,5 +45,5 @@ This project maintains high code standards through automated workflows:
 ---
 
 <p align="center">
-  Made by Jim Gazaway  <a href="https://github.com/gazawayj">github</a>
+  Made by Jim Gazaway
 </p>
