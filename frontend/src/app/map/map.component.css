@@ -49,21 +49,117 @@
   border-color: #6b5b7b;
 }
 
-/* Overlay panel */
+/* Container for all layers */
 .overlay-panel {
-  border: 1px solid #ccc;
-  padding: 0.75rem;
-}
-
-.overlay-item {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.75rem; /* Space between each 'card' */
 }
 
-.overlay-item .hint {
+/* Individual Layer Card */
+.overlay-item {
+  display: flex;
+  user-select: none;
+  align-items: flex-start; /* Align checkbox to top of text */
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fff;
+  cursor: grab; /* Visual hint for future drag-and-drop */
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+/* Hover effect to make it feel interactive */
+.overlay-item:hover {
+  background-color: #fcfcfc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: #d1d1d1;
+}
+
+.drag-handle {
+  color: #e0e0e0;
+  font-size: 0.75rem;
+  font-weight: 200;
+  margin-top: 0.35rem;
+  padding-right: 2px;
+  line-height: 1;
+  cursor: grab;
+}
+
+.overlay-item:hover .drag-handle {
+  color: #999;            /* Only becomes visible when hovering the card */
+}
+
+/* Active state for dragging later */
+.overlay-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+/* Style the checkbox */
+.overlay-item input[type="checkbox"] {
+  margin-top: 0.25rem; /* Better alignment with text */
+  cursor: pointer;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* Container for text to stack name over hint */
+.layer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  pointer-events: none; /* Let the label handle clicks */
+}
+
+.layer-info strong {
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.layer-info .hint {
   font-size: 0.8rem;
-  color: #666;
+  color: #777;
+}
+
+/* Container for top-right alignment */
+.layer-actions {
+  display: flex;
+  justify-content: flex-end; /* Pushes button to the right */
+  width: 100%;
+  margin-bottom: 10px;       /* Space between button and first layer card */
+}
+
+.add-layer-btn {
+  background: transparent;
+  border: 1.5px dashed #ccc; /* Dashed look implies "placeholder/future" */
+  color: #888;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.add-layer-btn:hover {
+  border-color: #6b5b7b; /* Matches your active purple theme */
+  color: #6b5b7b;
+  background-color: #f9f7fa;
+}
+
+.plus-icon {
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 /* Map container */

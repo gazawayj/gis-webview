@@ -19,12 +19,25 @@
     <fieldset class="overlay-panel">
       <legend>{{ currentPlanet | titlecase }} Layers:</legend>
 
-      <!-- Loop through the active planet's layers -->
+      <div class="layer-actions">
+        <button class="add-layer-btn" type="button">
+          <span class="plus-icon">+</span> Add Layer
+        </button>
+      </div>
+
       @for (layer of layers; track layer.id) {
       <label class="overlay-item">
+        <!-- 1. Drag handle on the far left -->
+        <span class="drag-handle">︙</span>
+
+        <!-- 2. Checkbox in the middle -->
         <input type="checkbox" [(ngModel)]="layer.visible" (change)="toggleLayer(layer)" />
-        <strong>{{ layer.name }}</strong>
-        <span class="hint">{{ layer.description }}</span>
+
+        <!-- 3. Text information on the right -->
+        <div class="layer-info">
+          <strong>{{ layer.name }}</strong>
+          <span class="hint">{{ layer.description }}</span>
+        </div>
       </label>
       }
     </fieldset>
