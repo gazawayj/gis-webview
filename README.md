@@ -76,10 +76,10 @@ These features will be implemented incrementally, guided by real-world GIS workf
 
 Current areas of active development include:
 
-- Expanding planetary basemap and CRS support
-- Improving automated test coverage for map interactions
-- Refining CI workflows for faster developer feedback
-- Experimenting with additional spatial data formats and services
+- **Expanding planetary basemap and CRS support**
+- **Improving automated test coverage for map interactions**
+- **Refining CI workflows for faster developer feedback**
+- **Experimenting with additional spatial data formats and services**
 
 The guiding principle of this project is **steady, visible improvement** rather than rapid feature expansion.
 
