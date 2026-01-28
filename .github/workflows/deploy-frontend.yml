@@ -36,5 +36,5 @@ jobs:
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend/dist/f/browser # Check your local /dist folder to verify this path
+          folder: frontend/dist/f
           branch: gh-pages
