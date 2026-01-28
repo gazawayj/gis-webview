@@ -29,7 +29,8 @@ describe('App', () => {
     fixture.detectChanges(); // Ensure change detection runs
     await fixture.whenStable();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.title')?.textContent).toContain('GIS Web Viewer');
+    const compiled = fixture.nativeElement as HTMLElement; const titleElement = compiled.querySelector('.title');
+    expect(titleElement).toBeTruthy(); // Ensures the element was actually found
+    expect(titleElement?.textContent).toContain('GIS Web Viewer');
   });
 });
