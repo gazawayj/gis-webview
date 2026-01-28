@@ -33,7 +33,7 @@ interface LayerItem {
   styleUrls: ['./map.component.css']
 })
 export class MapComponent implements AfterViewInit {
-  @ViewChild('mapContainer', { static: true })
+  @ViewChild('mapcontainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
