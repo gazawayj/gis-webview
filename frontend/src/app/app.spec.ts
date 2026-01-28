@@ -24,10 +24,17 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', () => {
+  it('should render title', async () => {
     const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges(); // <--- Essential to render the HTML
+    fixture.detectChanges();
+    await fixture.whenStable();
+
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('GIS WebView');
+
+    // Select the <h2> inside the sidebar of the MapComponent
+    const titleElement = compiled.querySelector('h2');
+
+    expect(titleElement).toBeTruthy();
+    expect(titleElement?.textContent).toContain('GIS for Planetary Bodies');
   });
 });
