@@ -67,7 +67,7 @@ export class MapComponent implements AfterViewInit {
       latLabel: 'Areographic Lat', lonLabel: 'Areographic Lon'
     },
     moon: {
-      center: [0, 0], zoom: 3, gravity: '1.62 m/s²',
+      center: [0, 0], zoom: 5, gravity: '1.62 m/s²',
       latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon'
     }
   };
