@@ -19,11 +19,14 @@
     <fieldset class="overlay-panel">
       <legend>{{ currentPlanet | titlecase }} Layers:</legend>
 
+      <!-- Loop through the active planet's layers -->
+      @for (layer of layers; track layer.id) {
       <label class="overlay-item">
-        <input type="checkbox" checked />
-        <strong>{{ currentPlanet | titlecase }} Basemap</strong>
-        <span class="hint">Primary surface reference</span>
+        <input type="checkbox" [(ngModel)]="layer.visible" (change)="toggleLayer(layer)" />
+        <strong>{{ layer.name }}</strong>
+        <span class="hint">{{ layer.description }}</span>
       </label>
+      }
     </fieldset>
   </aside>
 
