@@ -1,9 +1,6 @@
 {
   "name": "frontend",
   "version": "0.0.0",
-  "ts-standard": {
-    "project": "tsconfig.eslint.json"
-  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
