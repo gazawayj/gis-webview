@@ -33,7 +33,7 @@ interface LayerItem {
   styleUrls: ['./map.component.css']
 })
 export class MapComponent implements AfterViewInit {
-  @ViewChild('mapcontainer', { static: true })
+  @ViewChild('mapContainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
@@ -149,9 +149,9 @@ export class MapComponent implements AfterViewInit {
     const currentLayers = this.layersByPlanet[this.currentPlanet] || [];
     // Separate basemaps and overlays, then put overlays first so basemap is at the bottom
     const overlays = currentLayers.filter(l => l.type === 'overlay');
-    const basemaps = currentLayers.filter(l => l.type === 'basemap');
+    const basemap = currentLayers.filter(l => l.type === 'basemap');
 
-    return [...overlays, ...basemaps];
+    return [...overlays, ...basemap];
   }
 
   /* ------------------------------------------------------------------
