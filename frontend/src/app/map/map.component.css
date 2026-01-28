@@ -74,7 +74,7 @@
   transition: transform 0.1s, box-shadow 0.1s;
 }
 
-/* Hover effect to make it feel interactive */
+/* Hover effect interactive */
 .overlay-item:hover {
   background-color: #fcfcfc;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -101,7 +101,7 @@
   transform: scale(0.98);
 }
 
-/* Style the checkbox */
+/* Style checkbox */
 .overlay-item input[type="checkbox"] {
   margin-top: 0.25rem; /* Better alignment with text */
   cursor: pointer;
@@ -132,7 +132,7 @@
   display: flex;
   justify-content: flex-end; /* Pushes button to the right */
   width: 100%;
-  margin-bottom: .0px;       /* Space between button and first layer card */
+  margin-bottom: 0px;       /* Space between button and first layer card */
 }
 
 .add-layer-btn {
