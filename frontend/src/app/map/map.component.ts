@@ -85,7 +85,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   /* ------------------------------------------------------------------
-   * LAYER DEFINITIONS (UI)
+   * LAYER DEFINITIONS (BY PLANET)
    * ------------------------------------------------------------------ */
   layersByPlanet: Record<Planet, LayerItem[]> = {
     earth: [
@@ -97,7 +97,7 @@ export class MapComponent implements AfterViewInit {
         type: 'basemap'
       },
       {
-        id: 'earth-base',
+        id: 'earth-continent',
         name: 'Continent Outline',
         description: 'Boundaries of Earth’s continents',
         visible: false,
