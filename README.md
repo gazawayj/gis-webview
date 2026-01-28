@@ -70,7 +70,7 @@ Planned and exploratory features for upcoming iterations include:
 - **Pluggable Data Sources**  
   Modular backend connectors for WMS, WMTS, XYZ, and cloud-hosted GIS services.
 
-These features will be implemented incrementally, guided by real-world GIS workflows and performance considerations rather than feature volume alone.
+>These features will be implemented incrementally, guided by real-world GIS workflows and performance considerations rather than feature volume alone.
 
 ## Project Direction
 
@@ -81,7 +81,7 @@ Current areas of active development include:
 - **Refining CI workflows for faster developer feedback**
 - **Experimenting with additional spatial data formats and services**
 
-The guiding principle of this project is **steady, visible improvement** rather than rapid feature expansion.
+>The guiding principle of this project is **steady, visible improvement** rather than rapid feature expansion.
 
 ---
 
