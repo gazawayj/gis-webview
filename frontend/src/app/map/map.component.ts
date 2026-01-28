@@ -147,7 +147,7 @@ export class MapComponent implements AfterViewInit {
 
   get layers(): LayerItem[] {
     const currentLayers = this.layersByPlanet[this.currentPlanet] || [];
-    // Separate basemaps and overlays, then put overlays first so basemap is at the bottom
+    // Separate basemap and overlays, then put overlays first so basemap is at the bottom
     const overlays = currentLayers.filter(l => l.type === 'overlay');
     const basemap = currentLayers.filter(l => l.type === 'basemap');
 

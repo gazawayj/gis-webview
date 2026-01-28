@@ -17,7 +17,7 @@
 
 /* Sidebar */
 .sidebar {
-  width: 320px;
+  width: 400px;
   padding: 1rem;
   box-sizing: border-box;
   border-right: 1px solid #ddd;
@@ -132,27 +132,27 @@
   display: flex;
   justify-content: flex-end; /* Pushes button to the right */
   width: 100%;
-  margin-bottom: 10px;       /* Space between button and first layer card */
+  margin-bottom: .0px;       /* Space between button and first layer card */
 }
 
 .add-layer-btn {
   background: transparent;
-  border: 1.5px dashed #ccc; /* Dashed look implies "placeholder/future" */
+  border: .1rem dashed #ccc; /* Dashed look implies "placeholder/future" */
   color: #888;
-  padding: 4px 10px;
+  padding: .2rem;
   border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: .2rem;
   transition: all 0.2s ease;
   user-select: none;
 }
 
 .add-layer-btn:hover {
-  border-color: #6b5b7b; /* Matches your active purple theme */
+  border-color: #6b5b7b;
   color: #6b5b7b;
   background-color: #f9f7fa;
 }
