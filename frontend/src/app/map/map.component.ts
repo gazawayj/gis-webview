@@ -20,6 +20,7 @@ interface LayerItem {
   type: 'basemap' | 'overlay';
 }
 
+
 @Component({
   selector: 'app-map',
   standalone: true,
