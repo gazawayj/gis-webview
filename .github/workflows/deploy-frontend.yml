@@ -3,12 +3,12 @@ name: Deploy Angular to GitHub Pages
 on:
   push:
     branches:
-      - main  # Trigger on pushes to main
+      - main
     paths:
-      - 'frontend/**' # Only run if frontend files change
+      - 'frontend/**'
 
 permissions:
-  contents: write # Required to push to the gh-pages branch
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -30,15 +30,17 @@ jobs:
         working-directory: frontend
 
       - name: Build
+        # We use --base-href /gis-webview/ to match your GitHub repository name
         run: npm run build -- --configuration production --base-href /gis-webview/
         working-directory: frontend
 
-      - name: Debug Folder Structure
+      - name: Verify Build Output
+        # This helps us see exactly where files landed if the next step fails
         run: ls -R frontend/dist/
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
+          # Path logic: <repo-folder>/dist/<project-name>/browser
           folder: frontend/dist/frontend/browser
           branch: gh-pages
-
