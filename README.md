@@ -29,13 +29,10 @@ This repository serves both as:
 
 - **Planetary Basemap Support**  
   Early support for Earth, Mars, and Moon datasets.
-
 - **Automated Quality Control**  
   CI pipelines powered by GitHub Actions for builds, linting, and tests.
-
 - **Optimized Frontend Bundling**  
   Webpack-based builds focused on performance, caching, and minimal load times.
-
 - **Standards-Based Spatial Formats**  
   Native support for GeoJSON and common web mapping protocols.
 
@@ -45,10 +42,8 @@ Code quality and stability are enforced through automated workflows:
 
 - **Super-Linter**  
   Ensures consistent coding standards across all supported languages.
-
 - **Test Automation**  
   Frontend and backend tests run automatically as part of CI.
-
 > CI workflows are intentionally iterative and evolve alongside new features.
 
 ## Future Features
@@ -69,7 +64,6 @@ Planned and exploratory features for upcoming iterations include:
   Improved tile caching, lazy loading, and WebGL acceleration for large datasets.
 - **Pluggable Data Sources**  
   Modular backend connectors for WMS, WMTS, XYZ, and cloud-hosted GIS services.
-
 >These features will be implemented incrementally, guided by real-world GIS workflows and performance considerations rather than feature volume alone.
 
 ## Project Direction
@@ -80,7 +74,6 @@ Current areas of active development include:
 - **Improving automated test coverage for map interactions**
 - **Refining CI workflows for faster developer feedback**
 - **Experimenting with additional spatial data formats and services**
-
 >The guiding principle of this project is **steady, visible improvement** rather than rapid feature expansion.
 
 ---
