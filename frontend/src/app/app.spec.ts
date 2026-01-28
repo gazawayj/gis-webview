@@ -31,7 +31,7 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    // Select the <h2> inside the sidebar of the MapComponent
+    // Look for the <h2> tag that actually exists in your sidebar
     const titleElement = compiled.querySelector('h2');
 
     expect(titleElement).toBeTruthy();
