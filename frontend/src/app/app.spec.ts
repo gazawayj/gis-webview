@@ -24,13 +24,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render title', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges(); // Ensure change detection runs
-    await fixture.whenStable();
-
-    const compiled = fixture.nativeElement as HTMLElement; const titleElement = compiled.querySelector('.title');
-    expect(titleElement).toBeTruthy(); // Ensures the element was actually found
-    expect(titleElement?.textContent).toContain('GIS Web Viewer');
+    fixture.detectChanges(); // <--- Essential to render the HTML
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('GIS WebView');
   });
 });
