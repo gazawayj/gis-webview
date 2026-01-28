@@ -101,7 +101,7 @@ export class MapComponent implements AfterViewInit {
       {
         id: 'earth-base',
         name: 'Earth Basemap',
-        description: 'Primary surface reference',
+        description: 'Surface reference',
         visible: true,
         type: 'basemap'
       },
