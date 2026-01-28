@@ -33,6 +33,9 @@ jobs:
         run: npm run build -- --configuration production --base-href /gis-webview/
         working-directory: frontend
 
+      - name: Debug Folder Structure
+        run: ls -R frontend/dist/
+
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
