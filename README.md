@@ -43,9 +43,6 @@ This repository serves both as:
 
 Code quality and stability are enforced through automated workflows:
 
-- **Build Pipelines**  
-  Every push to `main` validates frontend and backend builds.
-
 - **Super-Linter**  
   Ensures consistent coding standards across all supported languages.
 
@@ -66,16 +63,12 @@ Planned and exploratory features for upcoming iterations include:
 
 - **Raster Analysis Tools**  
   On-the-fly slope, hillshade, and elevation profiling for planetary DEMs.
-
 - **Vector Query & Inspection**  
   Feature selection, attribute inspection, and spatial querying directly within the map view.
-
 - **Time-Aware Data Visualization**  
   Support for temporal layers and animated map playback.
-
 - **Performance Scaling**  
   Improved tile caching, lazy loading, and WebGL acceleration for large datasets.
-
 - **Pluggable Data Sources**  
   Modular backend connectors for WMS, WMTS, XYZ, and cloud-hosted GIS services.
 
