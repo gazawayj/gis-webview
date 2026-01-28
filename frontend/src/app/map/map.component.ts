@@ -68,13 +68,6 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  private getMarsXYZ(): XYZ {
-    return new XYZ({
-      url: 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_Color_Shaded_Relief/{z}/{x}/{y}.png',
-      crossOrigin: 'anonymous'
-    });
-  }
-
   /* ------------------------------------------------------------------
    * OVERLAY SOURCES
    * ------------------------------------------------------------------ */
@@ -120,7 +113,7 @@ export class MapComponent implements AfterViewInit {
         type: 'basemap'
       },
       {
-        id: 'mars-base',
+        id: 'lroc',
         name: 'MOLA Elevation',
         description: 'Mars Global Surveyor elevation model',
         visible: false,
