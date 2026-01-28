@@ -6,7 +6,7 @@ import {
   Inject,
   ChangeDetectorRef
 } from '@angular/core';
-import { CommonModule, TitleCasePipe, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
 
@@ -25,50 +25,58 @@ interface LayerItem {
   description: string;
   visible: boolean;
   type: 'basemap' | 'overlay';
+  zIndex: number;
+}
+
+interface PlanetState {
+  center: number[];
+  zoom: number;
 }
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule, TitleCasePipe],
+  imports: [CommonModule, FormsModule],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
 export class MapComponent implements AfterViewInit {
-  @ViewChild('mapContainer', { static: true })
-  mapContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+
+  // --- Public Template Variables ---
+  public map!: Map;
+  public zoomDisplay: string = '2.0';
+  public currentPlanet: Planet = 'earth';
+  public layers: LayerItem[] = [];
+  public isLoading: boolean = false;
+
+  // --- Private Map Properties ---
+  private baseLayer!: TileLayer<XYZ | TileArcGISRest>;
+  private overlayLayers: Record<string, TileLayer<TileArcGISRest>> = {};
+
+  // Memory to hold independent zoom/center per planet
+  private planetStates: Record<Planet, PlanetState> = {
+    earth: { center: fromLonLat([-100, 40]), zoom: 4 },
+    mars: { center: [0, 0], zoom: 3 },
+    moon: { center: [0, 0], zoom: 3 }
+  };
+
+  private readonly OVERLAY_URLS: Record<string, string> = {
+    lroc: 'https://tiles.arcgis.com'
+  };
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private cdr: ChangeDetectorRef
   ) { }
 
-  /* ------------------------------------------------------------------
-   * MAP + LAYERS
-   * ------------------------------------------------------------------ */
-
-  private map!: Map;
-  private baseLayer!: TileLayer<XYZ | TileArcGISRest>;
-  private overlayLayers: Record<string, TileLayer<TileArcGISRest>> = {};
-
-  currentPlanet: Planet = 'earth';
-  layers: LayerItem[] = [];
-
-  /* ------------------------------------------------------------------
-   * LIFECYCLE
-   * ------------------------------------------------------------------ */
-
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-
     this.initMap();
-
-    // 🔑 Defer planet setup until AFTER Angular stabilizes
+    
     queueMicrotask(() => {
-      this.setPlanet('earth');
+      this.setPlanet('earth'); // Load Earth as default
       this.map.updateSize();
-
-      // 🔑 Tell Angular we're done mutating bound state
       this.cdr.detectChanges();
     });
   }
@@ -89,22 +97,85 @@ export class MapComponent implements AfterViewInit {
         zoom: 2
       })
     });
+
+    // Update the Zoom Display variable whenever the map moves
+    this.map.on('moveend', () => {
+      const zoom = this.map.getView().getZoom();
+      this.zoomDisplay = zoom ? zoom.toFixed(1) : '2.0';
+      this.cdr.detectChanges();
+    });
+
+    this.setupLoadingListeners();
+  }
+
+  private setupLoadingListeners(): void {
+    this.map.on('loadstart', () => {
+      this.isLoading = true;
+      this.cdr.detectChanges();
+    });
+    this.map.on('loadend', () => {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    });
   }
 
   /* ------------------------------------------------------------------
-   * BASEMAP SOURCES
+   * PLANET SWITCHING & STATE MANAGEMENT
    * ------------------------------------------------------------------ */
+
+  setPlanet(planet: Planet): void {
+    const view = this.map.getView();
+
+    // 1. SAVE the state of the current planet before switching
+    if (this.currentPlanet) {
+      this.planetStates[this.currentPlanet] = {
+        center: view.getCenter() || [0, 0],
+        zoom: view.getZoom() || 3
+      };
+    }
+
+    // 2. Set the new planet
+    this.currentPlanet = planet;
+
+    // 3. Clear existing overlays
+    Object.values(this.overlayLayers).forEach(layer => this.map.removeLayer(layer));
+    this.overlayLayers = {};
+
+    // 4. Setup layers and zIndex (Bottom item in list = zIndex 0)
+    const planetLayers = this.layersByPlanet[planet];
+    this.layers = planetLayers.map((l, index) => ({
+      ...l,
+      visible: l.type === 'basemap',
+      zIndex: planetLayers.length - 1 - index 
+    }));
+
+    // 5. Update Basemap Source and Z-Index
+    const baseData = this.layers.find(l => l.type === 'basemap');
+    if (baseData) {
+      this.baseLayer.setSource(this.getBasemapSource(planet));
+      this.baseLayer.setZIndex(baseData.zIndex);
+    }
+
+    // 6. RESTORE the saved state for the new planet
+    const targetState = this.planetStates[planet];
+    const isEarth = planet === 'earth';
+
+    // Set constraints based on target planet before animating
+    view.setMinZoom(isEarth ? 2 : 1);
+    view.setMaxZoom(isEarth ? 18 : 8);
+
+    view.animate({
+      center: targetState.center,
+      zoom: targetState.zoom,
+      duration: 1000
+    });
+  }
 
   private getBasemapSource(planet: Planet): XYZ {
     const urls: Record<Planet, string> = {
-      earth:
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-
-      mars:
-        'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
-
-      moon:
-        'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-moon-basemap-v0-1/all/{z}/{x}/{y}.png'
+      earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      mars: 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
+      moon: 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-moon-basemap-v0-1/all/{z}/{x}/{y}.png'
     };
 
     return new XYZ({
@@ -112,103 +183,6 @@ export class MapComponent implements AfterViewInit {
       crossOrigin: 'anonymous'
     });
   }
-
-  /* ------------------------------------------------------------------
-   * OVERLAY SOURCES
-   * ------------------------------------------------------------------ */
-
-  private readonly OVERLAY_URLS: Record<string, string> = {
-    lroc:
-      'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Moon_LRO_LROC_WAC_Global_Mosaic_100m/MapServer'
-  };
-
-  protected getOverlaySource(layerId: string): TileArcGISRest {
-    return new TileArcGISRest({
-      url: this.OVERLAY_URLS[layerId],
-      crossOrigin: 'anonymous'
-    });
-  }
-
-  /* ------------------------------------------------------------------
-   * PLANET SWITCHING
-   * ------------------------------------------------------------------ */
-
-  setPlanet(planet: Planet): void {
-    this.currentPlanet = planet;
-
-    Object.values(this.overlayLayers).forEach(layer =>
-      this.map.removeLayer(layer)
-    );
-    this.overlayLayers = {};
-
-    this.layers = this.layersByPlanet[planet].map(l => ({
-      ...l,
-      visible: l.type === 'basemap'
-    }));
-
-    this.baseLayer.setSource(this.getBasemapSource(planet));
-    this.baseLayer.setVisible(true);
-
-    const view =
-      planet === 'earth'
-        ? new View({
-          projection: 'EPSG:3857',
-          center: fromLonLat([-100, 40]),
-          zoom: 4,
-          minZoom: 2,
-          maxZoom: 18
-        })
-        : new View({
-          projection: 'EPSG:4326',
-          center: [0, 0],
-          zoom: 0,
-          minZoom: 0,
-          maxZoom: 8
-        });
-
-    this.map.setView(view);
-  }
-
-  /* ------------------------------------------------------------------
-   * LAYER DEFINITIONS
-   * ------------------------------------------------------------------ */
-
-  layersByPlanet: Record<Planet, LayerItem[]> = {
-    earth: [
-      {
-        id: 'earth-base',
-        name: 'Earth Basemap',
-        description: 'Global surface reference',
-        visible: true,
-        type: 'basemap'
-      }
-    ],
-    mars: [
-      {
-        id: 'mars-base',
-        name: 'Mars Basemap',
-        description: 'Global Mars reference imagery',
-        visible: true,
-        type: 'basemap'
-      }
-    ],
-    moon: [
-      {
-        id: 'moon-base',
-        name: 'Moon Basemap',
-        description: 'Global lunar reference',
-        visible: true,
-        type: 'basemap'
-      },
-      {
-        id: 'lroc',
-        name: 'LROC Details',
-        description: 'High-resolution lunar imagery',
-        visible: false,
-        type: 'overlay'
-      }
-    ]
-  };
 
   /* ------------------------------------------------------------------
    * OVERLAY TOGGLING
@@ -221,16 +195,36 @@ export class MapComponent implements AfterViewInit {
     }
 
     if (!this.overlayLayers[layer.id]) {
-      const overlay = new TileLayer({
-        source: this.getOverlaySource(layer.id),
-        visible: layer.visible,
-        zIndex: 10
+      const source = new TileArcGISRest({
+        url: this.OVERLAY_URLS[layer.id],
+        crossOrigin: 'anonymous'
       });
-
+      const overlay = new TileLayer({
+        source,
+        visible: layer.visible,
+        zIndex: layer.zIndex
+      });
       this.overlayLayers[layer.id] = overlay;
       this.map.addLayer(overlay);
     } else {
       this.overlayLayers[layer.id].setVisible(layer.visible);
     }
   }
+
+  /* ------------------------------------------------------------------
+   * DATA DEFINITIONS
+   * ------------------------------------------------------------------ */
+
+  layersByPlanet: Record<Planet, LayerItem[]> = {
+    earth: [
+      { id: 'earth-base', name: 'Earth Basemap', description: 'Global surface imagery', visible: true, type: 'basemap', zIndex: 0 }
+    ],
+    mars: [
+      { id: 'mars-base', name: 'Mars Basemap', description: 'Global Mars reference', visible: true, type: 'basemap', zIndex: 0 }
+    ],
+    moon: [
+      { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 },
+      { id: 'moon-base', name: 'Moon Basemap', description: 'Global lunar reference', visible: true, type: 'basemap', zIndex: 0 }
+    ]
+  };
 }
