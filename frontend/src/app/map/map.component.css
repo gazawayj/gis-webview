@@ -26,7 +26,7 @@
 
 .sidebar h2 {
   margin-top: 0;
-  font-size: 1.2rem;
+  font-size: 1.75rem;
 }
 
 /* Planet buttons */
@@ -57,7 +57,7 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem; /* Space between each 'card' */
+  gap: 0.5rem; /* Space between each 'card' */
 }
 
 /* Individual Layer Card */
@@ -69,7 +69,7 @@
   padding: 0.75rem;
   border: 1px solid #eee;
   border-radius: 6px;
-  background: #fff;
+  background: #fbfbfb;
   cursor: grab; /* Visual hint for future drag-and-drop */
   transition: transform 0.1s, box-shadow 0.1s;
 }
