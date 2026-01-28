@@ -1,5 +1,5 @@
 # GIS Webview
-A modern, high-performance web interface for advanced geospatial data visualization and analysis.
+A modern, high-performance web interface for geospatial data visualization and analysis.
 
 ---
 
