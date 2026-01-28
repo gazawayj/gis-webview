@@ -23,7 +23,7 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ---
 
 ## Overview
-**GIS WebView** is a specialized geospatial interface designed to handle complex spatial infrastructures. It provides an opinionated, high-performance stack for managing and visualizing diverse spatial datasets—from raster imagery to dynamic vector layers—directly in any modern web browser.
+**GIS WebView** is a specialized geospatial interface designed to handle complex spatial infrastructures. It provides an opinionated, high-performance stack for managing and visualizing diverse spatial datasets—from raster imagery to dynamic vector layers—directly in any modern web browser. The frontend is an Angular application designed to efficiently render map, layers, and take commands. The backend serves planetary GIS data (GEOJSON, raster metadata, tiles).
 
 ## Key Features
 * **Unified Map Engine:** Interactive rendering of global-scale spatial data.

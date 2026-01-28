@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import mola
+from app.routers import mola
 
 app = FastAPI(title="GIS API")
 
