@@ -4,17 +4,12 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ---
 
 ## Application Status
-| Frontend Status | Backend Status |
-|:---:|:---:|
-| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg"></a> |
 
-| Frontend Lint | Backend Lint |
-|:---:|:---:|
-| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg"></a> |
-
-| Frontend Tests | Backend Tests |
-|:---:|:---:|
-| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml/badge.svg"></a> |
+| Category | Frontend | Backend |
+|:--|:--:|:--:|
+| **Build** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg"></a> |
+| **Lint** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg"></a> |
+| **Tests** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml/badge.svg"></a> |
 
 
 ## Technology
