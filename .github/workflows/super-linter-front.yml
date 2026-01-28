@@ -25,3 +25,4 @@ jobs:
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FILTER_REGEX_EXCLUDE: '.*[Rr][Ee][Aa][Dd][Mm][Ee]\.md$'
+          TYPESCRIPT_ES_CONFIG_FILE: frontend/tsconfig.eslint.json
