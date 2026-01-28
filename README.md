@@ -2,8 +2,6 @@
 
 A modern, high-performance web application for interactive geospatial visualization and experimentation.
 
----
-
 ## Application Status
 
 | Category | Frontend | Backend |
@@ -12,13 +10,9 @@ A modern, high-performance web application for interactive geospatial visualizat
 | **Lint** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
 | **Tests** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml/badge.svg" /></a> |
 
----
-
 ## Technology Stack
 
 [![Tech Stack](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
-
----
 
 ## Overview
 
@@ -30,8 +24,6 @@ This repository serves both as:
 
 - A hands-on learning environment for modern web-based GIS
 - A foundation for a more complete, extensible GIS visualization system
-
----
 
 ## Key Features
 
@@ -47,8 +39,6 @@ This repository serves both as:
 - **Standards-Based Spatial Formats**  
   Native support for GeoJSON and common web mapping protocols.
 
----
-
 ## Continuous Integration
 
 Code quality and stability are enforced through automated workflows:
@@ -63,8 +53,6 @@ Code quality and stability are enforced through automated workflows:
   Frontend and backend tests run automatically as part of CI.
 
 > CI workflows are intentionally iterative and evolve alongside new features.
-
----
 
 ## Future Features
 
