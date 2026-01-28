@@ -30,17 +30,21 @@ jobs:
         working-directory: frontend
 
       - name: Build
-        # We use --base-href /gis-webview/ to match your GitHub repository name
         run: npm run build -- --configuration production --base-href /gis-webview/
         working-directory: frontend
 
-      - name: Verify Build Output
-        # This helps us see exactly where files landed if the next step fails
-        run: ls -R frontend/dist/
+      - name: Debug and Map Folder
+        # This force-aligns whatever Angular built to a predictable path
+        run: |
+          echo "Checking directory structure..."
+          ls -R frontend/dist/
+          mkdir -p frontend/deploy-ready
+          # Copy the actual browser files (wherever they are) to a flat 'deploy-ready' folder
+          cp -r frontend/dist/frontend/browser/* frontend/deploy-ready/ || cp -r frontend/dist/frontend/* frontend/deploy-ready/
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # Path logic: <repo-folder>/dist/<project-name>/browser
-          folder: frontend/dist/frontend/browser
+          # Use our guaranteed folder
+          folder: frontend/deploy-ready
           branch: gh-pages
