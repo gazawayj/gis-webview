@@ -94,8 +94,6 @@ export class MapComponent implements AfterViewInit {
   /* ------------------------------------------------------------------
    * LAYER DEFINITIONS (UI)
    * ------------------------------------------------------------------ */
-
-  // Layer definitions per planet (temporary hardcoded)
   layersByPlanet: Record<Planet, LayerItem[]> = {
     earth: [
       {
