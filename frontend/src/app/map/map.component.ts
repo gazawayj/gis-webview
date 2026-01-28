@@ -9,11 +9,12 @@ import { CommonModule, TitleCasePipe, isPlatformBrowser } from '@angular/common'
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
 
-import XYZ from 'ol/source/XYZ';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
+import XYZ from 'ol/source/XYZ';
 import TileArcGISRest from 'ol/source/TileArcGISRest';
+import { fromLonLat } from 'ol/proj';
 
 type Planet = 'earth' | 'mars' | 'moon';
 
@@ -36,14 +37,14 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   /* ------------------------------------------------------------------
    * MAP + LAYERS
    * ------------------------------------------------------------------ */
 
   private map!: Map;
-  private baseLayer!: TileLayer<TileArcGISRest>;
+  private baseLayer!: TileLayer<XYZ | TileArcGISRest>;
   private overlayLayers: Record<string, TileLayer<TileArcGISRest>> = {};
 
   currentPlanet: Planet = 'earth';
@@ -52,17 +53,20 @@ export class MapComponent implements AfterViewInit {
    * BASEMAP SOURCES
    * ------------------------------------------------------------------ */
 
-  private getBasemapSource(planet: Planet): TileArcGISRest {
+  private getBasemapSource(planet: Planet): XYZ {
     const urls: Record<Planet, string> = {
       earth:
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+
+      // ArcGIS-hosted tiles = CORS-safe
       mars:
-        'http://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/celestia_mars-shaded-16k_global/{z}/{x}/{y}.png',
+        'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Mars_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
+
       moon:
-        'https://s3.amazonaws.com/opmbuilder/301_moon/tiles/w/hillshaded-albedo/%7Bz%7D/%7Bx%7D/%7B-y%7D.png'
+        'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Moon_LRO_LROC_WAC_Global_Mosaic_100m/MapServer/tile/{z}/{y}/{x}'
     };
 
-    return new TileArcGISRest({
+    return new XYZ({
       url: urls[planet],
       crossOrigin: 'anonymous'
     });
@@ -85,8 +89,9 @@ export class MapComponent implements AfterViewInit {
   }
 
   /* ------------------------------------------------------------------
-   * LAYER DEFINITIONS (BY PLANET)
+   * LAYER DEFINITIONS
    * ------------------------------------------------------------------ */
+
   layersByPlanet: Record<Planet, LayerItem[]> = {
     earth: [
       {
@@ -95,13 +100,6 @@ export class MapComponent implements AfterViewInit {
         description: 'Global surface reference',
         visible: true,
         type: 'basemap'
-      },
-      {
-        id: 'earth-continent',
-        name: 'Continent Outline',
-        description: 'Boundaries of Earth’s continents',
-        visible: false,
-        type: 'overlay'
       }
     ],
     mars: [
@@ -111,20 +109,6 @@ export class MapComponent implements AfterViewInit {
         description: 'Global Mars reference imagery',
         visible: true,
         type: 'basemap'
-      },
-      {
-        id: 'lroc',
-        name: 'MOLA Elevation',
-        description: 'Mars Global Surveyor elevation model',
-        visible: false,
-        type: 'overlay'
-      },
-      {
-        id: 'mars-base',
-        name: 'THEMIS Imagery',
-        description: 'High-resolution surface imagery',
-        visible: false,
-        type: 'overlay'
       }
     ],
     moon: [
@@ -145,29 +129,19 @@ export class MapComponent implements AfterViewInit {
     ]
   };
 
-  get layers(): LayerItem[] {
-    const currentLayers = this.layersByPlanet[this.currentPlanet] || [];
-    // Separate basemap and overlays, then put overlays first so basemap is at the bottom
-    const overlays = currentLayers.filter(l => l.type === 'overlay');
-    const basemap = currentLayers.filter(l => l.type === 'basemap');
-
-    return [...overlays, ...basemap];
-  }
+  layers: LayerItem[] = [];
 
   /* ------------------------------------------------------------------
    * LIFECYCLE
    * ------------------------------------------------------------------ */
 
   ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
+    if (!isPlatformBrowser(this.platformId)) return;
 
     this.initMap();
-    this.setPlanet(this.currentPlanet);
-    setTimeout(() => {
-      this.map.updateSize();
-    }, 0);
+    this.setPlanet('earth');
+
+    setTimeout(() => this.map.updateSize(), 0);
   }
 
   /* ------------------------------------------------------------------
@@ -176,7 +150,6 @@ export class MapComponent implements AfterViewInit {
 
   private initMap(): void {
     this.baseLayer = new TileLayer({
-      visible: true,
       zIndex: 0
     });
 
@@ -184,17 +157,15 @@ export class MapComponent implements AfterViewInit {
       target: this.mapContainer.nativeElement,
       layers: [this.baseLayer],
       view: new View({
-        projection: 'EPSG:4326',
+        projection: 'EPSG:3857',
         center: [0, 0],
-        zoom: 0,
-        minZoom: 0,
-        maxZoom: 12
+        zoom: 2
       })
     });
   }
 
   /* ------------------------------------------------------------------
-   * PLANET SWITCHING
+   * PLANET SWITCHING (CORRECT WAY)
    * ------------------------------------------------------------------ */
 
   setPlanet(planet: Planet): void {
@@ -207,23 +178,37 @@ export class MapComponent implements AfterViewInit {
     this.overlayLayers = {};
 
     // Reset UI state
-    this.layersByPlanet[planet].forEach(layer => {
-      layer.visible = layer.type === 'basemap';
-    });
+    this.layers = this.layersByPlanet[planet].map(l => ({
+      ...l,
+      visible: l.type === 'basemap'
+    }));
 
     // Apply basemap
     this.baseLayer.setSource(this.getBasemapSource(planet));
     this.baseLayer.setVisible(true);
 
-    const view = this.map.getView();
+    // ✅ CREATE A NEW VIEW (this is the key fix)
+    let view: View;
 
     if (planet === 'earth') {
-      view.setCenter([-100, 40]);
-      view.setZoom(4);
+      view = new View({
+        projection: 'EPSG:3857',
+        center: fromLonLat([-100, 40]),
+        zoom: 4,
+        minZoom: 2,
+        maxZoom: 18
+      });
     } else {
-      view.setCenter([0, 0]);
-      view.setZoom(0);
+      view = new View({
+        projection: 'EPSG:4326',
+        center: [0, 0],
+        zoom: 0,
+        minZoom: 0,
+        maxZoom: 8
+      });
     }
+
+    this.map.setView(view);
   }
 
   /* ------------------------------------------------------------------
@@ -240,7 +225,7 @@ export class MapComponent implements AfterViewInit {
       const overlay = new TileLayer({
         source: this.getOverlaySource(layer.id),
         visible: layer.visible,
-        zIndex: 1
+        zIndex: 10
       });
 
       this.overlayLayers[layer.id] = overlay;
