@@ -35,6 +35,6 @@ describe('App', () => {
     const titleElement = compiled.querySelector('h2');
 
     expect(titleElement).toBeTruthy();
-    expect(titleElement?.textContent).toContain('GIS for Planetary Bodies');
+    expect(titleElement?.textContent).toContain('GIS Web Viewer');
   });
 });
