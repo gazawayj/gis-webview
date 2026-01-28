@@ -57,10 +57,8 @@ Planned and exploratory features for upcoming iterations include:
 
 - **Advanced Layer Management**  
   Drag-and-drop layer ordering, opacity controls, and grouping for complex map compositions.
-
 - **Custom Projections & Planetary CRS**  
   First-class support for non-Earth coordinate systems, including custom WKT definitions for Mars and Moon datasets.
-
 - **Raster Analysis Tools**  
   On-the-fly slope, hillshade, and elevation profiling for planetary DEMs.
 - **Vector Query & Inspection**  
