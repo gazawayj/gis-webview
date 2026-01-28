@@ -55,9 +55,9 @@ export class MapComponent implements AfterViewInit {
   private getBasemapSource(planet: Planet): TileArcGISRest {
     const urls: Record<Planet, string> = {
       earth:
-        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer',
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
       mars:
-        'http://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/celestia_mars-shaded-16k_global/{z}/{x}/{-y}.png',
+        'http://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/celestia_mars-shaded-16k_global/{z}/{x}/{y}.png',
       moon:
         'https://s3.amazonaws.com/opmbuilder/301_moon/tiles/w/hillshaded-albedo/%7Bz%7D/%7Bx%7D/%7B-y%7D.png'
     };
