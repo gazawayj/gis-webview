@@ -1,14 +1,15 @@
 <div class="page">
   <!-- Sidebar -->
   <aside class="sidebar">
-    <h2>Planetary Map</h2>
-
+    <h2>{{ currentPlanet | titlecase }}</h2>
+    
     <div class="planet-buttons">
       <button (click)="setPlanet('earth')" [class.active]="currentPlanet === 'earth'">Earth</button>
       <button (click)="setPlanet('mars')" [class.active]="currentPlanet === 'mars'">Mars</button>
       <button (click)="setPlanet('moon')" [class.active]="currentPlanet === 'moon'">Moon</button>
     </div>
 
+    <!-- Layers Container -->
     <div class="overlay-panel">
       <div class="layer-actions">
         <button class="add-layer-btn">
@@ -18,7 +19,10 @@
 
       <div *ngFor="let layer of layers" class="overlay-item">
         <span class="drag-handle">⠿</span>
-        <input type="checkbox" [(ngModel)]="layer.visible" (change)="toggleLayer(layer)">
+        <input 
+          type="checkbox" 
+          [(ngModel)]="layer.visible" 
+          (change)="toggleLayer(layer)">
         <div class="layer-info">
           <strong>{{ layer.name }}</strong>
           <span class="hint">{{ layer.description }}</span>
@@ -26,19 +30,32 @@
       </div>
     </div>
 
-    <!-- Zoom Display at bottom of Sidebar -->
-    <div style="margin-top: auto; padding-top: 1rem; font-size: 0.8rem; color: #666;">
-      <div style="margin-top: auto; padding-top: 1rem; font-size: 0.8rem; color: #666;">
-        Zoom Level: {{ zoomDisplay }}
+    <!-- Planetary Stats (Pushed to bottom) -->
+    <div class="stats-panel">
+      <div class="stat-item">
+        <span>Zoom Level</span> 
+        <strong>{{ zoomDisplay }}</strong>
+      </div>
+      <div class="stat-item">
+        <span>{{ currentStats.latLabel }}</span> 
+        <strong>{{ currentLat }}</strong>
+      </div>
+      <div class="stat-item">
+        <span>{{ currentStats.lonLabel }}</span> 
+        <strong>{{ currentLon }}</strong>
+      </div>
+      <div class="stat-item">
+        <span>Surface Gravity</span> 
+        <strong>{{ currentStats.gravity }}</strong>
       </div>
     </div>
   </aside>
 
   <!-- Map Area -->
-  <main style="flex: 1; position: relative;">
+  <main class="map-wrapper">
     <div #mapContainer id="mapContainer"></div>
 
-    <!-- Loading Spinner (Centered on Map) -->
+    <!-- Loading Spinner -->
     <div *ngIf="isLoading" class="loading-overlay">
       <div class="spinner"></div>
     </div>
