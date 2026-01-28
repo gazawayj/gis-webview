@@ -43,11 +43,11 @@ jobs:
           cp -r frontend/dist/frontend/browser/* frontend/deploy-ready/ || cp -r frontend/dist/frontend/* frontend/deploy-ready/
 
       - name: Add .nojekyll
-        run: touch frontend/dist/frontend/browser/.nojekyll
+        # Target 'deploy-ready' since that's what you are deploying
+        run: touch frontend/deploy-ready/.nojekyll
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # Use our guaranteed folder
           folder: frontend/deploy-ready
           branch: gh-pages

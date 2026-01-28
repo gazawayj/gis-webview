@@ -8,7 +8,6 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-
 /* Highlight the selected planet button  */
 .toolbar button.active {
   background-color: #6f5c80;
