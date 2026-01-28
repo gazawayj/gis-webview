@@ -11,8 +11,6 @@ A modern, high-performance web interface for geospatial data visualization and a
 | **Lint** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg"></a> |
 | **Tests** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/frontend-tests.yml/badge.svg"></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/backend-tests.yml/badge.svg"></a> |
 
-> CI pipelines are actively evolving as features are added.
-
 ## Technology
 [![My Skills](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
 
@@ -35,6 +33,7 @@ This repository is both a learning project and a foundation for a more complete 
 This project maintains high code standards through automated workflows:
 - **Build Pipeline:** Every push to `main` triggers a webpack compilation check.
 - **Super-Lint:** Enforces consistent coding styles across all supported languages.
+> CI pipelines are actively evolving as features are added.
 
 ## Project Direction
 Current areas of focus include:
