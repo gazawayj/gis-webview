@@ -6,7 +6,7 @@ A modern, high-performance web interface for advanced geospatial data visualizat
 ## Application Status
 | Frontend Status | Backend Status |
 |:---:|:---:|
-| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/build-front.yml/badge.svg"></a> | |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg"></a> | |
 
 | Frontend Lint | Backend Lint |
 |:---:|:---:|
