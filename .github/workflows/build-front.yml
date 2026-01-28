@@ -1,4 +1,4 @@
-name: Build front
+name: Build Front
 on: [push]
 
 jobs:
