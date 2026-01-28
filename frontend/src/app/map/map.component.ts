@@ -3,7 +3,8 @@ import {
   AfterViewInit,
   ViewChild,
   ElementRef,
-  Inject
+  Inject,
+  ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule, TitleCasePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -37,7 +38,10 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   /* ------------------------------------------------------------------
    * MAP + LAYERS
@@ -48,6 +52,44 @@ export class MapComponent implements AfterViewInit {
   private overlayLayers: Record<string, TileLayer<TileArcGISRest>> = {};
 
   currentPlanet: Planet = 'earth';
+  layers: LayerItem[] = [];
+
+  /* ------------------------------------------------------------------
+   * LIFECYCLE
+   * ------------------------------------------------------------------ */
+
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    this.initMap();
+
+    // 🔑 Defer planet setup until AFTER Angular stabilizes
+    queueMicrotask(() => {
+      this.setPlanet('earth');
+      this.map.updateSize();
+
+      // 🔑 Tell Angular we're done mutating bound state
+      this.cdr.detectChanges();
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * MAP INITIALIZATION
+   * ------------------------------------------------------------------ */
+
+  private initMap(): void {
+    this.baseLayer = new TileLayer({ zIndex: 0 });
+
+    this.map = new Map({
+      target: this.mapContainer.nativeElement,
+      layers: [this.baseLayer],
+      view: new View({
+        projection: 'EPSG:3857',
+        center: [0, 0],
+        zoom: 2
+      })
+    });
+  }
 
   /* ------------------------------------------------------------------
    * BASEMAP SOURCES
@@ -58,12 +100,11 @@ export class MapComponent implements AfterViewInit {
       earth:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 
-      // ArcGIS-hosted tiles = CORS-safe
       mars:
-        'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Mars_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
+        'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
 
       moon:
-        'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Moon_LRO_LROC_WAC_Global_Mosaic_100m/MapServer/tile/{z}/{y}/{x}'
+        'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-moon-basemap-v0-1/all/{z}/{x}/{y}.png'
     };
 
     return new XYZ({
@@ -86,6 +127,46 @@ export class MapComponent implements AfterViewInit {
       url: this.OVERLAY_URLS[layerId],
       crossOrigin: 'anonymous'
     });
+  }
+
+  /* ------------------------------------------------------------------
+   * PLANET SWITCHING
+   * ------------------------------------------------------------------ */
+
+  setPlanet(planet: Planet): void {
+    this.currentPlanet = planet;
+
+    Object.values(this.overlayLayers).forEach(layer =>
+      this.map.removeLayer(layer)
+    );
+    this.overlayLayers = {};
+
+    this.layers = this.layersByPlanet[planet].map(l => ({
+      ...l,
+      visible: l.type === 'basemap'
+    }));
+
+    this.baseLayer.setSource(this.getBasemapSource(planet));
+    this.baseLayer.setVisible(true);
+
+    const view =
+      planet === 'earth'
+        ? new View({
+          projection: 'EPSG:3857',
+          center: fromLonLat([-100, 40]),
+          zoom: 4,
+          minZoom: 2,
+          maxZoom: 18
+        })
+        : new View({
+          projection: 'EPSG:4326',
+          center: [0, 0],
+          zoom: 0,
+          minZoom: 0,
+          maxZoom: 8
+        });
+
+    this.map.setView(view);
   }
 
   /* ------------------------------------------------------------------
@@ -128,88 +209,6 @@ export class MapComponent implements AfterViewInit {
       }
     ]
   };
-
-  layers: LayerItem[] = [];
-
-  /* ------------------------------------------------------------------
-   * LIFECYCLE
-   * ------------------------------------------------------------------ */
-
-  ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    this.initMap();
-    this.setPlanet('earth');
-
-    setTimeout(() => this.map.updateSize(), 0);
-  }
-
-  /* ------------------------------------------------------------------
-   * MAP INITIALIZATION
-   * ------------------------------------------------------------------ */
-
-  private initMap(): void {
-    this.baseLayer = new TileLayer({
-      zIndex: 0
-    });
-
-    this.map = new Map({
-      target: this.mapContainer.nativeElement,
-      layers: [this.baseLayer],
-      view: new View({
-        projection: 'EPSG:3857',
-        center: [0, 0],
-        zoom: 2
-      })
-    });
-  }
-
-  /* ------------------------------------------------------------------
-   * PLANET SWITCHING (CORRECT WAY)
-   * ------------------------------------------------------------------ */
-
-  setPlanet(planet: Planet): void {
-    this.currentPlanet = planet;
-
-    // Remove overlays
-    Object.values(this.overlayLayers).forEach(layer =>
-      this.map.removeLayer(layer)
-    );
-    this.overlayLayers = {};
-
-    // Reset UI state
-    this.layers = this.layersByPlanet[planet].map(l => ({
-      ...l,
-      visible: l.type === 'basemap'
-    }));
-
-    // Apply basemap
-    this.baseLayer.setSource(this.getBasemapSource(planet));
-    this.baseLayer.setVisible(true);
-
-    // ✅ CREATE A NEW VIEW (this is the key fix)
-    let view: View;
-
-    if (planet === 'earth') {
-      view = new View({
-        projection: 'EPSG:3857',
-        center: fromLonLat([-100, 40]),
-        zoom: 4,
-        minZoom: 2,
-        maxZoom: 18
-      });
-    } else {
-      view = new View({
-        projection: 'EPSG:4326',
-        center: [0, 0],
-        zoom: 0,
-        minZoom: 0,
-        maxZoom: 8
-      });
-    }
-
-    this.map.setView(view);
-  }
 
   /* ------------------------------------------------------------------
    * OVERLAY TOGGLING
