@@ -1,5 +1,5 @@
 import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, TitleCasePipe, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
 
@@ -33,7 +33,7 @@ interface PlanetState {
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule, TitleCasePipe],
+  imports: [CommonModule, FormsModule],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
