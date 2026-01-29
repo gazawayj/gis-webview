@@ -95,9 +95,9 @@ export class MapComponent implements AfterViewInit {
   private initMap(): void {
     this.baseLayer = new TileLayer({ zIndex: 0 });
 
-    // Create the container for dragging
+    // Create the container for dragging for ol access
     const scaleContainer = document.createElement('div');
-    scaleContainer.className = 'scale-drag-container custom-transparent-scale';
+    scaleContainer.className = 'scale-drag-container';
 
     // Initialize ScaleLine using the imported class (not ol.control)
     const scaleLine = new ScaleLine({

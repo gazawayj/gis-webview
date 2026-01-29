@@ -1,4 +1,5 @@
-/* Define primary color variable globally */
+/* GLOBAL COLORS */
+
 :root {
   --primary-color: #6b5b7b;
   --text-color-dark: #333;
@@ -6,7 +7,8 @@
   --border-color-light: #ddd;
 }
 
-/* Host must define height */
+/* HOST HEIGHT FOR OL */
+
 :host {
   display: block;
   height: 100vh;
@@ -14,7 +16,8 @@
   margin: 0;
 }
 
-/* Main layout */
+/* MAIN */
+
 .page {
   display: flex;
   height: 100vh;
@@ -23,7 +26,8 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Sidebar */
+/* SIDEBAR LAYOUT */
+
 .sidebar {
   width: 400px;
   flex-shrink: 0;
@@ -46,7 +50,8 @@
   font-size: 1.75rem;
 }
 
-/* Planet buttons */
+/* PLANET SELECTION */
+
 .planet-buttons {
   display: flex;
   gap: 0.5rem;
@@ -66,7 +71,8 @@
   border-color: var(--primary-color);
 }
 
-/* Container for all layers */
+/* LAYER CONTAINER */
+
 .overlay-panel {
   border: 1px solid var(--border-color-light);
   padding: 1rem;
@@ -77,7 +83,8 @@
   gap: 0.5rem;
 }
 
-/* Individual Layer Card */
+/* LAYER CARDS */
+
 .overlay-item {
   display: flex;
   user-select: none;
@@ -130,7 +137,8 @@
   color: #777;
 }
 
-/* Layer Actions & Add Button */
+/* ADD LAYER BUTTON */
+
 .layer-actions {
   display: flex;
   justify-content: flex-end;
@@ -165,7 +173,8 @@
   font-weight: bold;
 }
 
-/* Sidebar Stats Panel */
+/* SIDEBAR STATS */
+
 .stats-panel {
   background: var(--text-color-light);
   border: 1px solid var(--border-color-light);
@@ -186,7 +195,8 @@
   color: var(--primary-color);
 }
 
-/* Map specific styling */
+/* MAP STYLE */
+
 .map-wrapper {
   flex: 1;
   height: 100%;
@@ -223,14 +233,14 @@
   100% { transform: rotate(360deg); }
 }
 
+/* SCALE BAR STYLE */
+
 /* The draggable wrapper */
 ::ng-deep .scale-drag-container {
     position: absolute;
     z-index: 1000;
     padding: 0px;
-    /* Manually converted #6b5b7b to rgba(107, 91, 123, .45) */
     background: rgba(107, 91, 123, .45) !important; 
-    /* border: 2px solid var(--primary-color); */
     border-radius: 2px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
@@ -244,9 +254,8 @@
 }
 
 ::ng-deep .ol-scale-line-inner {
-    border: 2px solid #000000 !important; /* Black border for visibility */
+    border: 2px solid #000000 !important;
     color: var(--text-color-light);
-    font-weight: 800 !important; /* Extra bold */
     font-size: 13px !important;
     background: transparent;
     text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.8);
