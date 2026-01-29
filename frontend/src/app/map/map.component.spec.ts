@@ -3,11 +3,6 @@ import { MapComponent } from './map.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Map from 'ol/Map';
-import View from 'ol/View';
-import VectorLayer from 'ol/layer/Vector';
-
-
-type Planet = 'earth' | 'mars' | 'moon';
 
 describe('MapComponent', () => {
   let component: MapComponent;

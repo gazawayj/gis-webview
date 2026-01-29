@@ -1,7 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { AppComponent } from './app';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
