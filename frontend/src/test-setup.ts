@@ -1,3 +1,6 @@
+import 'zone.js';
+import 'zone.js/testing';
+
 class ResizeObserverMock {
   observe() {}
   unobserve() {}
