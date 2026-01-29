@@ -12,7 +12,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(mola.router, prefix="/api") 
+app.include_router(mola.router, prefix="/mola") 
 
 # 1. Get the absolute path to the directory where main.py lives (backend/app/)
 current_dir = os.path.dirname(os.path.abspath(__file__))
