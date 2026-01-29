@@ -1,5 +1,15 @@
 name: Build Front
-on: [push]
+on: 
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
 
 jobs:
   build:

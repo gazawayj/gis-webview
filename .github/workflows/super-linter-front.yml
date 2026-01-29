@@ -1,10 +1,16 @@
 name: Lint Front
 
-on:
+on: 
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
 jobs:
   run-lint:
     runs-on: ubuntu-latest
