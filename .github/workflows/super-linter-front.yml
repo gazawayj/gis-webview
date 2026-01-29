@@ -1,36 +1,31 @@
 name: Lint Front
 
-on: 
+on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - 'README.md'
+      - '**/README.md'
+      - '**/tiles/**/*.png'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - 'README.md'
+      - '**/README.md'
+      - '**/tiles/**/*.png'
+
 jobs:
-  run-lint:
+  eslint:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          # Full git history is needed to get a proper list of changed files within `super-linter`
-          fetch-depth: 0
-
-      - name: Lint Code Base
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: "main"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_TYPESCRIPT_STANDARD: false
-          VALIDATE_TYPESCRIPT_ES: true
-          FILTER_REGEX_EXCLUDE: '.*[Rr][Ee][Aa][Dd][Mm][Ee]\.md$'
-          TYPESCRIPT_ES_CONFIG_FILE: frontend/tsconfig.eslint.json
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install --legacy-peer-deps
+      - run: npm run lint

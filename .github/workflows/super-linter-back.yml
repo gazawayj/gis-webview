@@ -1,33 +1,31 @@
 name: Lint Back
 
-on: 
+on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - 'README.md'
+      - '**/README.md'
+      - '**/tiles/**/*.png'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - 'README.md'
+      - '**/README.md'
+      - '**/tiles/**/*.png'
+
 jobs:
-  run-lint:
+  flake8:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: backend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          # Full git history is needed to get a proper list of changed files within `super-linter`
-          fetch-depth: 0
-
-      - name: Lint Code Base
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: "main"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FILTER_REGEX_EXCLUDE: '.*[Rr][Ee][Aa][Dd][Mm][Ee]\.md$'
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
