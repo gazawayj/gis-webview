@@ -23,4 +23,5 @@ jobs:
         run: mkdir -p backend/tiles
       - name: Run tests
         run: |
+          cd backend
           pytest
