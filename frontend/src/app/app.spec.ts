@@ -9,7 +9,6 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      // Ensure HttpClientTestingModule is here if your app calls the backend
       imports: [AppComponent, HttpClientTestingModule],
     }).compileComponents();
 

@@ -6,6 +6,7 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import VectorLayer from 'ol/layer/Vector';
 
+
 type Planet = 'earth' | 'mars' | 'moon';
 
 describe('MapComponent', () => {
