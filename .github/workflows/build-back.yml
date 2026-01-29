@@ -19,7 +19,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
+      - name: Create tiles directory
+        run: mkdir -p backend/tiles
       - name: Run tests
         run: |
           pytest
