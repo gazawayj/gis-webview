@@ -22,10 +22,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          # This ensures the cache is tied to frontend dependencies
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        # 'npm install' with legacy-peer-deps to handle the Angular 21/AnalogJS conflict
+        run: npm install --legacy-peer-deps
 
       - name: Run tests
+        # This will now find vite.config.ts and test-setup.ts via the working-directory
         run: npm run test
