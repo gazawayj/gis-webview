@@ -12,7 +12,8 @@ module.exports = defineConfig([
       "dist/", 
       "README.md", 
       "**/README.md",
-      ".eslintignore" 
+      ".eslintignore"
+    ],
   },
   {
     files: ["**/*.ts"],
