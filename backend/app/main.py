@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import mola
 
 app = FastAPI()
 
@@ -11,6 +12,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(mola.router, prefix="/api") 
 
 # 1. Get the absolute path to the directory where main.py lives (backend/app/)
 current_dir = os.path.dirname(os.path.abspath(__file__))
