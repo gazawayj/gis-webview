@@ -63,11 +63,11 @@ export class MapComponent implements AfterViewInit {
       latLabel: 'Latitude', lonLabel: 'Longitude'
     },
     mars: {
-      center: [0, 0], zoom: 3, gravity: '3.71 m/s²',
+      center: [0, 0], zoom: 1.1, gravity: '3.71 m/s²',
       latLabel: 'Areographic Lat', lonLabel: 'Areographic Lon'
     },
     moon: {
-      center: [0, 0], zoom: 3.6, gravity: '1.62 m/s²',
+      center: [0, 0], zoom: 1.0, gravity: '1.62 m/s²',
       latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon'
     }
   };
