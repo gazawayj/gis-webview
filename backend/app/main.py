@@ -5,22 +5,27 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Enable CORS so your webview can access the tiles
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# This makes them accessible at http://localhost:8000/tiles/{z}/{x}/{y}.png
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 1. Get the absolute path to the directory where main.py lives (backend/app/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 2. Construct the path to the tiles directory (backend/tiles/)
+tiles_path = os.path.join(current_dir, "..", "tiles")
 
-# Point to the tiles folder relative to main.py
-tiles_path = os.path.join(os.path.dirname(BASE_DIR), "tiles")
-
+# 3. Mount the directory
 app.mount("/tiles", StaticFiles(directory=tiles_path), name="tiles")
+
+@app.get("/")
+async def root():
+    return {"message": "GIS Backend is running", "tiles_path": tiles_path}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use the string "main:app" to support hot-reloading
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
