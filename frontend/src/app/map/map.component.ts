@@ -74,7 +74,9 @@ export class MapComponent implements AfterViewInit {
 
   // Note: Updated lroc URL to the full service endpoint to prevent 404s
   private readonly OVERLAY_URLS: Record<string, string> = {
-    lroc: 'https://tiles.arcgis.com'
+    lroc: 'https://gibs.earthdata.nasa.gov' +
+         'LRO_WAC_Mosaic/default/2014-01-01/' +
+         'GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
   };
 
   constructor(
