@@ -1,20 +1,26 @@
+import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware # Add this import
-from app.routers import mola
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="GIS API")
+app = FastAPI()
 
-# Add this block right after 'app' is defined
+# Enable CORS so your webview can access the tiles
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For testing; change to your GitHub URL later
-    allow_credentials=True,
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(mola.router, prefix="/mola")
+# This makes them accessible at http://localhost:8000/tiles/{z}/{x}/{y}.png
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-@app.get("/")
-def root():
-    return {"status": "API running!"}
+# Point to the tiles folder relative to main.py
+tiles_path = os.path.join(os.path.dirname(BASE_DIR), "tiles")
+
+app.mount("/tiles", StaticFiles(directory=tiles_path), name="tiles")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
