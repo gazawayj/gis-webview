@@ -63,7 +63,8 @@ describe('MapComponent', () => {
       name: 'LROC',
       description: 'test',
       visible: true,
-      type: 'overlay'
+      type: 'overlay',
+      zIndex: 0
     });
 
     // 3. Assertions
