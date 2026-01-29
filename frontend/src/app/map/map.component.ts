@@ -226,7 +226,7 @@ export class MapComponent implements AfterViewInit {
       mars:
         'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png', 
       moon:
-        'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-moon-basemap-v0-1/all/{z}/{x}/{y}.png'
+        'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png'
     };
     return new XYZ({ url: urls[planet], crossOrigin: 'anonymous' });
   }
