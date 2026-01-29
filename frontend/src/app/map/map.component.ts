@@ -224,7 +224,7 @@ export class MapComponent implements AfterViewInit {
       earth:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       mars:
-        'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png',
+        'https://mars-gis.netlify.app{z}/{x}/{y}.png',
       moon:
         'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-moon-basemap-v0-1/all/{z}/{x}/{y}.png'
     };
