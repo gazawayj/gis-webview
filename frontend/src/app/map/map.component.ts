@@ -74,9 +74,7 @@ export class MapComponent implements AfterViewInit {
 
   // Note: Updated lroc URL to the full service endpoint to prevent 404s
   private readonly OVERLAY_URLS: Record<string, string> = {
-    lroc: 'https://gibs.earthdata.nasa.gov' +
-         'LRO_WAC_Mosaic/default/2014-01-01/' +
-         'GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
+    lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
   };
 
   constructor(
@@ -97,21 +95,26 @@ export class MapComponent implements AfterViewInit {
   private initMap(): void {
     this.baseLayer = new TileLayer({ zIndex: 0 });
 
+    const scaleContainer = document.createElement('div');
+    scaleContainer.className = 'scale-drag-container';
+
     const scaleLine = new ScaleLine({
       units: 'metric',
-      className: 'custom-scale-line'
+      target: scaleContainer
     });
 
     this.map = new Map({
       target: this.mapContainer.nativeElement,
       layers: [this.baseLayer],
-      controls: [scaleLine],
       view: new View({
         projection: 'EPSG:3857',
         center: [0, 0],
         zoom: 1
       })
     });
+
+    this.map.addControl(scaleLine);
+    this.mapContainer.nativeElement.appendChild(scaleContainer);
 
     this.map.on('moveend', () => {
       const zoom = this.map.getView().getZoom();
@@ -138,44 +141,37 @@ export class MapComponent implements AfterViewInit {
   }
 
   private makeScaleDraggable(): void {
-    const scaleEl = document.querySelector('.custom-scale-line') as HTMLElement;
-    if (!scaleEl) return;
+    const el = this.mapContainer.nativeElement.querySelector(
+      '.scale-drag-container'
+    ) as HTMLElement;
+    if (!el) return;
 
-    let isDragging = false;
-    let offset = { x: 0, y: 0 };
-    scaleEl.style.cursor = 'move';
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
 
-    scaleEl.addEventListener('mouseenter', () => {
-      this.map.getInteractions().forEach(i => i.setActive(false));
+    el.style.position = 'absolute';
+    el.style.bottom = '10px';
+    el.style.left = '10px';
+    el.style.cursor = 'grab';
+
+    el.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      startX = e.clientX - el.offsetLeft;
+      startY = e.clientY - el.offsetTop;
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
     });
 
-    scaleEl.addEventListener('mouseleave', () => {
-      if (!isDragging) {
-        this.map.getInteractions().forEach(i => i.setActive(true));
-      }
+    el.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      el.style.left = `${e.clientX - startX}px`;
+      el.style.top = `${e.clientY - startY}px`;
     });
 
-    scaleEl.addEventListener('mousedown', (e: MouseEvent) => {
-      isDragging = true;
-      const rect = scaleEl.getBoundingClientRect();
-      offset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    window.addEventListener('mousemove', (e: MouseEvent) => {
-      if (!isDragging) return;
-      scaleEl.style.right = 'auto';
-      scaleEl.style.bottom = 'auto';
-      scaleEl.style.left = `${e.clientX - offset.x}px`;
-      scaleEl.style.top = `${e.clientY - offset.y}px`;
-    });
-
-    window.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        this.map.getInteractions().forEach(i => i.setActive(true));
-      }
+    el.addEventListener('pointerup', () => {
+      dragging = false;
+      el.style.cursor = 'grab';
     });
   }
 
@@ -224,7 +220,7 @@ export class MapComponent implements AfterViewInit {
       earth:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       mars:
-        'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png', 
+        'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png',
       moon:
         'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png'
     };
