@@ -27,6 +27,12 @@
   flex-direction: column;
 }
 
+.sidebar h1 {
+  margin-top: -1rem;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
 .sidebar h2 {
   margin-top: 0;
   font-size: 1.75rem;
@@ -126,8 +132,8 @@
 
 .add-layer-btn {
   background: transparent;
-  border: 1.5px dashed #ccc;
-  color: #888;
+  border: 1.5px dashed #6b5b7b;
+  color: #6b5b7b;
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -140,6 +146,7 @@
 }
 
 .add-layer-btn:hover {
+  border: 1.5px solid;
   border-color: #6b5b7b;
   color: #6b5b7b;
   background-color: #f9f7fa;
