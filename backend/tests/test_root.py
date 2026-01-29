@@ -1,4 +1,7 @@
 def test_root(client):
     res = client.get("/")
     assert res.status_code == 200
-    assert res.json() == {"status": "API running!"}
+    # Match the actual response structure
+    data = res.json()
+    assert data["message"] == "GIS Backend is running"
+    assert "tiles_path" in data
