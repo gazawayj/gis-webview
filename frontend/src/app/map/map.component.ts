@@ -231,6 +231,7 @@ export class MapComponent implements AfterViewInit {
     return new XYZ({ url: urls[planet], crossOrigin: 'anonymous' });
   }
 
+  
   toggleLayer(layer: LayerItem): void {
     if (layer.type === 'basemap') {
       this.baseLayer.setVisible(layer.visible);
