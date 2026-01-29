@@ -1,3 +1,11 @@
+/* Define primary color variable globally */
+:root {
+  --primary-color: #6b5b7b;
+  --text-color-dark: #333;
+  --text-color-light: #fff;
+  --border-color-light: #ddd;
+}
+
 /* Host must define height */
 :host {
   display: block;
@@ -21,7 +29,7 @@
   flex-shrink: 0;
   padding: 1rem;
   box-sizing: border-box;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--border-color-light);
   background: #fafafa;
   display: flex;
   flex-direction: column;
@@ -53,17 +61,17 @@
 }
 
 .planet-buttons button.active {
-  background: #6b5b7b;
-  color: white;
-  border-color: #6b5b7b;
+  background: var(--primary-color);
+  color: var(--text-color-light);
+  border-color: var(--primary-color);
 }
 
 /* Container for all layers */
 .overlay-panel {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color-light);
   padding: 1rem;
   border-radius: 8px;
-  background: #fff;
+  background: var(--text-color-light);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -114,7 +122,7 @@
 
 .layer-info strong {
   font-size: 0.95rem;
-  color: #333;
+  color: var(--text-color-dark);
 }
 
 .layer-info .hint {
@@ -132,8 +140,8 @@
 
 .add-layer-btn {
   background: transparent;
-  border: 1.5px dashed #6b5b7b;
-  color: #6b5b7b;
+  border: 1.5px dashed var(--primary-color);
+  color: var(--primary-color);
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -147,8 +155,8 @@
 
 .add-layer-btn:hover {
   border: 1.5px solid;
-  border-color: #6b5b7b;
-  color: #6b5b7b;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   background-color: #f9f7fa;
 }
 
@@ -159,8 +167,8 @@
 
 /* Sidebar Stats Panel */
 .stats-panel {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--text-color-light);
+  border: 1px solid var(--border-color-light);
   padding: 1rem;
   border-radius: 8px;
   margin-top: auto;
@@ -175,7 +183,7 @@
 }
 
 .stat-item strong {
-  color: #6b5b7b;
+  color: var(--primary-color);
 }
 
 /* Map specific styling */
@@ -215,49 +223,31 @@
   100% { transform: rotate(360deg); }
 }
 
-::ng-deep .custom-scale-line {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid #000 !important;
-  border-radius: 0px !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  left: auto !important;
-  top: auto !important;
-  padding: 4px 8px !important;
-  position: absolute !important;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
-  z-index: 9999 !important;
-  transition: none !important;
-  pointer-events: auto !important;
+/* The draggable wrapper */
+::ng-deep .scale-drag-container {
+    position: absolute;
+    z-index: 1000;
+    padding: 0px;
+    /* Manually converted #6b5b7b to rgba(107, 91, 123, .45) */
+    background: rgba(107, 91, 123, .45) !important; 
+    /* border: 2px solid var(--primary-color); */
+    border-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* The actual OpenLayers scale line inside the wrapper */
+::ng-deep .ol-scale-line {
+    background: transparent !important; /* Remove OL's default background */
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
 }
 
 ::ng-deep .ol-scale-line-inner {
-  border: 2px solid #000 !important;
-  border-top: none !important;
-  color: #000 !important;
-  font-family: 'Courier New', Courier, monospace !important;
-  font-weight: 900 !important;
-  font-size: 13px !important;
-  padding: 0 4px !important;
-  pointer-events: none !important;
+    border: 2px solid #000000 !important; /* Black border for visibility */
+    color: var(--text-color-light);
+    font-weight: 800 !important; /* Extra bold */
+    font-size: 13px !important;
+    background: transparent;
+    text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.8);
 }
-
-.scale-drag-container {
-  background: rgba(20, 20, 20, 0.7);
-  backdrop-filter: blur(6px);
-  padding: 6px 10px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  user-select: none;
-}
-
-.custom-scale-line {
-  color: #fff;
-  font-size: 12px;
-}
-
-.custom-scale-line-inner {
-  border-color: #fff;
-  border-width: 2px;
-}
-

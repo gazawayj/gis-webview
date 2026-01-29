@@ -1,5 +1,12 @@
 @import "ol/ol.css";
 
+:root {
+  --primary-color: #6b5b7b;
+  --text-color-dark: #333;
+  --text-color-light: #fff;
+  --border-color-light: #ddd;
+}
+
 html, body {
   height: 100%;
   margin: 0;

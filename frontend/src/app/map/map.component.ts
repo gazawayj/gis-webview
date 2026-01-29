@@ -2,14 +2,14 @@ import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetector
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
+import { ScaleLine, defaults as defaultControls } from 'ol/control';
+import { fromLonLat, toLonLat } from 'ol/proj';
 
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import TileArcGISRest from 'ol/source/TileArcGISRest';
-import ScaleLine from 'ol/control/ScaleLine';
-import { fromLonLat, toLonLat } from 'ol/proj';
 
 type Planet = 'earth' | 'mars' | 'moon';
 
@@ -95,12 +95,14 @@ export class MapComponent implements AfterViewInit {
   private initMap(): void {
     this.baseLayer = new TileLayer({ zIndex: 0 });
 
+    // Create the container for dragging
     const scaleContainer = document.createElement('div');
-    scaleContainer.className = 'scale-drag-container';
+    scaleContainer.className = 'scale-drag-container custom-transparent-scale';
 
+    // Initialize ScaleLine using the imported class (not ol.control)
     const scaleLine = new ScaleLine({
       units: 'metric',
-      target: scaleContainer
+      target: scaleContainer // This attaches the scale to our draggable div
     });
 
     this.map = new Map({
@@ -110,10 +112,12 @@ export class MapComponent implements AfterViewInit {
         projection: 'EPSG:3857',
         center: [0, 0],
         zoom: 1
-      })
+      }),
+      // Use the imported defaultControls
+      controls: defaultControls().extend([scaleLine])
     });
 
-    this.map.addControl(scaleLine);
+    // Append the container to the map element so it's visible
     this.mapContainer.nativeElement.appendChild(scaleContainer);
 
     this.map.on('moveend', () => {
@@ -132,8 +136,11 @@ export class MapComponent implements AfterViewInit {
     });
 
     this.setupLoadingListeners();
+
+    // This calls your existing dragging logic
     queueMicrotask(() => this.makeScaleDraggable());
   }
+
 
   private setupLoadingListeners(): void {
     this.map.on('loadstart', () => { this.isLoading = true; this.cdr.detectChanges(); });
@@ -161,6 +168,7 @@ export class MapComponent implements AfterViewInit {
       startY = e.clientY - el.offsetTop;
       el.setPointerCapture(e.pointerId);
       el.style.cursor = 'grabbing';
+      el.style.bottom = 'auto'; 
     });
 
     el.addEventListener('pointermove', (e) => {
