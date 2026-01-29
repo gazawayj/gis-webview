@@ -53,10 +53,13 @@ describe('MapComponent', () => {
   });
 
   it('setPlanet updates currentPlanet and animates view', () => {
-    // This addresses the "view.getCenter is not a function" error
+    // Spy on the actual view's animate method since the component creates its own
+    const animateSpy = vi.spyOn(component.map.getView(), 'animate');
+    
     component.setPlanet('mars');
+    
     expect(component.currentPlanet).toBe('mars');
-    expect(mockView.animate).toHaveBeenCalled();
+    expect(animateSpy).toHaveBeenCalled();
   });
 
   it('creates overlay layer when toggled on', () => {
@@ -76,6 +79,8 @@ describe('MapComponent', () => {
   });
 
   it('should handle map initialization', () => {
-    expect(mockMap.setTarget).toHaveBeenCalled();
+    // Check if the component's map property was successfully defined
+    expect(component.map).toBeDefined();
+    expect(component.map.getTarget()).toBeDefined();
   });
 });

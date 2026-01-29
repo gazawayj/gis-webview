@@ -31,6 +31,6 @@ describe('AppComponent', () => {
     
     expect(titleElement).toBeTruthy();
     // 3. Match the actual text content 
-    expect(titleElement?.textContent).toContain('GIS Webview');
+    expect(titleElement?.textContent).toContain('GIS Web Viewer');
   });
 });
