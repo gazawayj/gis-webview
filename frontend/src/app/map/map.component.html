@@ -34,8 +34,8 @@
       @for (layer of layers; track layer.id; let i = $index) {
       <!-- The whole label is the draggable zone -->
       <label class="overlay-item" cdkDrag>
-        <span class="drag-handle">⠿</span>
         <span class="layer-number">{{ layers.length - i }}</span>
+        <span class="drag-handle">⠿</span>
         <!-- Clicks here are ignored by cdkDrag so the checkbox still works -->
         <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
 
