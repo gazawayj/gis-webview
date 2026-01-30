@@ -2,13 +2,25 @@ import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetector
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
-import { toLonLat } from 'ol/proj';
+import {
+  DragDropModule,
+  CdkDropList,
+  CdkDragPlaceholder,
+  CdkDragDrop,
+  moveItemInArray
+} from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DragDropModule,
+    CdkDropList,
+    CdkDragPlaceholder
+  ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
@@ -28,7 +40,7 @@ export class MapComponent implements AfterViewInit {
   get isLoading() { return this.mapService.isLoading(); }
   get layers() {
     // Sort descending by zIndex: 1 (Overlay) first, 0 (Basemap) last
-    return this.mapService.visibleLayers().sort((a, b) => b.zIndex - a.zIndex);
+    return this.mapService.visibleLayers();
   }
   get currentStats() {
     return this.mapService.getPlanetStats();
@@ -50,6 +62,14 @@ export class MapComponent implements AfterViewInit {
       this.setPlanet('earth');
       this.makeScaleDraggable(scaleContainer);
     });
+  }
+
+  onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
+    const currentPlanet = this.mapService.currentPlanet();
+    const layers = [...this.mapService.planetStates()[currentPlanet]];
+
+    moveItemInArray(layers, event.previousIndex, event.currentIndex);
+    this.mapService.reorderLayers(layers);
   }
 
   setPlanet(planet: Planet): void {

@@ -10,21 +10,23 @@
     </div>
 
     <!-- Layers Container -->
-    <div class="overlay-panel">
-      <div class="layer-actions">
-        <button class="add-layer-btn">
-          <span class="plus-icon">+</span> Add Data
-        </button>
-      </div>
+    <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($any($event))">
 
-      @for (layer of layers; track layer.id) {
-      <label class="overlay-item">
+      @for (layer of layers; track layer.id; let i = $index) {
+      <!-- The whole label is the draggable zone -->
+      <label class="overlay-item" cdkDrag>
         <span class="drag-handle">⠿</span>
+        <span class="layer-number">{{ layers.length - i }}</span>
+        <!-- Clicks here are ignored by cdkDrag so the checkbox still works -->
         <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
+
         <div class="layer-info">
           <strong>{{ layer.name }}</strong>
           <span class="hint">{{ layer.description }}</span>
         </div>
+
+        <!-- Ensure structural directives are imported in the component -->
+        <div class="drag-placeholder" *cdkDragPlaceholder></div>
       </label>
       }
     </div>

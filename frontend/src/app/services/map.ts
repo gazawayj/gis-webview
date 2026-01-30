@@ -36,8 +36,8 @@ export class MapService {
     earth: [{ id: 'earth-base', name: 'Earth Basemap', description: 'Global surface imagery', visible: true, type: 'basemap', zIndex: 0 }],
     mars: [{ id: 'mars-base', name: 'Mars Basemap', description: 'Global Mars reference', visible: true, type: 'basemap', zIndex: 0 }],
     moon: [
-      { id: 'moon-base', name: 'Moon Basemap', description: 'Global lunar reference', visible: true, type: 'basemap', zIndex: 0 },
-      { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 }
+      { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 },
+      { id: 'moon-base', name: 'Moon Basemap', description: 'Global lunar reference', visible: true, type: 'basemap', zIndex: 0 }
     ]
   });
 
@@ -52,11 +52,10 @@ export class MapService {
   public currentLat = this._currentLat.asReadonly();
 
   readonly currentPlanet = signal<'earth' | 'mars' | 'moon'>('earth');
+
   readonly visibleLayers = computed(() => {
     const planet = this.currentPlanet();
-    const layers = this.planetStates()[planet] || [];
-    // Automatically returns the sorted list whenever planet or states change
-    return [...layers].sort((a, b) => b.zIndex - a.zIndex);
+    return this.planetStates()[planet] || [];
   });
 
   private baseLayer = new TileLayer({
@@ -146,6 +145,32 @@ export class MapService {
     return instance;
   }
 
+  reorderLayers(newOrder: LayerItem[]): void {
+    const planet = this.currentPlanet();
+    const map = this.mapInstance();
+    if (!map) return;
+
+    const total = newOrder.length;
+    const updatedLayers = newOrder.map((layer, index) => ({
+      ...layer,
+      // Index 0 (Top) gets highest Z-Index
+      // Index Last (Bottom) gets Z-Index 0
+      zIndex: total - 1 - index
+    }));
+
+    // 2. Apply to OpenLayers layers
+    const olLayers = map.getLayers().getArray();
+    updatedLayers.forEach(layer => {
+      const target = olLayers.find(l => l.get('id') === layer.id || l.get('id') === 'base');
+      if (target) {
+        target.setZIndex(layer.zIndex);
+      }
+    });
+
+    // 3. Update the signal state
+    this.planetStates.update(prev => ({ ...prev, [planet]: updatedLayers }));
+  }
+
   setPlanet(planet: Planet) {
     const map = this.mapInstance();
     if (!map) return;
@@ -171,7 +196,7 @@ export class MapService {
     return new XYZ({
       url: this.BASEMAP_URLS[planet],
       crossOrigin: 'anonymous', // Helps with potential CORS issues
-      maxZoom: planet === 'earth' ? 19 : 12
+      maxZoom: planet === 'earth' ? 17 : 12
     });
   }
 

@@ -39,6 +39,9 @@
   background: #fafafa;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 .sidebar h1 {
@@ -83,6 +86,7 @@
   background: var(--text-color-light);
   display: flex;
   flex-direction: column;
+  min-height: 100px;
   gap: 0.5rem;
 }
 
@@ -97,21 +101,49 @@
   border: 1px solid #eee;
   border-radius: 6px;
   background: #fbfbfb;
-  cursor: grab;
   transition: background 0.2s;
+  cursor: grab !important;
+  /* Entire card shows grab cursor */
+  user-select: none;
+  touch-action: none;
+  /* Required for touch and pointer move events */
+}
+
+.overlay-item:active {
+  cursor: grabbing !important;
 }
 
 .overlay-item:hover {
   background-color: #fcfcfc;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border-color: #d1d1d1;
 }
 
 .overlay-item input[type="checkbox"] {
+  cursor: pointer !important;
+  position: relative;
+  z-index: 2;
   transform: scale(1.4);
   margin: 0 12px;
-  cursor: pointer;
   accent-color: var(--primary-color);
+}
+
+.layer-number {
+  background-color: var(--primary-color);
+  color: var(--text-color-light);
+  border-radius: 50%;
+  /* Makes it a circle */
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
 .drag-handle {
@@ -121,6 +153,18 @@
   margin-top: 0.35rem;
   padding-right: 2px;
   line-height: 1;
+}
+
+.drag-placeholder {
+  background: var(--primary-color);
+  opacity: .6;
+  border: 2px dashed var(--primary-color);
+  border-radius: 6px;
+  min-height: 60px;
+  margin-bottom: 0.5rem;
+
+  /* Smoothly shift the other items as the placeholder moves */
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 .layer-info {
@@ -217,12 +261,13 @@
   position: absolute;
   inset: 0;
   /* Frosted glass effect */
-  background: rgba(255, 255, 255, 0.1); 
-  backdrop-filter: blur(4px); 
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
-  flex-direction: column; /* Stack spinner and text */
+  flex-direction: column;
+  /* Stack spinner and text */
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -234,7 +279,7 @@
   height: 60px;
   border: 4px solid transparent;
   /* Primary color for the main arc */
-  border-top: 4px solid var(--primary-color); 
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   position: relative;
   animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
@@ -262,11 +307,14 @@
 
 .loading-card {
   padding: 2.5rem;
-  background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-  backdrop-filter: blur(12px); /* Frosted glass effect */
+  background: rgba(255, 255, 255, 0.15);
+  /* Semi-transparent white */
+  backdrop-filter: blur(12px);
+  /* Frosted glass effect */
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle edge highlight */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* Subtle edge highlight */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -278,7 +326,8 @@
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2); /* Slight darkening of the map */
+  background: rgba(0, 0, 0, 0.2);
+  /* Slight darkening of the map */
   z-index: 1000;
   display: flex;
   justify-content: center;
@@ -287,41 +336,85 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* SCALE BAR STYLE */
 
 /* The draggable wrapper */
 ::ng-deep .scale-drag-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    z-index: 1000;
-    padding: 0px;
-    background: rgba(107, 91, 123, .35) !important; 
-    border-radius: 0px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  z-index: 1000;
+  padding: 0px;
+  background: rgba(107, 91, 123, .35) !important;
+  border-radius: 0px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 /* The actual OpenLayers scale line inside the wrapper */
 ::ng-deep .ol-scale-line {
-    background: transparent !important; /* Remove OL's default background */
-    position: relative !important;
-    bottom: auto !important;
-    left: auto !important;
+  background: transparent !important;
+  /* Remove OL's default background */
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
 }
 
 ::ng-deep .ol-scale-line-inner {
-    border: 2px solid #000000 !important;
-    color: var(--text-color-light);
-    font-size: 13px !important;
-    background: transparent;
-    text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.8);
+  border: 2px solid #000000 !important;
+  color: var(--text-color-light);
+  font-size: 13px !important;
+  background: transparent;
+  text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.8);
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  background: white;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  z-index: 9999 !important;
+  pointer-events: none;
+}
+
+.cdk-drag-placeholder {
+  opacity: .4;
+}
+
+/* Style the item while it's being actively dragged */
+.cdk-drag-dragging {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  background-color: #ffffff !important;
+  opacity: 0.9;
+  transform: scale(1.02);
+  z-index: 1000;
+}
+
+/* Style the badges of the OTHER items that are shifting around */
+.cdk-drop-list-dragging .layer-number {
+  background-color: var(--text-color-dark);
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
