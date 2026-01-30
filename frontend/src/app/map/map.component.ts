@@ -19,6 +19,7 @@ import {
   CdkDropList,
   CdkDragPlaceholder,
   CdkDragDrop,
+  CdkDragMove,
   CdkDrag,
   moveItemInArray
 } from '@angular/cdk/drag-drop';
@@ -46,6 +47,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
   get currentLat() { return this.mapService.currentLat(); }
+  get currentLayersArray(): LayerItem[] {
+    const planet = this.mapService.currentPlanet();
+    return [...this.mapService.planetStates()[planet]];
+  }
 
   public terminalLines = signal<string[]>(['Initializing GIS Console...', 'Connection established to NASA GIBS...', 'Ready for commands.']);
   public terminalInput: string = '';
@@ -68,6 +73,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onAddLayer(): void {
     this.isModalOpen = true;
+  }
+
+  onLayerMoved(event: CdkDragMove<any>): void {
+    const layers = this.currentLayersArray;
+    
+    // The visual index is derived from how many items are above the current drag item
+    const visualIndex = event.pointerPosition.y; 
+    // Ylogic here to determine the new index based on visualIndex
   }
 
   // ADD THIS METHOD to fix the TS2339 error

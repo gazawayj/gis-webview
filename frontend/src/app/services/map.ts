@@ -180,9 +180,7 @@ export class MapService {
     const total = newOrder.length;
     const updatedLayers = newOrder.map((layer, index) => ({
       ...layer,
-      // Index 0 (Top) gets highest Z-Index
-      // Index Last (Bottom) gets Z-Index 0
-      zIndex: total - 1 - index
+      zIndex: total - index
     }));
 
     // 2. Apply to OpenLayers layers

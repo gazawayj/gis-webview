@@ -116,11 +116,6 @@
   counter-increment: layer-counter -1;
 }
 
-/* Display the current value of the counter in the span */
-.live-rank::before {
-  content: counter(layer-counter);
-}
-
 .overlay-item:active {
   cursor: grabbing !important;
 }
