@@ -23,7 +23,11 @@ export type Planet = 'earth' | 'mars' | 'moon';
 })
 export class MapService {
   readonly OVERLAY_URLS: Record<string, string> = {
-    lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
+    lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
+    fires: 'https://gibs.earthdata.nasa.gov{z}/{y}/{x}.png',
+    clouds: 'https://gibs.earthdata.nasa.gov{z}/{y}/{x}.png',
+    temp: 'https://gibs.earthdata.nasa.gov{z}/{y}/{x}.png',
+    precip: 'https://gibs.earthdata.nasa.gov{z}/{y}/{x}.png'
   };
   private mapInstance = signal<Map | null>(null);
   readonly map = this.mapInstance.asReadonly();
@@ -33,8 +37,16 @@ export class MapService {
 
 
   readonly planetStates = signal<Record<Planet, LayerItem[]>>({
-    earth: [{ id: 'earth-base', name: 'Earth Basemap', description: 'Global surface imagery', visible: true, type: 'basemap', zIndex: 0 }],
-    mars: [{ id: 'mars-base', name: 'Mars Basemap', description: 'Global Mars reference', visible: true, type: 'basemap', zIndex: 0 }],
+    earth: [
+      { id: 'precip', name: 'Global Precipitation', description: 'GPM Near Real-Time rain/snow rates', visible: false, type: 'overlay', zIndex: 4 },
+      { id: 'temp', name: 'Land Surface Temp', description: 'MODIS/Terra daily surface temperature', visible: false, type: 'overlay', zIndex: 3 },
+      { id: 'clouds', name: 'Cloud Fraction', description: 'Daily cloud cover percentage', visible: false, type: 'overlay', zIndex: 2 },
+      { id: 'fires', name: 'Active Fires', description: 'MODIS thermal anomalies (24hr)', visible: false, type: 'overlay', zIndex: 1 },
+      { id: 'earth-base', name: 'Earth Basemap', description: 'Global surface imagery', visible: true, type: 'basemap', zIndex: 0 }
+    ],
+    mars: [
+      { id: 'mars-base', name: 'Mars Basemap', description: 'Global Mars reference', visible: true, type: 'basemap', zIndex: 0 }
+    ],
     moon: [
       { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 },
       { id: 'moon-base', name: 'Moon Basemap', description: 'Global lunar reference', visible: true, type: 'basemap', zIndex: 0 }
