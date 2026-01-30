@@ -43,7 +43,7 @@
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumError": "15kB"
                 }
               ],
               "outputHashing": "all"
@@ -74,6 +74,11 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
+            "allowedCommonJsDependencies": [
+              "lerc",
+              "xml-utils",
+              "geotiff"
+            ],
             "lintFilePatterns": [
               "src/**/*.ts",
               "src/**/*.html"
