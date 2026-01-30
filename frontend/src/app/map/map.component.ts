@@ -8,7 +8,6 @@ import {
   ChangeDetectorRef,
   inject,
   signal,
-  OnInit,
   PLATFORM_ID
 } from '@angular/core';
 
@@ -50,7 +49,7 @@ interface AIResponse {
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
-export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
+export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
 
@@ -62,7 +61,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     return [...this.mapService.planetStates()[planet]];
   }
 
-  
+
 
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
@@ -161,15 +160,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  ngOnInit() {
-    // Mars (IAU2000:49900)
-    proj4.defs('IAU:49900', '+proj=longlat +a=3396190 +b=3376200 +no_defs +type=crs');
-    // Moon (IAU2000:30100)
-    proj4.defs('IAU:30100', '+proj=longlat +a=1737400 +b=1737400 +no_defs +type=crs');
-    // 2. Register them with OpenLayers
-    register(proj4);
-  }
-
   onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
     const currentPlanet = this.mapService.currentPlanet();
     const layers = [...this.mapService.planetStates()[currentPlanet]];
@@ -218,7 +208,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       el.style.cursor = 'grab';
     });
   }
-  
+
 
   handleTerminalCommand(event: any): void {
     const inputEl = event.target as HTMLInputElement;
@@ -237,21 +227,23 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (command === 'clear') {
       this.terminalLines.set([]);
     }
-    
+
+    setTimeout(() => this.closeModal(), 500); 
+
     this.http.get<AIResponse>(`http://localhost:8000/search?q=${command}`).subscribe({
-  next: (res: AIResponse) => { // Explicitly type 'res'
-    if (res.lat !== undefined && res.lon !== undefined) {
-      this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
-      // Use the service method we discussed earlier
-      this.mapService.flyToLocation(res.lon, res.lat, res.planet);
-    } else {
-      this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
-    }
-  },
-  error: () => {
-    this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
-  }
-});
+      next: (res: AIResponse) => { // Explicitly type 'res'
+        if (res.lat !== undefined && res.lon !== undefined) {
+          this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
+          // Use the service method we discussed earlier
+          this.mapService.flyToLocation(res.lon, res.lat, res.planet);
+        } else {
+          this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
+        }
+      },
+      error: () => {
+        this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
+      }
+    });
 
     inputEl.value = '';
 

@@ -1,8 +1,10 @@
 import os
-from fastapi import APIRouter, FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
+import json
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
+from google import genai
+from google.genai import Client
+from google.genai import types
 from app.routers import mola
 
 app = FastAPI()
@@ -14,32 +16,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- FIXED CLIENT INITIALIZATION ---
+client = Client(api_key=os.getenv("GEMINI_API_KEY"))
+
 router = APIRouter()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY")) 
 
 SYSTEM_PROMPT = """
 You are a GIS assistant. When a user asks for a location on Earth, Mars, or the Moon, 
-return ONLY a JSON object with the following keys: 
-{ "name": string, "lat": float, "lon": float, "planet": "earth" | "mars" | "moon" }.
-If you don't know the location, return {"error": "location not found"}.
+return ONLY a JSON object with this EXACT schema:
+{ "name": string, "lat": float, "lon": float, "planet": "earth" | "mars" | "moon" }
+If not found, return {"error": "location not found"}.
 """
-
-
-
-# 1. Get the absolute path to the directory where main.py lives (backend/app/)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# 2. Construct the path to the tiles directory (backend/tiles/)
-
-model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
 
 @router.get("/search")
 async def ai_search(q: str):
-    response = model.generate_content(q)
     try:
-        # Assuming Gemini returns valid JSON based on system instructions
-        return eval(response.text) 
-    except:
-        raise HTTPException(status_code=400, detail="AI returned invalid format")
+        response = client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=q,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"AI Search Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Register routers
+app.include_router(router)
+app.include_router(mola.router, prefix="/mola")
 
 @app.get("/")
 async def root():
@@ -47,6 +54,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Use the string "main:app" to support hot-reloading
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
