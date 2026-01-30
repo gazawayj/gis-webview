@@ -4,68 +4,48 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Map from 'ol/Map';
 
+vi.mock('ol/Map', () => {
+  return {
+    default: vi.fn().mockImplementation(function () {
+      return {
+        on: vi.fn(),
+        addLayer: vi.fn(),
+        getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
+        getView: vi.fn().mockReturnValue({
+          animate: vi.fn(),
+          getZoom: () => 2,
+          getCenter: () => [0, 0]
+        }),
+        getTarget: vi.fn().mockReturnValue('mapContainer')
+      };
+    })
+  };
+});
+
+vi.mock('ol/control', () => ({
+  ScaleLine: vi.fn().mockImplementation(() => ({}))
+}));
+
+vi.mock('ol/proj', () => ({
+  fromLonLat: vi.fn((coords) => coords),
+  toLonLat: vi.fn((coords) => coords)
+}));
+
+vi.mock('ol/control', () => ({
+  ScaleLine: vi.fn().mockImplementation(() => ({}))
+}));
+
+vi.mock('ol/proj', () => ({
+  fromLonLat: vi.fn((coords) => coords),
+  toLonLat: vi.fn((coords) => coords)
+}));
+
+vi.mock('ol/layer/Tile', () => ({ default: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('ol/source/XYZ', () => ({ default: vi.fn().mockImplementation(() => ({})) }));
+
 describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
-
-
-  vi.mock('ol/Map', () => {
-    return {
-      default: vi.fn().mockImplementation(function () {
-        return {
-          on: vi.fn(),
-          addLayer: vi.fn(),
-          getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
-          getView: vi.fn().mockReturnValue({
-            animate: vi.fn(),
-            getZoom: () => 2,
-            getCenter: () => [0, 0]
-          }),
-          getTarget: vi.fn().mockReturnValue('mapContainer')
-        };
-      })
-    };
-  });
-
-  // Also mock ScaleLine and other OL imports used in the service
-  vi.mock('ol/control', () => ({
-    ScaleLine: vi.fn().mockImplementation(() => ({}))
-  }));
-
-  vi.mock('ol/proj', () => ({
-    fromLonLat: vi.fn((coords) => coords),
-    toLonLat: vi.fn((coords) => coords)
-  }));
-  // Also mock ScaleLine and other OL imports used in the service
-  vi.mock('ol/control', () => ({
-    ScaleLine: vi.fn().mockImplementation(() => ({}))
-  }));
-
-  vi.mock('ol/proj', () => ({
-    fromLonLat: vi.fn((coords) => coords),
-    toLonLat: vi.fn((coords) => coords)
-  }));
-
-  // Mock OpenLayers View
-  const mockView = {
-    getCenter: vi.fn(() => [0, 0]),
-    setCenter: vi.fn(),
-    getZoom: vi.fn(() => 2),
-    setZoom: vi.fn(),
-    animate: vi.fn(),
-  };
-
-  // Mock OpenLayers Map
-  const mockMap = {
-    setTarget: vi.fn(),
-    getView: vi.fn(() => mockView),
-    addLayer: vi.fn(),
-    removeLayer: vi.fn(),
-    getLayers: vi.fn(() => ({
-      getArray: vi.fn(() => []),
-      push: vi.fn(),
-    })),
-  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -97,7 +77,7 @@ describe('MapComponent', () => {
   it('creates overlay layer when toggled on', () => {
     const layerSpy = vi.spyOn(component.map, 'addLayer');
 
-    // We pass a mock layer object that matches Layer interface
+    // Pass a mock layer object that matches Layer interface
     component.toggleLayer({
       id: 'lroc',
       name: 'LROC',
