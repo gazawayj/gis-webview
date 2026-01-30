@@ -3,7 +3,7 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import { XYZ } from 'ol/source';
 import { ScaleLine } from 'ol/control';
 
@@ -40,6 +40,16 @@ export class MapService {
       { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 }
     ]
   });
+
+  // UI-only properties
+  private _zoomDisplay = signal<string>('2.0');
+  public zoomDisplay = this._zoomDisplay.asReadonly();
+
+  private _currentLon = signal<string>('0.00°');
+  public currentLon = this._currentLon.asReadonly();
+
+  private _currentLat = signal<string>('0.00°');
+  public currentLat = this._currentLat.asReadonly();
 
   readonly currentPlanet = signal<'earth' | 'mars' | 'moon'>('earth');
   readonly visibleLayers = computed(() => {
@@ -116,12 +126,23 @@ export class MapService {
       }),
     });
 
+    instance.on('moveend', () => {
+      const zoom = instance.getView().getZoom();
+      this._zoomDisplay.set(zoom ? zoom.toFixed(1) : '2.0');
+    });
+
+    instance.on('pointermove', (evt) => {
+      if (evt.coordinate) {
+        const lonLat = toLonLat(evt.coordinate);
+        this._currentLon.set(`${lonLat[0].toFixed(2)}°`);
+        this._currentLat.set(`${lonLat[1].toFixed(2)}°`);
+      }
+    });
+
+
     instance.on('loadstart', () => this.loadingInternal.set(true));
     instance.on('loadend', () => this.loadingInternal.set(false));
     this.mapInstance.set(instance);
-/*     const initial = this.sortLayers(this.planetStates().earth);
-    this.visibleLayers.set(initial); */
-
     return instance;
   }
 
@@ -150,7 +171,6 @@ export class MapService {
     return new XYZ({
       url: this.BASEMAP_URLS[planet],
       crossOrigin: 'anonymous', // Helps with potential CORS issues
-      // Optional: Set maxZoom for planetary tiles if they are limited
       maxZoom: planet === 'earth' ? 19 : 12
     });
   }

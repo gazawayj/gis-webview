@@ -15,15 +15,13 @@ import { MapService, Planet, LayerItem } from '../services/map';
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
+  get zoomDisplay() { return this.mapService.zoomDisplay(); }
+  get currentLon() { return this.mapService.currentLon(); }
+  get currentLat() { return this.mapService.currentLat(); }
+
   mapService = inject(MapService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
-
-  // UI-only properties
-  public zoomDisplay: string = '2.0';
-  public currentLon: string = '0.00°';
-  public currentLat: string = '0.00°';
-  map: any;
 
   // These help the template find data in the service
   get currentPlanet() { return this.mapService.currentPlanet(); }
@@ -44,24 +42,8 @@ export class MapComponent implements AfterViewInit {
     scaleContainer.className = 'scale-drag-container';
 
     // Initialize Map via Service
-    const map = this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
+    this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
     this.mapContainer.nativeElement.appendChild(scaleContainer);
-
-    // Event Listeners for UI updates
-    map.on('moveend', () => {
-      const zoom = map.getView().getZoom();
-      this.zoomDisplay = zoom ? zoom.toFixed(1) : '2.0';
-      this.cdr.detectChanges();
-    });
-
-    map.on('pointermove', (evt) => {
-      if (evt.coordinate) {
-        const lonLat = toLonLat(evt.coordinate);
-        this.currentLon = `${lonLat[0].toFixed(2)}°`;
-        this.currentLat = `${lonLat[1].toFixed(2)}°`;
-        this.cdr.detectChanges();
-      }
-    });
 
     // Initial Planet Setup
     queueMicrotask(() => {
