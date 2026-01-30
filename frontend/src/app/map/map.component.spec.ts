@@ -9,7 +9,22 @@ describe('MapComponent', () => {
   let fixture: ComponentFixture<MapComponent>;
 
 
-  
+  vi.mock('ol/Map', () => {
+    return {
+      default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        addLayer: vi.fn(),
+        getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
+        getView: vi.fn().mockReturnValue({
+          animate: vi.fn(),
+          getZoom: () => 2,
+          getCenter: () => [0, 0]
+        }),
+        getTarget: vi.fn().mockReturnValue('mapContainer')
+      }))
+    };
+  });
+
   // Mock OpenLayers View
   const mockView = {
     getCenter: vi.fn(() => [0, 0]),
@@ -38,10 +53,10 @@ describe('MapComponent', () => {
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
-    
+
     // Manually assign the mock map to the component
     component.map = mockMap as unknown as Map;
-    
+
     fixture.detectChanges();
   });
 
@@ -50,28 +65,25 @@ describe('MapComponent', () => {
   });
 
   it('setPlanet updates currentPlanet and animates view', () => {
-    // Spy on the actual view's animate method since the component creates its own
-    const animateSpy = vi.spyOn(component.map.getView(), 'animate');
-    
+    const animateSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
     component.setPlanet('mars');
-    
     expect(component.currentPlanet).toBe('mars');
     expect(animateSpy).toHaveBeenCalled();
   });
 
   it('creates overlay layer when toggled on', () => {
     const layerSpy = vi.spyOn(component.map, 'addLayer');
-    
-    // We pass a mock layer object that matches your Layer interface
+
+    // We pass a mock layer object that matches Layer interface
     component.toggleLayer({
       id: 'lroc',
       name: 'LROC',
       type: 'overlay',
       visible: true,
       zIndex: 1,
-      source: 'tiles' // Add this if your component logic requires it
+      source: 'tiles' 
     } as any);
-    
+
     expect(layerSpy).toHaveBeenCalled();
   });
 

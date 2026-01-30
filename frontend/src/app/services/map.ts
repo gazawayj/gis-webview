@@ -167,3 +167,5 @@ export class MapService {
     return [...layers].sort((a, b) => b.zIndex - a.zIndex);
   }
 }
+export { Map };
+

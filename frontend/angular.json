@@ -20,6 +20,11 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "allowedCommonJsDependencies": [
+              "lerc",
+              "xml-utils",
+              "geotiff"
+            ],
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
@@ -74,11 +79,6 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "allowedCommonJsDependencies": [
-              "lerc",
-              "xml-utils",
-              "geotiff"
-            ],
             "lintFilePatterns": [
               "src/**/*.ts",
               "src/**/*.html"
