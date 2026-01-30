@@ -81,19 +81,16 @@
 /* LAYER CONTAINER */
 
 .overlay-panel {
-  justify-content: flex-end; 
-  margin-top: auto; 
-  padding: 1rem;
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0; 
+  min-height: 0;
   gap: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.03); /* Subtle darkening */
+  background-color: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 12px;
-  padding: .5rem;
-  margin: .5rem 0;
+  padding: .5rem;      /* Consolidated */
+  margin: .5rem 0;     /* Consolidated */
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
@@ -101,7 +98,6 @@
 
 .overlay-item {
   display: flex;
-  user-select: none;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
@@ -109,11 +105,9 @@
   border-radius: 6px;
   background: #fbfbfb;
   transition: background 0.2s;
-  /* Entire card shows grab cursor  */
   cursor: grab !important;
-  user-select: none;
+  user-select: none;   /* Consolidatd */
   touch-action: none;
-  counter-increment: layer-counter -1;
 }
 
 .overlay-item:active {
@@ -204,9 +198,9 @@
   gap: 8px;
   font-size: 0.7rem;
   color: #888;
-  padding: 0..25rem 0;
+  padding: 0.25rem 0; /* Fixed double dot */
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  margin-bottom: auto; /* Pushes the layers away from the hint */
+  margin-bottom: auto;
   font-style: italic;
   letter-spacing: 0.3px;
 }
@@ -278,57 +272,43 @@
 }
 
 /* SIDEBAR STATS */
-
 .stats-panel {
-  background: var(--text-color-light);
-  margin-top: 0; /* No longer needs auto-margin as panel does the work */
-  border-top: 1px solid var(--border-color-dark);
-  flex-shrink: 0;
-  gap: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.03); /* Subtle darkening */
+  /* Pick ONE background or use a gradient */
+  background-color: rgba(0, 0, 0, 0.03); 
   border: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border-color-dark);
   border-radius: 12px;
   padding: .5rem;
   margin: .5rem 0;
+  flex-shrink: 0;
+  gap: 0.5rem;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.coords-display-lon {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.coords-display-lat {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  color: #666;
-}
-
+/* Grouped common layouts */
+.stat-item, 
+.coords-display-lon, 
+.coords-display-lat,
 .coords-display-return {
   display: flex;
   justify-content: space-between;
-  text-justify: right;
   margin-bottom: 0.4rem;
   font-size: 0.85rem;
-  color: var(--primary-color);
+  color: #666;
 }
 
-
-.stat-item strong {
+/* Specific overrides */
+.coords-display-return {
   color: var(--primary-color);
+  text-align: right; /* Replaced text-justify */
+}
+
+/* Grouped Value Styling */
+.stat-item strong,
+.coords-display-lon strong,
+.coords-display-lat strong {
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .coords-display-lon strong code,
@@ -336,13 +316,6 @@
   color: inherit;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9rem;
-}
-
-.stat-item strong,
-.coords-display-lon strong,
-.coords-display-lat strong {
-  color: var(--primary-color);
-  font-weight: 600; /* Ensures consistent bolding */
 }
 
 /* MAP STYLE */
@@ -426,18 +399,6 @@
   animation: fadeIn 0.3s ease-out;
 }
 
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  /* Slight darkening of the map */
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: none;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -465,7 +426,7 @@
   justify-content: center;
   position: absolute;
   z-index: 1000;
-  padding: 0px;
+  padding: 2px 5px;
   background: rgba(107, 91, 123, .35) !important;
   border-radius: 0px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -536,8 +497,8 @@
 }
 
 .modal-backdrop {
-  position: fixed; /* Fixes it relative to the browser window */
-  inset: 0;        /* Shorthand for top, left, right, bottom: 0 */
+  position: fixed;
+  inset: 0;
   
   /* IMPORTANT: Must be higher than the sidebar (10) and map */
   z-index: 9999; 
@@ -662,9 +623,10 @@
   border: 1px solid #333;
   display: flex;
   flex-direction: column;
-  height: 300px; /* Fixed height to "box it in" */
+  height: 300px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   margin-bottom: 2rem;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 /* Chrome-style Terminal Header */
@@ -694,13 +656,44 @@
 .yellow { background: #ffbd2e; }
 .green { background: #27c93f; }
 
-/* Scoped Console View */
 .console-view {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
-  font-family: 'Courier New', monospace;
   color: #d4d4d4;
+  /* Smooth scrolling for terminal output */
+  scroll-behavior: smooth; 
+}
+
+.console-line {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: nowrap;      /* Keep text on one line during animation */
+  overflow: hidden;         /* Hide the text as it "types" */
+  border-right: 2px solid transparent; /* The "cursor" */
+  width: 0;                 /* Start at 0 width */
+  animation: 
+    typing 1.5s steps(40, end) forwards,
+    blink-caret 0.75s step-end infinite;
+}
+
+/* The typing motion */
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+/* The blinking cursor effect */
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: var(--primary-color); }
+}
+
+.console-line:not(:last-child), .current-line {
+  white-space: normal;
+  width: 100%;
+  border: none;
+  animation: none;
 }
 
 .additional-content {
@@ -708,24 +701,18 @@
   padding: 0 1rem;
 }
 
-.console-line {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  word-break: break-all;
-}
-
 .current-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--primary-color);
+  margin-top: 4px;
 }
 
 .console-write {
   background: transparent;
   border: none;
   color: #fff;
-  font-family: inherit;
+  font-family: inherit; /* Inherits from .terminal-container */
   font-size: 0.9rem;
   outline: none;
   flex: 1;
@@ -735,13 +722,20 @@
 .prompt {
   font-weight: bold;
   color: var(--primary-color);
+  user-select: none; /* Prevent selecting the '>' prompt */
 }
 
 /* Scrollbar for terminal */
 .console-view::-webkit-scrollbar {
   width: 8px;
 }
+.console-view::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
 .console-view::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
+}
+.console-view::-webkit-scrollbar-thumb:hover {
+  background: #444;
 }

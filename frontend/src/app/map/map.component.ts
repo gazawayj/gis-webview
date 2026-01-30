@@ -1,20 +1,21 @@
-import { 
-  Component, 
-  AfterViewInit, 
-  OnDestroy, 
-  ViewChild, 
-  ElementRef, 
-  Inject, 
-  ChangeDetectorRef, 
-  inject, 
+import {
+  Component,
+  AfterViewInit,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  Inject,
+  ChangeDetectorRef,
+  inject,
   signal,
-  PLATFORM_ID 
+  OnInit,
+  PLATFORM_ID
 } from '@angular/core';
 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
-import View from 'ol/View'; 
+import View from 'ol/View';
 
 import {
   DragDropModule,
@@ -41,7 +42,7 @@ import { MapService, Planet, LayerItem } from '../services/map';
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
-export class MapComponent implements AfterViewInit, OnDestroy {
+export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
 
@@ -78,9 +79,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onLayerMoved(event: CdkDragMove<any>): void {
     const layers = this.currentLayersArray;
-    
+
     // The visual index is derived from how many items are above the current drag item
-    const visualIndex = event.pointerPosition.y; 
+    const visualIndex = event.pointerPosition.y;
     // Ylogic here to determine the new index based on visualIndex
   }
 
@@ -142,7 +143,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public setPlanet(planet: Planet): void {
     this.mapService.setPlanet(planet); // Let the service handle the CRS/View logic
     this.cdr.detectChanges();
-  } 
+  }
 
   toggleLayer(layer: LayerItem): void {
     this.mapService.toggleLayer(layer);
@@ -180,11 +181,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   handleTerminalCommand(event: any): void {
-    const command = event.target.value;
+    const command = event.target.value.toLowerCase();
     if (!command) return;
 
-    // Add the command to history
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
+
+    // Handle Logic
+    if (command.includes('help')) {
+      this.terminalLines.update(prev => [...prev, 'Available: earth, mars, moon, clear']);
+    } else if (command === 'mars') {
+      this.setPlanet('mars');
+      this.terminalLines.update(prev => [...prev, 'Switching to Mars CRS (IAU:49900)...']);
+    } else if (command === 'clear') {
+      this.terminalLines.set([]);
+    }
+
+    // Single scroll handler
+    setTimeout(() => {
+      if (this.consoleContainer) {
+        const el = this.consoleContainer.nativeElement;
+        el.scrollTop = el.scrollHeight;
+      }
+    }, 50);
+
+    event.target.value = '';
 
     // Fake logic for demo
     if (command.toLowerCase().includes('help')) {
