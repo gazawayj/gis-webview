@@ -36,11 +36,6 @@ export class MapComponent implements AfterViewInit {
     return this.mapService.getPlanetStats();
   }
 
-
-  private readonly OVERLAY_URLS: Record<string, string> = {
-    lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
-  };
-
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
@@ -81,27 +76,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   toggleLayer(layer: LayerItem): void {
-    const url = this.OVERLAY_URLS[layer.id];
-    
-    if (layer.type === 'basemap') {
-      // Logic for basemap: Tell service to toggle the base
-      const newState = !layer.visible;
-      const map = this.mapService.map();
-      map?.getLayers().getArray().find(l => l.get('id') === 'base')?.setVisible(newState);
-
-      // Sync the state back to the service signals
-      this.mapService.planetStates.update(prev => {
-        const cur = this.mapService.currentPlanet();
-        const updated = prev[cur].map(l => l.id === layer.id ? { ...l, visible: newState } : l);
-        return { ...prev, [cur]: updated };
-      });
-      // Refresh the visible layers signal
-      this.mapService.visibleLayers.set([...this.mapService.planetStates()[this.mapService.currentPlanet()]]);
-    } else {
-      // Overlays: The service method already calculates the flip internally
-      this.mapService.toggleOverlay(layer, url);
-    }
-    
+    this.mapService.toggleLayer(layer);
     this.cdr.detectChanges();
   }
 

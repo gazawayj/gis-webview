@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -22,6 +22,9 @@ export type Planet = 'earth' | 'mars' | 'moon';
   providedIn: 'root'
 })
 export class MapService {
+  readonly OVERLAY_URLS: Record<string, string> = {
+    lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
+  };
   private mapInstance = signal<Map | null>(null);
   readonly map = this.mapInstance.asReadonly();
 
@@ -39,7 +42,12 @@ export class MapService {
   });
 
   readonly currentPlanet = signal<'earth' | 'mars' | 'moon'>('earth');
-  readonly visibleLayers = signal<LayerItem[]>([]);
+  readonly visibleLayers = computed(() => {
+    const planet = this.currentPlanet();
+    const layers = this.planetStates()[planet] || [];
+    // Automatically returns the sorted list whenever planet or states change
+    return [...layers].sort((a, b) => b.zIndex - a.zIndex);
+  });
 
   private baseLayer = new TileLayer({
     source: new OSM(),
@@ -57,6 +65,40 @@ export class MapService {
     mars: [0, 0], // MOLA center
     moon: [0, 0]  // LROC center
   };
+
+  toggleLayer(layer: LayerItem): void {
+    const map = this.mapInstance();
+    if (!map) return;
+
+    const newState = !layer.visible;
+
+    if (layer.type === 'basemap') {
+      // Logic for basemap: find the internal 'base' layer
+      const base = map.getLayers().getArray().find(l => l.get('id') === 'base');
+      base?.setVisible(newState);
+    } else {
+      // Logic for overlays
+      const url = this.OVERLAY_URLS[layer.id];
+      let targetLayer = map.getLayers().getArray().find(l => l.get('id') === layer.id);
+
+      if (!targetLayer && url) {
+        targetLayer = new TileLayer({
+          source: new XYZ({ url, crossOrigin: 'anonymous' }),
+          properties: { id: layer.id },
+          zIndex: layer.zIndex
+        });
+        map.addLayer(targetLayer);
+      }
+      targetLayer?.setVisible(newState);
+    }
+
+    // Single source for state updates
+    this.planetStates.update(prev => {
+      const cur = this.currentPlanet();
+      const updated = prev[cur].map(l => l.id === layer.id ? { ...l, visible: newState } : l);
+      return { ...prev, [cur]: updated };
+    });
+  }
 
   initMap(target: HTMLElement, scaleContainer: HTMLDivElement): Map {
     const instance = new Map({
@@ -77,8 +119,8 @@ export class MapService {
     instance.on('loadstart', () => this.loadingInternal.set(true));
     instance.on('loadend', () => this.loadingInternal.set(false));
     this.mapInstance.set(instance);
-    const initial = this.sortLayers(this.planetStates().earth);
-    this.visibleLayers.set(initial);
+/*     const initial = this.sortLayers(this.planetStates().earth);
+    this.visibleLayers.set(initial); */
 
     return instance;
   }
@@ -88,53 +130,13 @@ export class MapService {
     if (!map) return;
 
     this.currentPlanet.set(planet);
-
-    // Update the baseLayer with the new planetary URL
     this.baseLayer.setSource(this.getBasemapSource(planet));
-    const sortedLayers = this.sortLayers(this.planetStates()[planet]);
-    this.visibleLayers.set(sortedLayers);
 
-    // Reset view for the new planet
     map.getView().animate({
       center: fromLonLat(this.planetCoordinates[planet]),
       zoom: 2,
       duration: 1000
     });
-  }
-
-  toggleOverlay(layer: LayerItem, url?: string) {
-    const map = this.mapInstance();
-    if (!map) return;
-
-    const newState = !layer.visible;
-
-    const layers = map.getLayers().getArray();
-    let targetLayer = layers.find(l => l.get('id') === layer.id);
-
-    if (!targetLayer && url) {
-      targetLayer = new TileLayer({
-        source: new XYZ({ url, crossOrigin: 'anonymous' }),
-        properties: { id: layer.id },
-        zIndex: layer.zIndex
-      });
-      map.addLayer(targetLayer);
-    }
-
-    if (targetLayer) {
-      targetLayer.setVisible(newState);
-    }
-
-    // Sync the Signal State
-    this.planetStates.update(prev => {
-      const cur = this.currentPlanet();
-      const updated = prev[cur].map(l =>
-        l.id === layer.id ? { ...l, visible: newState } : l
-      );
-      return { ...prev, [cur]: updated };
-    });
-
-    // Update visible layers for the UI
-    this.visibleLayers.set(this.sortLayers(this.planetStates()[this.currentPlanet()]));
   }
 
   private readonly BASEMAP_URLS: Record<Planet, string> = {
