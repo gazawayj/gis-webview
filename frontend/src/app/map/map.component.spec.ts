@@ -16,7 +16,7 @@ vi.mock('ol/Map', () => ({
       getView: vi.fn().mockReturnValue({
         animate: vi.fn(),
         getZoom: vi.fn().mockReturnValue(2),
-        getCenter: vi.fn().mockReturnValue([0, 0])
+        getCenter: vi.fn().mockReturnValue([0,0])
       }),
       getTarget: vi.fn().mockReturnValue('mapContainer'),
       setTarget: vi.fn()
@@ -24,13 +24,19 @@ vi.mock('ol/Map', () => ({
   })
 }));
 
-vi.mock('ol/control', () => ({
-  ScaleLine: vi.fn().mockImplementation(() => ({}))
+// Mock Layer and Source classes used in MapService member initializers
+vi.mock('ol/layer/Tile', () => ({
+  default: vi.fn().mockImplementation(function() {
+    return { setVisible: vi.fn(), setSource: vi.fn(), get: vi.fn() };
+  })
 }));
 
-vi.mock('ol/proj', () => ({
-  fromLonLat: vi.fn((coords) => coords),
-  toLonLat: vi.fn((coords) => coords)
+vi.mock('ol/source/OSM', () => ({
+  default: vi.fn().mockImplementation(function() { return {}; })
+}));
+
+vi.mock('ol/source/XYZ', () => ({
+  default: vi.fn().mockImplementation(function() { return {}; })
 }));
 
 vi.mock('ol/View', () => ({
@@ -43,8 +49,14 @@ vi.mock('ol/View', () => ({
   })
 }));
 
-vi.mock('ol/layer/Tile', () => ({ default: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('ol/source/XYZ', () => ({ default: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('ol/control', () => ({
+  ScaleLine: vi.fn().mockImplementation(function() { return {}; })
+}));
+
+vi.mock('ol/proj', () => ({
+  fromLonLat: vi.fn((coords) => coords),
+  toLonLat: vi.fn((coords) => coords)
+}));
 
 describe('MapComponent', () => {
   let component: MapComponent;
