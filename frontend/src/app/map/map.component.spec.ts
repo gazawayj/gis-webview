@@ -5,18 +5,18 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Map from 'ol/Map';
 
 vi.mock('ol/Map', () => ({
-  default: vi.fn().mockImplementation(function() {
+  default: vi.fn().mockImplementation(function () {
     return {
       on: vi.fn(),
       addLayer: vi.fn(),
-      getLayers: vi.fn().mockReturnValue({ 
+      getLayers: vi.fn().mockReturnValue({
         getArray: vi.fn().mockReturnValue([]),
-        push: vi.fn() 
+        push: vi.fn()
       }),
       getView: vi.fn().mockReturnValue({
         animate: vi.fn(),
         getZoom: vi.fn().mockReturnValue(2),
-        getCenter: vi.fn().mockReturnValue([0,0])
+        getCenter: vi.fn().mockReturnValue([0, 0])
       }),
       getTarget: vi.fn().mockReturnValue('mapContainer'),
       setTarget: vi.fn()
@@ -26,31 +26,31 @@ vi.mock('ol/Map', () => ({
 
 // Mock Layer and Source classes used in MapService member initializers
 vi.mock('ol/layer/Tile', () => ({
-  default: vi.fn().mockImplementation(function() {
+  default: vi.fn().mockImplementation(function () {
     return { setVisible: vi.fn(), setSource: vi.fn(), get: vi.fn() };
   })
 }));
 
 vi.mock('ol/source/OSM', () => ({
-  default: vi.fn().mockImplementation(function() { return {}; })
+  default: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('ol/source/XYZ', () => ({
-  default: vi.fn().mockImplementation(function() { return {}; })
+  default: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('ol/View', () => ({
-  default: vi.fn().mockImplementation(function() {
+  default: vi.fn().mockImplementation(function () {
     return {
       getZoom: vi.fn().mockReturnValue(2),
-      getCenter: vi.fn().mockReturnValue([0,0]),
+      getCenter: vi.fn().mockReturnValue([0, 0]),
       animate: vi.fn()
     };
   })
 }));
 
 vi.mock('ol/control', () => ({
-  ScaleLine: vi.fn().mockImplementation(function() { return {}; })
+  ScaleLine: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('ol/proj', () => ({
@@ -93,21 +93,21 @@ describe('MapComponent', () => {
     const map = component.mapService.map();
     const layerSpy = vi.spyOn(map!, 'addLayer');
 
-    // Force the map to think the layer doesn't exist yet
+    // Ensure the service thinks the layer doesn't exist yet
     vi.spyOn(map!.getLayers(), 'getArray').mockReturnValue([]);
 
     component.toggleLayer({
-      id: 'lroc', // Must match the key in OVERLAY_URLS
+      id: 'lroc', // Matches OVERLAY_URLS key
       name: 'LROC',
       type: 'overlay',
-      visible: false,
+      visible: false, // Service will flip this to true
       zIndex: 1
     } as any);
 
     expect(layerSpy).toHaveBeenCalled();
   });
 
-   it('should handle map initialization', () => {
+  it('should handle map initialization', () => {
     const map = component.mapService.map();
     expect(map).toBeDefined();
     expect(map!.getTarget()).toBeDefined();

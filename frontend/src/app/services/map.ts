@@ -106,13 +106,20 @@ export class MapService {
     const map = this.mapInstance();
     if (!map) return;
 
-    // The checkbox already changed the object's value locally
     const newState = !layer.visible;
 
     const layers = map.getLayers().getArray();
     let targetLayer = layers.find(l => l.get('id') === layer.id);
 
-    // If base layer, handle differently; if overlay, handle here
+    if (!targetLayer && url) {
+      targetLayer = new TileLayer({
+        source: new XYZ({ url, crossOrigin: 'anonymous' }),
+        properties: { id: layer.id },
+        zIndex: layer.zIndex
+      });
+      map.addLayer(targetLayer);
+    }
+
     if (targetLayer) {
       targetLayer.setVisible(newState);
     }
