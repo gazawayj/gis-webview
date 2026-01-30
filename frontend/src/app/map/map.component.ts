@@ -7,7 +7,7 @@ import {
   CdkDropList,
   CdkDragPlaceholder,
   CdkDragDrop,
-  CdkDrag, 
+  CdkDrag,
   CdkDragHandle,
   moveItemInArray
 } from '@angular/cdk/drag-drop';
@@ -20,7 +20,7 @@ import { MapService, Planet, LayerItem } from '../services/map';
     CommonModule,
     FormsModule,
     DragDropModule,
-    CdkDrag, 
+    CdkDrag,
     CdkDragHandle,
     CdkDropList,
     CdkDragPlaceholder
@@ -30,6 +30,7 @@ import { MapService, Planet, LayerItem } from '../services/map';
 })
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('consoleView') private consoleContainer!: ElementRef;
 
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
@@ -130,22 +131,28 @@ export class MapComponent implements AfterViewInit {
       el.style.cursor = 'grab';
     });
   }
-  
+
   handleTerminalCommand(event: any): void {
-  const command = event.target.value;
-  if (!command) return;
+    const command = event.target.value;
+    if (!command) return;
 
-  // Add the command to history
-  this.terminalLines.update(prev => [...prev, `> ${command}`]);
-  
-  // Fake logic for demo
-  if (command.toLowerCase().includes('help')) {
-    this.terminalLines.update(prev => [...prev, 'Available: list, clear, status']);
-  } else if (command.toLowerCase() === 'clear') {
-    this.terminalLines.set([]);
+    // Add the command to history
+    this.terminalLines.update(prev => [...prev, `> ${command}`]);
+
+    // Fake logic for demo
+    if (command.toLowerCase().includes('help')) {
+      this.terminalLines.update(prev => [...prev, 'Available: list, clear, status']);
+      queueMicrotask(() => {
+        if (this.consoleContainer) {
+          const el = this.consoleContainer.nativeElement;
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    } else if (command.toLowerCase() === 'clear') {
+      this.terminalLines.set([]);
+    }
+
+    this.terminalInput = ''; // Clear input
+    event.target.value = '';
   }
-
-  this.terminalInput = ''; // Clear input
-  event.target.value = '';
-}
 }

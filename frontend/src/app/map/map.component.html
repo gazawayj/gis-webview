@@ -106,7 +106,7 @@
             <span class="terminal-title">system_console.sh</span>
           </div>
 
-          <div class="console-view">
+          <div class="console-view" #consoleView> 
             @for (line of terminalLines(); track $index) {
             <div class="console-line">{{ line }}</div>
             }
