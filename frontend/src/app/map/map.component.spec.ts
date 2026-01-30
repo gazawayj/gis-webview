@@ -11,19 +11,40 @@ describe('MapComponent', () => {
 
   vi.mock('ol/Map', () => {
     return {
-      default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        addLayer: vi.fn(),
-        getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
-        getView: vi.fn().mockReturnValue({
-          animate: vi.fn(),
-          getZoom: () => 2,
-          getCenter: () => [0, 0]
-        }),
-        getTarget: vi.fn().mockReturnValue('mapContainer')
-      }))
+      default: vi.fn().mockImplementation(function () {
+        return {
+          on: vi.fn(),
+          addLayer: vi.fn(),
+          getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
+          getView: vi.fn().mockReturnValue({
+            animate: vi.fn(),
+            getZoom: () => 2,
+            getCenter: () => [0, 0]
+          }),
+          getTarget: vi.fn().mockReturnValue('mapContainer')
+        };
+      })
     };
   });
+
+  // Also mock ScaleLine and other OL imports used in the service
+  vi.mock('ol/control', () => ({
+    ScaleLine: vi.fn().mockImplementation(() => ({}))
+  }));
+
+  vi.mock('ol/proj', () => ({
+    fromLonLat: vi.fn((coords) => coords),
+    toLonLat: vi.fn((coords) => coords)
+  }));
+  // Also mock ScaleLine and other OL imports used in the service
+  vi.mock('ol/control', () => ({
+    ScaleLine: vi.fn().mockImplementation(() => ({}))
+  }));
+
+  vi.mock('ol/proj', () => ({
+    fromLonLat: vi.fn((coords) => coords),
+    toLonLat: vi.fn((coords) => coords)
+  }));
 
   // Mock OpenLayers View
   const mockView = {
@@ -55,7 +76,9 @@ describe('MapComponent', () => {
     component = fixture.componentInstance;
 
     // Manually assign the mock map to the component
-    component.map = mockMap as unknown as Map;
+    component.mapContainer = {
+      nativeElement: document.createElement('div')
+    } as any;
 
     fixture.detectChanges();
   });
@@ -81,7 +104,7 @@ describe('MapComponent', () => {
       type: 'overlay',
       visible: true,
       zIndex: 1,
-      source: 'tiles' 
+      source: 'tiles'
     } as any);
 
     expect(layerSpy).toHaveBeenCalled();
