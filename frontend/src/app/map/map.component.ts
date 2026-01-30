@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef, inject, signal } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
@@ -7,6 +7,8 @@ import {
   CdkDropList,
   CdkDragPlaceholder,
   CdkDragDrop,
+  CdkDrag, 
+  CdkDragHandle,
   moveItemInArray
 } from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map';
@@ -18,6 +20,8 @@ import { MapService, Planet, LayerItem } from '../services/map';
     CommonModule,
     FormsModule,
     DragDropModule,
+    CdkDrag, 
+    CdkDragHandle,
     CdkDropList,
     CdkDragPlaceholder
   ],
@@ -31,9 +35,13 @@ export class MapComponent implements AfterViewInit {
   get currentLon() { return this.mapService.currentLon(); }
   get currentLat() { return this.mapService.currentLat(); }
 
+  public terminalLines = signal<string[]>(['Initializing GIS Console...', 'Connection established to NASA GIBS...', 'Ready for commands.']);
+  public terminalInput: string = '';
+
   mapService = inject(MapService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
+  public isModalOpen = false;
 
   // These help the template find data in the service
   get currentPlanet() { return this.mapService.currentPlanet(); }
@@ -47,8 +55,13 @@ export class MapComponent implements AfterViewInit {
   }
 
   onAddLayer(): void {
-    console.log('Add Layer clicked');
-    // Logic for adding a new layer will go here later
+    this.isModalOpen = true;
+  }
+
+  // ADD THIS METHOD to fix the TS2339 error
+  closeModal(): void {
+    this.isModalOpen = false;
+    this.cdr.detectChanges(); // Ensure the UI updates immediately
   }
 
   ngAfterViewInit(): void {
@@ -75,6 +88,7 @@ export class MapComponent implements AfterViewInit {
 
     moveItemInArray(layers, event.previousIndex, event.currentIndex);
     this.mapService.reorderLayers(layers);
+    this.cdr.detectChanges();
   }
 
   setPlanet(planet: Planet): void {
@@ -116,4 +130,22 @@ export class MapComponent implements AfterViewInit {
       el.style.cursor = 'grab';
     });
   }
+  
+  handleTerminalCommand(event: any): void {
+  const command = event.target.value;
+  if (!command) return;
+
+  // Add the command to history
+  this.terminalLines.update(prev => [...prev, `> ${command}`]);
+  
+  // Fake logic for demo
+  if (command.toLowerCase().includes('help')) {
+    this.terminalLines.update(prev => [...prev, 'Available: list, clear, status']);
+  } else if (command.toLowerCase() === 'clear') {
+    this.terminalLines.set([]);
+  }
+
+  this.terminalInput = ''; // Clear input
+  event.target.value = '';
+}
 }

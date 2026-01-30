@@ -459,6 +459,7 @@
   background-color: #ffffff !important;
   opacity: 0.9;
   transform: scale(1.02);
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
   z-index: 1000;
 }
 
@@ -476,6 +477,82 @@
   animation: pulse 1.5s infinite;
 }
 
+/* Ensure the number badge on the placeholder/moving items looks clean */
+.overlay-item.cdk-drag-placeholder {
+  opacity: 0; /* Hide the original item so the placeholder shows instead */
+}
+
+.modal-backdrop {
+  position: fixed; /* Fixes it relative to the browser window */
+  inset: 0;        /* Shorthand for top, left, right, bottom: 0 */
+  
+  /* IMPORTANT: Must be higher than the sidebar (10) and map */
+  z-index: 9999; 
+  
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes modalScale {
+  from { 
+    transform: scale(0.95) translateY(20px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: scale(1) translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  background: var(--text-color-light);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+/* Ensure the modal content area has a nice background */
+.modal-content {
+  padding: 2rem;
+  background: #fdfdfd;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+.modal-window {
+  width: 66vw;
+  height: 66vh;
+  background: white;
+  border-radius: 16px;
+  
+  /* Ensure the window itself has no z-index conflicts */
+  position: relative; 
+  z-index: 10000;
+  
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 /* Ensure the hint doesn't jump around during drag */
 .cdk-drop-list-dragging .drag-hint {
   opacity: 0.5;
@@ -485,4 +562,133 @@
   0% { box-shadow: 0 0 0 0 rgba(107, 91, 123, 0.4); }
   70% { box-shadow: 0 0 0 10px rgba(107, 91, 123, 0); }
   100% { box-shadow: 0 0 0 0 rgba(107, 91, 123, 0); }
+}
+
+.close-modal-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color-light);
+  background: var(--text-color-light);
+  color: var(--text-color-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.close-modal-btn span {
+  margin-top: -2px; /* Visual alignment for the '×' character */
+}
+
+.close-modal-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: rotate(90deg); /* Nice subtle rotation effect */
+  box-shadow: 0 4px 12px rgba(107, 91, 123, 0.3);
+}
+
+/* TERMINAL STYLING */
+.terminal-theme {
+  background-color: #1e1e1e !important; /* VS Code Dark */
+  color: #d4d4d4;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0 !important; /* Let the view handle padding */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Boxed Terminal Container */
+.terminal-container {
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  height: 300px; /* Fixed height to "box it in" */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  margin-bottom: 2rem;
+}
+
+/* Chrome-style Terminal Header */
+.terminal-header {
+  background: #323233;
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.terminal-title {
+  color: #999;
+  font-size: 0.75rem;
+  margin-left: 10px;
+  font-family: 'Courier New', monospace;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.red { background: #ff5f56; }
+.yellow { background: #ffbd2e; }
+.green { background: #27c93f; }
+
+/* Scoped Console View */
+.console-view {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  color: #d4d4d4;
+}
+
+.additional-content {
+  color: var(--text-color-dark);
+  padding: 0 1rem;
+}
+
+.console-line {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.current-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-color);
+}
+
+.console-write {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  flex: 1;
+  caret-color: var(--primary-color);
+}
+
+.prompt {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* Scrollbar for terminal */
+.console-view::-webkit-scrollbar {
+  width: 8px;
+}
+.console-view::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
 }

@@ -86,3 +86,45 @@
     }
   </main>
 </div>
+
+@if (isModalOpen) {
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-window" (click)="$event.stopPropagation()">
+    <div class="modal-window" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Layer Console</h2>
+        <!-- Styled Close Button -->
+        <button class="close-modal-btn" (click)="closeModal()">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-content">
+        <!-- THE BOXED TERMINAL -->
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <span class="terminal-title">system_console.sh</span>
+          </div>
+
+          <div class="console-view">
+            @for (line of terminalLines(); track $index) {
+            <div class="console-line">{{ line }}</div>
+            }
+            <div class="console-line current-line">
+              <span class="prompt">></span>
+              <input type="text" class="console-write" (keyup.enter)="handleTerminalCommand($event)"
+                placeholder="Enter command..." autofocus />
+            </div>
+          </div>
+        </div>
+
+        <div class="additional-content">
+          <h3>Available Data Modules</h3>
+          <p>The terminal above is docked for system logs. Select modules below to expand your view.</p>
+          <!-- Your future content goes here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+}
