@@ -666,14 +666,49 @@
 }
 
 .console-line {
+  display: block;
   font-size: 0.9rem;
   line-height: 1.4;
-  white-space: nowrap;      /* Keep text on one line during animation */
-  overflow: hidden;         /* Hide the text as it "types" */
-  border-right: 2px solid transparent; /* The "cursor" */
-  width: 0;                 /* Start at 0 width */
+  width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: none;
+  border-right: 2px solid transparent;
+  animation: typing 3s steps(50, end) forwards;
+}
+
+.console-line:last-child {
+  display: inline-block; /* Required for width animation */
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--primary-color); /* The cursor */
+  width: 0;
   animation: 
-    typing 1.5s steps(40, end) forwards,
+    typing 3s steps(50, end) forwards,
+    blink-caret 0.75s step-end infinite;
+}
+
+.console-line:has(+ .current-line),
+.console-line:last-child:not(.current-line) {
+  display: inline-block;
+  border-right: 2px solid var(--primary-color);
+  animation: 
+    typing 3s steps(50, end) forwards,
+    blink-caret 0.75s step-end infinite;
+}
+
+.console-line:not(:last-of-type):not(:has(+ .current-line)) {
+  width: 100%;
+  white-space: normal;
+  overflow: visible;
+  border-right: none;
+  animation: none; /* Stop animating once finished */
+}
+
+.console-line:last-of-type {
+  border-right: 2px solid var(--primary-color);
+  animation: 
+    typing 2.5s steps(40, end) forwards,
     blink-caret 0.75s step-end infinite;
 }
 
@@ -686,13 +721,19 @@
 /* The blinking cursor effect */
 @keyframes blink-caret {
   from, to { border-color: transparent }
-  50% { border-color: var(--primary-color); }
+  50% { border-color: var(--primary-color) }
 }
 
 .console-line:not(:last-child), .current-line {
   white-space: normal;
   width: 100%;
   border: none;
+}
+
+.console-line:not(:last-of-type) {
+  width: 100%;
+  white-space: normal;
+  border-right: none;
   animation: none;
 }
 
@@ -702,10 +743,12 @@
 }
 
 .current-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  display: flex !important;
+  width: 100% !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  border: none !important;
+  animation: none !important;
 }
 
 .console-write {

@@ -54,7 +54,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     return [...this.mapService.planetStates()[planet]];
   }
 
-  public terminalLines = signal<string[]>(['Initializing GIS Console...', 'Connection established to NASA GIBS...', 'Ready for commands.']);
+  public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
 
   mapService = inject(MapService);
@@ -75,6 +75,26 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onAddLayer(): void {
     this.isModalOpen = true;
+    //boot the background terminal
+    this.bootConsole();
+  }
+
+  private bootConsole(): void {
+    // Clear any old lines
+    this.terminalLines.set([]);
+
+    const bootMessages = [
+      'Initializing GIS Console...',
+      'Connection established to NASA GIBS...',
+      'Ready for commands.'
+    ];
+    // Add them with a slight delay so they type one after another
+    bootMessages.forEach((msg, index) => {
+      setTimeout(() => {
+        this.terminalLines.update(prev => [...prev, msg]);
+        this.cdr.detectChanges();
+      }, index * 4000);
+    });
   }
 
   onLayerMoved(event: CdkDragMove<any>): void {
@@ -113,6 +133,14 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setPlanet('earth');
       this.makeScaleDraggable(scaleContainer);
     });
+
+    // Console boot up
+    const scrollInterval = setInterval(() => {
+      if (this.consoleContainer) {
+        const el = this.consoleContainer.nativeElement;
+        el.scrollTop = el.scrollHeight;
+      }
+    }, 100);
   }
 
   ngOnDestroy(): void {
@@ -181,6 +209,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   handleTerminalCommand(event: any): void {
+    const inputEl = event.target as HTMLInputElement;
     const command = event.target.value.toLowerCase();
     if (!command) return;
 
@@ -196,6 +225,8 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.terminalLines.set([]);
     }
 
+    inputEl.value = '';
+
     // Single scroll handler
     setTimeout(() => {
       if (this.consoleContainer) {
@@ -204,22 +235,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }, 50);
 
-    event.target.value = '';
-
-    // Fake logic for demo
-    if (command.toLowerCase().includes('help')) {
-      this.terminalLines.update(prev => [...prev, 'Available: list, clear, status']);
-      queueMicrotask(() => {
-        if (this.consoleContainer) {
-          const el = this.consoleContainer.nativeElement;
-          el.scrollTop = el.scrollHeight;
-        }
-      });
-    } else if (command.toLowerCase() === 'clear') {
-      this.terminalLines.set([]);
-    }
-
-    this.terminalInput = ''; // Clear input
     event.target.value = '';
   }
 }

@@ -111,7 +111,9 @@
 
         <div class="console-view" #consoleView>
           @for (line of terminalLines(); track $index) {
-          <div class="console-line">{{ line }}</div>
+          <div class="console-line" [style.animation-delay]="$index * 0.2 + 's'">
+            {{ line }}
+          </div>
           }
           <div class="console-line current-line">
             <span class="prompt">></span>
