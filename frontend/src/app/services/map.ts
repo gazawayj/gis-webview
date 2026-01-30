@@ -87,6 +87,21 @@ export class MapService {
     moon: [0, 0]  // LROC center
   };
 
+  public updateLayerZIndex(layerId: string, zIndex: number): void {
+    const mapInstance = this.map(); // Assuming this is your signal or variable for ol/Map
+    if (!mapInstance) return;
+
+    // Search the Map's layer collection for the layer with the matching ID
+    const targetLayer = mapInstance
+      .getLayers()
+      .getArray()
+      .find((layer) => layer.get('id') === layerId);
+
+    if (targetLayer) {
+      targetLayer.setZIndex(zIndex);
+    }
+  }
+
   toggleLayer(layer: LayerItem): void {
     const map = this.mapInstance();
     if (!map) return;

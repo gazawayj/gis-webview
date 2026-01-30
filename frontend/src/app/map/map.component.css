@@ -109,11 +109,16 @@
   border-radius: 6px;
   background: #fbfbfb;
   transition: background 0.2s;
+  /* Entire card shows grab cursor  */
   cursor: grab !important;
-  /* Entire card shows grab cursor */
   user-select: none;
   touch-action: none;
-  /* Required for touch and pointer move events */
+  counter-increment: layer-counter -1;
+}
+
+/* Display the current value of the counter in the span */
+.live-rank::before {
+  content: counter(layer-counter);
 }
 
 .overlay-item:active {
@@ -171,6 +176,7 @@
   position: relative;
   /* Smoothly shift the other items as the placeholder moves */
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  counter-increment: layer-counter -1;
 }
 
 /* Optional: Put a ghost number inside the placeholder */

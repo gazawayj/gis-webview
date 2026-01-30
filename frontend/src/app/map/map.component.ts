@@ -1,16 +1,28 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef, inject, signal } from '@angular/core';
+import { 
+  Component, 
+  AfterViewInit, 
+  OnDestroy, 
+  ViewChild, 
+  ElementRef, 
+  Inject, 
+  ChangeDetectorRef, 
+  inject, 
+  signal,
+  PLATFORM_ID 
+} from '@angular/core';
+
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PLATFORM_ID } from '@angular/core';
+
 import {
   DragDropModule,
   CdkDropList,
   CdkDragPlaceholder,
   CdkDragDrop,
   CdkDrag,
-  CdkDragHandle,
   moveItemInArray
 } from '@angular/cdk/drag-drop';
+
 import { MapService, Planet, LayerItem } from '../services/map';
 
 @Component({
@@ -21,14 +33,13 @@ import { MapService, Planet, LayerItem } from '../services/map';
     FormsModule,
     DragDropModule,
     CdkDrag,
-    CdkDragHandle,
     CdkDropList,
     CdkDragPlaceholder
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
-export class MapComponent implements AfterViewInit {
+export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
 
@@ -67,6 +78,10 @@ export class MapComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+    if (!this.mapContainer || !this.mapContainer.nativeElement) {
+      console.error('Map Container element not found.');
+      return;
+    }
 
     // Create container for ScaleLine
     const scaleContainer = document.createElement('div');
@@ -81,6 +96,14 @@ export class MapComponent implements AfterViewInit {
       this.setPlanet('earth');
       this.makeScaleDraggable(scaleContainer);
     });
+  }
+
+  ngOnDestroy(): void {
+    const map = this.mapService.map();
+    if (map) {
+      console.log('Destroying map instance and cleaning up listeners...');
+      map.setTarget(undefined);
+    }
   }
 
   onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
