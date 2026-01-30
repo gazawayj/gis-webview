@@ -8,6 +8,8 @@ describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
 
+
+  
   // Mock OpenLayers View
   const mockView = {
     getCenter: vi.fn(() => [0, 0]),

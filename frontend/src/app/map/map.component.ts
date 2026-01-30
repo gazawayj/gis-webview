@@ -1,34 +1,9 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef, Inject, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PLATFORM_ID } from '@angular/core';
-import { ScaleLine, defaults as defaultControls } from 'ol/control';
-import { fromLonLat, toLonLat } from 'ol/proj';
-
-import Map from 'ol/Map';
-import View from 'ol/View';
-import TileLayer from 'ol/layer/Tile';
-import XYZ from 'ol/source/XYZ';
-import TileArcGISRest from 'ol/source/TileArcGISRest';
-
-type Planet = 'earth' | 'mars' | 'moon';
-
-interface LayerItem {
-  id: string;
-  name: string;
-  description: string;
-  visible: boolean;
-  type: 'basemap' | 'overlay';
-  zIndex: number;
-}
-
-interface PlanetState {
-  center: number[];
-  zoom: number;
-  gravity: string;
-  latLabel: string;
-  lonLabel: string;
-}
+import { toLonLat } from 'ol/proj';
+import { MapService, Planet, LayerItem } from '../services/map';
 
 @Component({
   selector: 'app-map',
@@ -40,93 +15,51 @@ interface PlanetState {
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
-  public map!: Map;
+  mapService = inject(MapService);
+  private cdr = inject(ChangeDetectorRef);
+  private platformId = inject(PLATFORM_ID);
+
+  // UI-only properties
   public zoomDisplay: string = '2.0';
   public currentLon: string = '0.00°';
   public currentLat: string = '0.00°';
-  public currentPlanet: Planet = 'earth';
-  public layers: LayerItem[] = [];
-  public isLoading: boolean = false;
+  map: any;
 
-  private baseLayer!: TileLayer<XYZ | TileArcGISRest>;
-  private overlayLayers: Record<string, TileLayer<TileArcGISRest>> = {};
-
-  private readonly PLANET_RADII: Record<Planet, number> = {
-    earth: 1.0,
-    mars: 0.532,
-    moon: 0.273
-  };
-
-  private planetStates: Record<Planet, PlanetState> = {
-    earth: {
-      center: fromLonLat([-100, 40]), zoom: 4, gravity: '9.81 m/s²',
-      latLabel: 'Latitude', lonLabel: 'Longitude'
-    },
-    mars: {
-      center: [0, 0], zoom: 1.1, gravity: '3.71 m/s²',
-      latLabel: 'Areographic Lat', lonLabel: 'Areographic Lon'
-    },
-    moon: {
-      center: [0, 0], zoom: 1.0, gravity: '1.62 m/s²',
-      latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon'
-    }
-  };
+  // These help the template find data in the service
+  get currentPlanet() { return this.mapService.currentPlanet(); }
+  get isLoading() { return this.mapService.isLoading(); }
+  get layers() {
+    // Sort descending by zIndex: 1 (Overlay) first, 0 (Basemap) last
+    return this.mapService.visibleLayers().sort((a, b) => b.zIndex - a.zIndex);
+  }
+  get currentStats() {
+    return this.mapService.getPlanetStats();
+  }
 
 
   private readonly OVERLAY_URLS: Record<string, string> = {
     lroc: 'https://gibs.earthdata.nasa.gov/LRO_WAC_Mosaic/default/2014-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg'
   };
 
-  constructor(
-    @Inject(PLATFORM_ID) private platformId: object,
-    private cdr: ChangeDetectorRef
-  ) { }
-
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    this.initMap();
-    queueMicrotask(() => {
-      this.setPlanet('earth');
-      this.map.updateSize();
-      this.cdr.detectChanges();
-    });
-  }
 
-  private initMap(): void {
-    this.baseLayer = new TileLayer({ zIndex: 0 });
-
-    // Create the container for dragging for ol access
+    // Create container for ScaleLine
     const scaleContainer = document.createElement('div');
     scaleContainer.className = 'scale-drag-container';
 
-    // Initialize ScaleLine using the imported class (not ol.control)
-    const scaleLine = new ScaleLine({
-      units: 'metric',
-      target: scaleContainer // This attaches the scale to our draggable div
-    });
-
-    this.map = new Map({
-      target: this.mapContainer.nativeElement,
-      layers: [this.baseLayer],
-      view: new View({
-        projection: 'EPSG:3857',
-        center: [0, 0],
-        zoom: 1
-      }),
-      // Use the imported defaultControls
-      controls: defaultControls().extend([scaleLine])
-    });
-
-    // Append the container to the map element so it's visible
+    // Initialize Map via Service
+    const map = this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
     this.mapContainer.nativeElement.appendChild(scaleContainer);
 
-    this.map.on('moveend', () => {
-      const zoom = this.map.getView().getZoom();
+    // Event Listeners for UI updates
+    map.on('moveend', () => {
+      const zoom = map.getView().getZoom();
       this.zoomDisplay = zoom ? zoom.toFixed(1) : '2.0';
       this.cdr.detectChanges();
     });
 
-    this.map.on('pointermove', (evt) => {
+    map.on('pointermove', (evt) => {
       if (evt.coordinate) {
         const lonLat = toLonLat(evt.coordinate);
         this.currentLon = `${lonLat[0].toFixed(2)}°`;
@@ -135,25 +68,39 @@ export class MapComponent implements AfterViewInit {
       }
     });
 
-    this.setupLoadingListeners();
-
-    queueMicrotask(() => this.makeScaleDraggable());
+    // Initial Planet Setup
+    queueMicrotask(() => {
+      this.setPlanet('earth');
+      this.makeScaleDraggable(scaleContainer);
+    });
   }
 
-  private setupLoadingListeners(): void {
-    this.map.on('loadstart', () => { this.isLoading = true; this.cdr.detectChanges(); });
-    this.map.on('loadend', () => { this.isLoading = false; this.cdr.detectChanges(); });
+  setPlanet(planet: Planet): void {
+    this.mapService.setPlanet(planet);
+    this.cdr.detectChanges();
   }
 
-  private makeScaleDraggable(): void {
-    const el = this.mapContainer.nativeElement.querySelector(
-      '.scale-drag-container'
-    ) as HTMLElement;
-    if (!el) return;
+  toggleLayer(layer: LayerItem): void {
+    // If it's a basemap, we just toggle the fixed baseLayer in the service
+    if (layer.type === 'basemap') {
+      const newVisibility = !layer.visible;
+      this.mapService.map()?.getLayers().getArray().find(l => l.get('id') === 'base')?.setVisible(newVisibility);
 
+      // Update signal manually for basemap since it doesn't use the XYZ creator logic
+      this.mapService.planetStates.update(prev => {
+        const cur = this.mapService.currentPlanet();
+        return { ...prev, [cur]: prev[cur].map(l => l.id === layer.id ? { ...l, visible: newVisibility } : l) };
+      });
+      this.mapService.visibleLayers.set([...this.mapService.planetStates()[this.mapService.currentPlanet()]]);
+    } else {
+      // For overlays like LROC
+      this.mapService.toggleOverlay(layer, this.OVERLAY_URLS[layer.id]);
+    }
+  }
+
+  private makeScaleDraggable(el: HTMLElement): void {
     let dragging = false;
-    let startX = 0;
-    let startY = 0;
+    let startX = 0, startY = 0;
 
     el.style.position = 'absolute';
     el.style.bottom = '10px';
@@ -166,7 +113,7 @@ export class MapComponent implements AfterViewInit {
       startY = e.clientY - el.offsetTop;
       el.setPointerCapture(e.pointerId);
       el.style.cursor = 'grabbing';
-      el.style.bottom = 'auto'; 
+      el.style.bottom = 'auto';
     });
 
     el.addEventListener('pointermove', (e) => {
@@ -180,83 +127,4 @@ export class MapComponent implements AfterViewInit {
       el.style.cursor = 'grab';
     });
   }
-
-  setPlanet(planet: Planet): void {
-    const view = this.map.getView();
-
-    if (this.currentPlanet) {
-      this.planetStates[this.currentPlanet].center = view.getCenter() || [0, 0];
-      this.planetStates[this.currentPlanet].zoom = view.getZoom() || 3;
-    }
-
-    this.currentPlanet = planet;
-
-    Object.values(this.overlayLayers).forEach(layer => this.map.removeLayer(layer));
-    this.overlayLayers = {};
-
-    const planetLayers = this.layersByPlanet[planet];
-    this.layers = planetLayers.map((l, index) => ({
-      ...l,
-      visible: l.type === 'basemap',
-      zIndex: planetLayers.length - 1 - index
-    }));
-
-    const baseData = this.layers.find(l => l.type === 'basemap');
-    if (baseData) {
-      this.baseLayer.setSource(this.getBasemapSource(planet));
-      this.baseLayer.setZIndex(baseData.zIndex);
-    }
-
-    view.getProjection().setGetPointResolution((res) => res * this.PLANET_RADII[planet]);
-
-    const targetState = this.planetStates[planet];
-    const isEarth = planet === 'earth';
-    view.setMinZoom(isEarth ? 2 : 1);
-    view.setMaxZoom(isEarth ? 18 : 8);
-
-    view.animate({
-      center: targetState.center,
-      zoom: targetState.zoom,
-      duration: 1000
-    });
-  }
-
-  private getBasemapSource(planet: Planet): XYZ {
-    const urls: Record<Planet, string> = {
-      earth:
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      mars:
-        'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png',
-      moon:
-        'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png'
-    };
-    return new XYZ({ url: urls[planet], crossOrigin: 'anonymous' });
-  }
-
-
-  toggleLayer(layer: LayerItem): void {
-    if (layer.type === 'basemap') {
-      this.baseLayer.setVisible(layer.visible);
-      return;
-    }
-    if (!this.overlayLayers[layer.id]) {
-      const source = new TileArcGISRest({ url: this.OVERLAY_URLS[layer.id], crossOrigin: 'anonymous' });
-      const overlay = new TileLayer({ source, visible: layer.visible, zIndex: layer.zIndex });
-      this.overlayLayers[layer.id] = overlay;
-      this.map.addLayer(overlay);
-    } else {
-      this.overlayLayers[layer.id].setVisible(layer.visible);
-    }
-  }
-
-  get currentStats() { return this.planetStates[this.currentPlanet]; }
-
-  layersByPlanet: Record<Planet, LayerItem[]> = {
-    earth: [{ id: 'earth-base', name: 'Earth Basemap', description: 'Global surface imagery', visible: true, type: 'basemap', zIndex: 0 }],
-    mars: [{ id: 'mars-base', name: 'Mars Basemap', description: 'Global Mars reference', visible: true, type: 'basemap', zIndex: 0 }],
-    moon: [
-      { id: 'lroc', name: 'LROC Details', description: 'High-res lunar imagery', visible: false, type: 'overlay', zIndex: 1 },
-      { id: 'moon-base', name: 'Moon Basemap', description: 'Global lunar reference', visible: true, type: 'basemap', zIndex: 0 }
-    ]
-  };
 }

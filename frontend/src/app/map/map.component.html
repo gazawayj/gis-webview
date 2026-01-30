@@ -4,7 +4,7 @@
     <h1>GIS Web Viewer</h1>
 
     <!-- <h2>{{ currentPlanet | titlecase }}</h2> -->
-    
+
     <div class="planet-buttons">
       <button (click)="setPlanet('earth')" [class.active]="currentPlanet === 'earth'">Earth</button>
       <button (click)="setPlanet('moon')" [class.active]="currentPlanet === 'moon'">Moon</button>
@@ -19,36 +19,36 @@
         </button>
       </div>
 
-      <div *ngFor="let layer of layers" class="overlay-item">
-        <span class="drag-handle">⠿</span>
-        <input 
-          type="checkbox" 
-          [(ngModel)]="layer.visible" 
-          (change)="toggleLayer(layer)">
-        <div class="layer-info">
-          <strong>{{ layer.name }}</strong>
-          <span class="hint">{{ layer.description }}</span>
+      <div class="layers-list">
+        @for (layer of layers; track layer.id) {
+        <div class="layer-card" [class.active]="layer.visible">
+          <div class="layer-header">
+            <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
+            <strong>{{ layer.name }}</strong>
+          </div>
+          <p>{{ layer.description }}</p>
         </div>
+        }
       </div>
-    </div>
 
-    <!-- Planetary Stats (Pushed to bottom) -->
-    <div class="stats-panel">
-      <div class="stat-item">
-        <span>Zoom Level</span> 
-        <strong>{{ zoomDisplay }}</strong>
-      </div>
-      <div class="stat-item">
-        <span>{{ currentStats.latLabel }}</span> 
-        <strong>{{ currentLat }}</strong>
-      </div>
-      <div class="stat-item">
-        <span>{{ currentStats.lonLabel }}</span> 
-        <strong>{{ currentLon }}</strong>
-      </div>
-      <div class="stat-item">
-        <span>Surface Gravity</span> 
-        <strong>{{ currentStats.gravity }}</strong>
+      <!-- Planetary Stats (Pushed to bottom) -->
+      <div class="stats-panel">
+        <div class="stat-item">
+          <span>Zoom Level</span>
+          <strong>{{ zoomDisplay }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>{{ currentStats.latLabel }}</span>
+          <strong>{{ currentLat }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>{{ currentStats.lonLabel }}</span>
+          <strong>{{ currentLon }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>Surface Gravity</span>
+          <strong>{{ currentStats.gravity }}</strong>
+        </div>
       </div>
     </div>
   </aside>
@@ -58,8 +58,9 @@
     <div #mapContainer id="mapContainer"></div>
 
     <!-- Loading Spinner -->
-    <div *ngIf="isLoading" class="loading-overlay">
-      <div class="spinner"></div>
-    </div>
+    @if (mapService.isLoading()) {
+    <div class="spinner">Loading Map Data...</div>
+    }
+    <div id="map-container" #mapTarget></div>
   </main>
 </div>
