@@ -10,9 +10,8 @@
     </div>
 
     <!-- Layers Container -->
-    <div class="overlay-panel" 
-     cdkDropList 
-     (cdkDropListDropped)="onLayerDropped($event)" [style.counter-reset]="'layer-counter ' + (layers.length + 1)">
+    <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($event)"
+      [style.counter-reset]="'layer-counter ' + (layers.length + 1)">
       @if (layers.length === 0) {
       <div class="empty-hint" style="text-align: center; color: #999; font-size: 0.8rem; padding: 1rem;">
         No layers available for this planet.
@@ -58,16 +57,19 @@
         <span>Zoom Level</span>
         <strong>{{ zoomDisplay }}</strong>
       </div>
-      <div class="stat-item">
-        <span>{{ currentStats.latLabel }}</span>
+      <div class="coords-display-lon">
+        <span>Longitude</span>
+        <strong>{{ currentLon }}</strong>
+      </div>
+
+      <!-- Latitude Item (Matching stat-item pattern) -->
+      <div class="coords-display-lat">
+        <span>Latitude</span>
         <strong>{{ currentLat }}</strong>
       </div>
       <div class="stat-item">
-        <span>{{ currentStats.lonLabel }}</span>
-        <strong>{{ currentLon }}</strong>
-      </div>
-      <div class="stat-item">
         <span>Surface Gravity</span>
+        <!-- currentStats is a getter returning an object -->
         <strong>{{ currentStats.gravity }}</strong>
       </div>
     </div>

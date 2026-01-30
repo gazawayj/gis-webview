@@ -12,7 +12,9 @@ import {
 } from '@angular/core';
 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import proj4 from 'proj4';
+import { register } from 'ol/proj/proj4';
+import View from 'ol/View'; 
 
 import {
   DragDropModule,
@@ -31,7 +33,6 @@ import { MapService, Planet, LayerItem } from '../services/map';
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     DragDropModule,
     CdkDrag,
     CdkDropList,
@@ -89,6 +90,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges(); // Ensure the UI updates immediately
   }
 
+
+
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!this.mapContainer || !this.mapContainer.nativeElement) {
@@ -114,9 +117,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     const map = this.mapService.map();
     if (map) {
-      console.log('Destroying map instance and cleaning up listeners...');
       map.setTarget(undefined);
     }
+  }
+
+  ngOnInit() {
+    // Mars (IAU2000:49900)
+    proj4.defs('IAU:49900', '+proj=longlat +a=3396190 +b=3376200 +no_defs +type=crs');
+    // Moon (IAU2000:30100)
+    proj4.defs('IAU:30100', '+proj=longlat +a=1737400 +b=1737400 +no_defs +type=crs');
+    // 2. Register them with OpenLayers
+    register(proj4);
   }
 
   onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
@@ -128,10 +139,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  setPlanet(planet: Planet): void {
-    this.mapService.setPlanet(planet);
+  public setPlanet(planet: Planet): void {
+    this.mapService.setPlanet(planet); // Let the service handle the CRS/View logic
     this.cdr.detectChanges();
-  }
+  } 
 
   toggleLayer(layer: LayerItem): void {
     this.mapService.toggleLayer(layer);

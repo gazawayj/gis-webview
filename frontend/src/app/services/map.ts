@@ -159,9 +159,17 @@ export class MapService {
 
     instance.on('pointermove', (evt) => {
       if (evt.coordinate) {
-        const lonLat = toLonLat(evt.coordinate);
-        this._currentLon.set(`${lonLat[0].toFixed(2)}°`);
-        this._currentLat.set(`${lonLat[1].toFixed(2)}°`);
+        const projection = instance.getView().getProjection();
+        const lonLat = projection.getCode() === 'EPSG:3857'
+          ? toLonLat(evt.coordinate)
+          : evt.coordinate;
+
+        const lon = lonLat[0];
+        const lat = lonLat[1];
+
+        // Combine Decimal and DMS for the UI
+        this._currentLon.set(`${lon.toFixed(4)}° (${this.formatDMS(lon, false)})`);
+        this._currentLat.set(`${lat.toFixed(4)}° (${this.formatDMS(lat, true)})`);
       }
     });
 
@@ -183,7 +191,7 @@ export class MapService {
       zIndex: total - index
     }));
 
-    // 2. Apply to OpenLayers layers
+    // Apply to OpenLayers layers
     const olLayers = map.getLayers().getArray();
     updatedLayers.forEach(layer => {
       const target = olLayers.find(l => l.get('id') === layer.id || l.get('id') === 'base');
@@ -192,22 +200,32 @@ export class MapService {
       }
     });
 
-    // 3. Update the signal state
+    // Update the signal state
     this.planetStates.update(prev => ({ ...prev, [planet]: updatedLayers }));
   }
 
-  setPlanet(planet: Planet) {
-    const map = this.mapInstance();
-    if (!map) return;
+  setPlanet(planet: Planet): void {
+    const mapInstance = this.map();
+    if (!mapInstance) return;
+
+    // Determine the CRS Code
+    let projectionCode = 'EPSG:3857'; // Earth (Web Mercator)
+    if (planet === 'mars') projectionCode = 'IAU:49900';
+    if (planet === 'moon') projectionCode = 'IAU:30100';
+
+    // Create a new View with the specific Planetary Projection
+    mapInstance.setView(new View({
+      projection: projectionCode,
+      center: [0, 0],
+      zoom: 2,
+      extent: planet === 'earth' ? undefined : [-180, -90, 180, 90]
+    }));
+
+    // Update state signals
+    const source = this.getBasemapSource(planet);
+    this.baseLayer.setSource(source);
 
     this.currentPlanet.set(planet);
-    this.baseLayer.setSource(this.getBasemapSource(planet));
-
-    map.getView().animate({
-      center: fromLonLat(this.planetCoordinates[planet]),
-      zoom: 2,
-      duration: 1000
-    });
   }
 
   private readonly BASEMAP_URLS: Record<Planet, string> = {
@@ -223,6 +241,18 @@ export class MapService {
       crossOrigin: 'anonymous', // Helps with potential CORS issues
       maxZoom: planet === 'earth' ? 17 : 12
     });
+  }
+
+  private formatDMS(deg: number, isLat: boolean): string {
+    const absDeg = Math.abs(deg);
+    const d = Math.floor(absDeg);
+    const m = Math.floor((absDeg - d) * 60);
+    const s = ((absDeg - d - m / 60) * 3600).toFixed(1);
+    const direction = deg >= 0
+      ? (isLat ? 'N' : 'E')
+      : (isLat ? 'S' : 'W');
+
+    return `${d}°${m}'${s}" ${direction}`;
   }
 
   addLayer(layer: any) {

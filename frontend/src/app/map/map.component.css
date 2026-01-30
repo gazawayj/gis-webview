@@ -301,8 +301,48 @@
   color: #666;
 }
 
+.coords-display-lon {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.coords-display-lat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.coords-display-return {
+  display: flex;
+  justify-content: space-between;
+  text-justify: right;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--primary-color);
+}
+
+
 .stat-item strong {
   color: var(--primary-color);
+}
+
+.coords-display-lon strong code,
+.coords-display-lat strong code {
+  color: inherit;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}
+
+.stat-item strong,
+.coords-display-lon strong,
+.coords-display-lat strong {
+  color: var(--primary-color);
+  font-weight: 600; /* Ensures consistent bolding */
 }
 
 /* MAP STYLE */
