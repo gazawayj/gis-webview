@@ -93,12 +93,13 @@ describe('MapComponent', () => {
     const map = component.mapService.map();
     const layerSpy = vi.spyOn(map!, 'addLayer');
 
-    // Toggle a layer that is currently hidden (visible: false)
+    // 1. Ensure the layer is not already in the map (mock getLayers return)
+    vi.spyOn(map!.getLayers(), 'getArray').mockReturnValue([]);
     component.toggleLayer({
-      id: 'lroc',
+      id: 'lroc', 
       name: 'LROC',
       type: 'overlay',
-      visible: false, // Start false so the function logic triggers an update
+      visible: false,
       zIndex: 1
     } as any);
 
