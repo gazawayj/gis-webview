@@ -126,6 +126,10 @@
   border-color: #d1d1d1;
 }
 
+.overlay-item, .drag-placeholder {
+  counter-increment: layer-counter -1;
+}
+
 .overlay-item input[type="checkbox"] {
   cursor: pointer !important;
   position: relative;
@@ -151,6 +155,14 @@
   margin-left: 0.25rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+}
+
+.live-rank::before {
+  content: counter(layer-counter);
+}
+
+.cdk-drag-preview .live-rank::before {
+  content: ""; 
 }
 
 .drag-handle {
