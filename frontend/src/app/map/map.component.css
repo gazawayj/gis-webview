@@ -154,8 +154,8 @@
 }
 
 .drag-handle {
-  color: #e0e0e0;
-  font-size: 0.75rem;
+  color: var(--text-color-dark);
+  font-size: 1rem;
   font-weight: 200;
   margin-top: 0.35rem;
   padding-right: 2px;
