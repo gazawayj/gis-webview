@@ -90,24 +90,24 @@ describe('MapComponent', () => {
   });
 
   it('creates overlay layer when toggled on', () => {
-    const layerSpy = vi.spyOn(component.map, 'addLayer');
+    const map = component.mapService.map();
+    const layerSpy = vi.spyOn(map!, 'addLayer');
 
-    // Pass a mock layer object that matches Layer interface
+    // Toggle a layer that is currently hidden (visible: false)
     component.toggleLayer({
       id: 'lroc',
       name: 'LROC',
       type: 'overlay',
-      visible: true,
-      zIndex: 1,
-      source: 'tiles'
+      visible: false, // Start false so the function logic triggers an update
+      zIndex: 1
     } as any);
 
     expect(layerSpy).toHaveBeenCalled();
   });
 
-  it('should handle map initialization', () => {
-    // Check if the component's map property was successfully defined
-    expect(component.map).toBeDefined();
-    expect(component.map.getTarget()).toBeDefined();
+   it('should handle map initialization', () => {
+    const map = component.mapService.map();
+    expect(map).toBeDefined();
+    expect(map!.getTarget()).toBeDefined();
   });
 });
