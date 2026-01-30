@@ -46,6 +46,11 @@ export class MapComponent implements AfterViewInit {
     return this.mapService.getPlanetStats();
   }
 
+  onAddLayer(): void {
+    console.log('Add Layer clicked');
+    // Logic for adding a new layer will go here later
+  }
+
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 

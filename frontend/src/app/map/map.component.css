@@ -32,6 +32,7 @@
 
 .sidebar {
   width: 400px;
+  height: 100vh;
   flex-shrink: 0;
   padding: 1rem;
   box-sizing: border-box;
@@ -80,14 +81,20 @@
 /* LAYER CONTAINER */
 
 .overlay-panel {
-  border: 1px solid var(--border-color-light);
+  justify-content: flex-end; 
+  margin-top: auto; 
   padding: 1rem;
-  border-radius: 8px;
-  background: var(--text-color-light);
   display: flex;
   flex-direction: column;
-  min-height: 100px;
+  flex: 1;
+  min-height: 0; 
   gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.03); /* Subtle darkening */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: .5rem;
+  margin: .5rem 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 /* LAYER CARDS */
@@ -138,7 +145,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
   font-weight: bold;
   flex-shrink: 0;
   margin-left: 0.25rem;
@@ -157,14 +164,51 @@
 
 .drag-placeholder {
   background: var(--primary-color);
-  opacity: .6;
   border: 2px dashed var(--primary-color);
-  border-radius: 6px;
+  border-radius: 8px;
   min-height: 60px;
-  margin-bottom: 0.5rem;
-
+  margin-bottom: 8px;
+  position: relative;
   /* Smoothly shift the other items as the placeholder moves */
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Optional: Put a ghost number inside the placeholder */
+.drag-placeholder::after {
+  content: "...";
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.drag-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: #888;
+  padding: 0..25rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: auto; /* Pushes the layers away from the hint */
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.info-icon {
+  background: rgba(107, 91, 123, 0.1);
+  color: var(--primary-color);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-weight: bold;
 }
 
 .layer-info {
@@ -224,10 +268,16 @@
 
 .stats-panel {
   background: var(--text-color-light);
-  border: 1px solid var(--border-color-light);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: auto;
+  margin-top: 0; /* No longer needs auto-margin as panel does the work */
+  border-top: 1px solid var(--border-color-dark);
+  flex-shrink: 0;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.03); /* Subtle darkening */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: .5rem;
+  margin: .5rem 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .stat-item {
@@ -417,4 +467,22 @@
   background-color: var(--text-color-dark);
   transform: scale(1.1);
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+/* Highlight the number of the specific item being dragged */
+.cdk-drag-dragging .layer-number {
+  background-color: var(--primary-color) !important;
+  transform: scale(1.2);
+  animation: pulse 1.5s infinite;
+}
+
+/* Ensure the hint doesn't jump around during drag */
+.cdk-drop-list-dragging .drag-hint {
+  opacity: 0.5;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(107, 91, 123, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(107, 91, 123, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(107, 91, 123, 0); }
 }

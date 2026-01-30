@@ -11,6 +11,25 @@
 
     <!-- Layers Container -->
     <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($any($event))">
+      @if (layers.length === 0) {
+      <div class="empty-hint" style="text-align: center; color: #999; font-size: 0.8rem; padding: 1rem;">
+        No layers available for this planet.
+      </div>
+      }
+
+      @if (layers.length > 0) {
+      <div class="drag-hint">
+        Click and drag layers to reorder stack
+      </div>
+      }
+
+      <div class="layer-actions">
+        <button class="add-layer-btn" (click)="onAddLayer()">
+          <span class="plus-icon">+</span> Add Layer
+        </button>
+      </div>
+
+      <div style="flex: 1"></div>
 
       @for (layer of layers; track layer.id; let i = $index) {
       <!-- The whole label is the draggable zone -->
