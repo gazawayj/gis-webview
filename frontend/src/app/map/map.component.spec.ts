@@ -93,10 +93,11 @@ describe('MapComponent', () => {
     const map = component.mapService.map();
     const layerSpy = vi.spyOn(map!, 'addLayer');
 
-    // 1. Ensure the layer is not already in the map (mock getLayers return)
+    // Force the map to think the layer doesn't exist yet
     vi.spyOn(map!.getLayers(), 'getArray').mockReturnValue([]);
+
     component.toggleLayer({
-      id: 'lroc', 
+      id: 'lroc', // Must match the key in OVERLAY_URLS
       name: 'LROC',
       type: 'overlay',
       visible: false,

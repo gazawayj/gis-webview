@@ -102,7 +102,7 @@ export class MapService {
     });
   }
 
-  toggleOverlay(layer: LayerItem) {
+  toggleOverlay(layer: LayerItem, url?: string) {
     const map = this.mapInstance();
     if (!map) return;
 

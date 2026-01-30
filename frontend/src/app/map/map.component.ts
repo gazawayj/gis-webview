@@ -99,7 +99,7 @@ export class MapComponent implements AfterViewInit {
       this.mapService.visibleLayers.set([...this.mapService.planetStates()[this.mapService.currentPlanet()]]);
     } else {
       // Overlays: The service method already calculates the flip internally
-      this.mapService.toggleOverlay(layer);
+      this.mapService.toggleOverlay(layer, url);
     }
     
     this.cdr.detectChanges();
