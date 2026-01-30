@@ -4,31 +4,24 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Map from 'ol/Map';
 
-vi.mock('ol/Map', () => {
-  return {
-    default: vi.fn().mockImplementation(function () {
-      return {
-        on: vi.fn(),
-        addLayer: vi.fn(),
-        getLayers: vi.fn().mockReturnValue({ getArray: () => [] }),
-        getView: vi.fn().mockReturnValue({
-          animate: vi.fn(),
-          getZoom: () => 2,
-          getCenter: () => [0, 0]
-        }),
-        getTarget: vi.fn().mockReturnValue('mapContainer')
-      };
-    })
-  };
-});
-
-vi.mock('ol/control', () => ({
-  ScaleLine: vi.fn().mockImplementation(() => ({}))
-}));
-
-vi.mock('ol/proj', () => ({
-  fromLonLat: vi.fn((coords) => coords),
-  toLonLat: vi.fn((coords) => coords)
+vi.mock('ol/Map', () => ({
+  default: vi.fn().mockImplementation(function() {
+    return {
+      on: vi.fn(),
+      addLayer: vi.fn(),
+      getLayers: vi.fn().mockReturnValue({ 
+        getArray: vi.fn().mockReturnValue([]),
+        push: vi.fn() 
+      }),
+      getView: vi.fn().mockReturnValue({
+        animate: vi.fn(),
+        getZoom: vi.fn().mockReturnValue(2),
+        getCenter: vi.fn().mockReturnValue([0, 0])
+      }),
+      getTarget: vi.fn().mockReturnValue('mapContainer'),
+      setTarget: vi.fn()
+    };
+  })
 }));
 
 vi.mock('ol/control', () => ({
@@ -38,6 +31,16 @@ vi.mock('ol/control', () => ({
 vi.mock('ol/proj', () => ({
   fromLonLat: vi.fn((coords) => coords),
   toLonLat: vi.fn((coords) => coords)
+}));
+
+vi.mock('ol/View', () => ({
+  default: vi.fn().mockImplementation(function() {
+    return {
+      getZoom: vi.fn().mockReturnValue(2),
+      getCenter: vi.fn().mockReturnValue([0,0]),
+      animate: vi.fn()
+    };
+  })
 }));
 
 vi.mock('ol/layer/Tile', () => ({ default: vi.fn().mockImplementation(() => ({})) }));
