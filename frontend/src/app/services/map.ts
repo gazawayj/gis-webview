@@ -5,6 +5,7 @@ import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import { fromLonLat } from 'ol/proj';
 import { XYZ } from 'ol/source';
+import { ScaleLine } from 'ol/control';
 
 export interface LayerItem {
   id: string;
@@ -60,6 +61,12 @@ export class MapService {
   initMap(target: HTMLElement, scaleContainer: HTMLDivElement): Map {
     const instance = new Map({
       target: target,
+      controls: [
+        new ScaleLine({
+          target: scaleContainer,
+          units: 'metric'
+        })
+      ],
       layers: [this.baseLayer],
       view: new View({
         center: fromLonLat([0, 0]),
@@ -72,7 +79,7 @@ export class MapService {
     this.mapInstance.set(instance);
     const initial = this.sortLayers(this.planetStates().earth);
     this.visibleLayers.set(initial);
-    
+
     return instance;
   }
 
@@ -94,40 +101,33 @@ export class MapService {
       duration: 1000
     });
   }
-  toggleOverlay(layer: LayerItem, url?: string) {
+
+  toggleOverlay(layer: LayerItem) {
     const map = this.mapInstance();
     if (!map) return;
+
+    // The checkbox already changed the object's value locally
+    const newState = !layer.visible;
 
     const layers = map.getLayers().getArray();
     let targetLayer = layers.find(l => l.get('id') === layer.id);
 
-    // If the layer doesn't exist on the map yet, create it
-    if (!targetLayer && url) {
-      targetLayer = new TileLayer({
-        source: new XYZ({ url }),
-        properties: { id: layer.id },
-        zIndex: layer.zIndex
-      });
-      map.addLayer(targetLayer);
-    }
-
-    // Toggle the actual map layer visibility
+    // If base layer, handle differently; if overlay, handle here
     if (targetLayer) {
-      targetLayer.setVisible(!layer.visible); // Use !layer.visible because we want the NEW state
+      targetLayer.setVisible(newState);
     }
 
-    // Update the Source of Truth (planetStates signal)
+    // Sync the Signal State
     this.planetStates.update(prev => {
       const cur = this.currentPlanet();
       const updated = prev[cur].map(l =>
-        l.id === layer.id ? { ...l, visible: !l.visible } : l
+        l.id === layer.id ? { ...l, visible: newState } : l
       );
       return { ...prev, [cur]: updated };
     });
 
-    // Sort here too to maintain UI order after a toggle
-    const currentPlanetLayers = this.planetStates()[this.currentPlanet()];
-    this.visibleLayers.set(this.sortLayers(currentPlanetLayers));
+    // Update visible layers for the UI
+    this.visibleLayers.set(this.sortLayers(this.planetStates()[this.currentPlanet()]));
   }
 
   private readonly BASEMAP_URLS: Record<Planet, string> = {

@@ -1,3 +1,5 @@
+@import "ol/ol.css";
+
 /* GLOBAL COLORS */
 
 :root {
@@ -43,6 +45,7 @@
   margin-top: -1rem;
   font-size: 2rem;
   margin-bottom: 0.5rem;
+  color: var(--primary-color);
 }
 
 .sidebar h2 {
@@ -88,20 +91,27 @@
 .overlay-item {
   display: flex;
   user-select: none;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
   border: 1px solid #eee;
   border-radius: 6px;
   background: #fbfbfb;
   cursor: grab;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background 0.2s;
 }
 
 .overlay-item:hover {
   background-color: #fcfcfc;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   border-color: #d1d1d1;
+}
+
+.overlay-item input[type="checkbox"] {
+  transform: scale(1.4);
+  margin: 0 12px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 .drag-handle {
@@ -140,7 +150,7 @@
 }
 
 .add-layer-btn {
-  background: transparent;
+  background-color: #f9f7fa;
   border: 1.5px dashed var(--primary-color);
   color: var(--primary-color);
   padding: 0.3rem 0.6rem;
@@ -194,6 +204,7 @@
   flex: 1;
   height: 100%;
   position: relative;
+  touch-action: none;
 }
 
 #mapContainer {
@@ -205,7 +216,69 @@
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  /* Frosted glass effect */
+  background: rgba(255, 255, 255, 0.1); 
+  backdrop-filter: blur(4px); 
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column; /* Stack spinner and text */
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid transparent;
+  /* Primary color for the main arc */
+  border-top: 4px solid var(--primary-color); 
+  border-radius: 50%;
+  position: relative;
+  animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+/* Secondary inner ring for a more "complex" tech look */
+.spinner::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 4px solid transparent;
+  border-bottom: 4px solid rgba(107, 91, 123, 0.3);
+  border-radius: 50%;
+  animation: spin 2s linear infinite reverse;
+}
+
+.loading-card span {
+  color: var(--text-color-light);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.loading-card {
+  padding: 2.5rem;
+  background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+  backdrop-filter: blur(12px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle edge highlight */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2); /* Slight darkening of the map */
   z-index: 1000;
   display: flex;
   justify-content: center;
@@ -213,28 +286,27 @@
   pointer-events: none;
 }
 
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* SCALE BAR STYLE */
 
 /* The draggable wrapper */
 ::ng-deep .scale-drag-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: absolute;
     z-index: 1000;
     padding: 0px;
-    background: rgba(107, 91, 123, .45) !important; 
-    border-radius: 2px;
+    background: rgba(107, 91, 123, .35) !important; 
+    border-radius: 0px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 

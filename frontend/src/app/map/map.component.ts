@@ -81,21 +81,28 @@ export class MapComponent implements AfterViewInit {
   }
 
   toggleLayer(layer: LayerItem): void {
-    // If it's a basemap, we just toggle the fixed baseLayer in the service
+    const url = this.OVERLAY_URLS[layer.id];
+    
     if (layer.type === 'basemap') {
-      const newVisibility = !layer.visible;
-      this.mapService.map()?.getLayers().getArray().find(l => l.get('id') === 'base')?.setVisible(newVisibility);
+      // Logic for basemap: Tell service to toggle the base
+      const newState = !layer.visible;
+      const map = this.mapService.map();
+      map?.getLayers().getArray().find(l => l.get('id') === 'base')?.setVisible(newState);
 
-      // Update signal manually for basemap since it doesn't use the XYZ creator logic
+      // Sync the state back to the service signals
       this.mapService.planetStates.update(prev => {
         const cur = this.mapService.currentPlanet();
-        return { ...prev, [cur]: prev[cur].map(l => l.id === layer.id ? { ...l, visible: newVisibility } : l) };
+        const updated = prev[cur].map(l => l.id === layer.id ? { ...l, visible: newState } : l);
+        return { ...prev, [cur]: updated };
       });
+      // Refresh the visible layers signal
       this.mapService.visibleLayers.set([...this.mapService.planetStates()[this.mapService.currentPlanet()]]);
     } else {
-      // For overlays like LROC
-      this.mapService.toggleOverlay(layer, this.OVERLAY_URLS[layer.id]);
+      // Overlays: The service method already calculates the flip internally
+      this.mapService.toggleOverlay(layer);
     }
+    
+    this.cdr.detectChanges();
   }
 
   private makeScaleDraggable(el: HTMLElement): void {

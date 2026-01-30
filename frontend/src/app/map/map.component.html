@@ -17,17 +17,17 @@
         </button>
       </div>
 
-      @for (layer of layers; track layer.name) {
-        <div class="overlay-item">
-          <span class="drag-handle">⠿</span>
-          <input type="checkbox" [(ngModel)]="layer.visible" (change)="toggleLayer(layer)">
-          <div class="layer-info">
-            <strong>{{ layer.name }}</strong>
-            <span class="hint">{{ layer.description }}</span>
-          </div>
+      @for (layer of layers; track layer.id) {
+      <label class="overlay-item">
+        <span class="drag-handle">⠿</span>
+        <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
+        <div class="layer-info">
+          <strong>{{ layer.name }}</strong>
+          <span class="hint">{{ layer.description }}</span>
         </div>
+      </label>
       }
-    </div> <!-- FIX: Added this closing div to end 'overlay-panel' -->
+    </div>
 
     <!-- Planetary Stats (Pushed to bottom) -->
     <div class="stats-panel">
@@ -52,12 +52,16 @@
 
   <!-- Map Area -->
   <main class="map-wrapper">
-    <!-- FIX: Cleaned up the double map divs to just one container -->
     <div #mapContainer id="mapContainer" class="map-container"></div>
 
     <!-- Loading Spinner -->
-    @if (mapService.isLoading()) {
-      <div class="spinner">Loading Map Data...</div>
+    @if (isLoading) {
+    <div class="loading-overlay">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <span>Loading Map Data...</span>
+      </div>
+    </div>
     }
   </main>
 </div>
