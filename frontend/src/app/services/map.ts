@@ -6,6 +6,7 @@ import OSM from 'ol/source/OSM';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { XYZ } from 'ol/source';
 import { ScaleLine } from 'ol/control';
+import { HttpClient } from '@angular/common/http';
 
 export interface LayerItem {
   id: string;
@@ -35,6 +36,8 @@ export class MapService {
   private readonly loadingInternal = signal<boolean>(false);
   readonly isLoading = this.loadingInternal.asReadonly();
 
+
+  constructor(private http: HttpClient) { }
 
   readonly planetStates = signal<Record<Planet, LayerItem[]>>({
     earth: [
@@ -86,6 +89,28 @@ export class MapService {
     mars: [0, 0], // MOLA center
     moon: [0, 0]  // LROC center
   };
+
+  public flyToLocation(lon: number, lat: number, planet: Planet): void {
+    const map = this.mapInstance();
+    if (!map) return;
+
+    // 1. Ensure we are on the right planet first
+    if (this.currentPlanet() !== planet) {
+      this.setPlanet(planet);
+    }
+
+     // Earth uses Web Mercator (meters), others use IAU (degrees)
+    const targetCenter = (planet === 'earth') 
+      ? fromLonLat([lon, lat]) 
+      : [lon, lat];
+
+    // 2. Animate the view
+    map.getView().animate({
+      center: targetCenter,
+      zoom: 8,
+      duration: 2200
+    });
+  }
 
   public updateLayerZIndex(layerId: string, zIndex: number): void {
     const mapInstance = this.map(); // Assuming this is your signal or variable for ol/Map

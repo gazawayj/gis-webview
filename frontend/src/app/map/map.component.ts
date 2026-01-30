@@ -15,7 +15,6 @@ import {
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
-import View from 'ol/View';
 
 import {
   DragDropModule,
@@ -28,6 +27,15 @@ import {
 } from '@angular/cdk/drag-drop';
 
 import { MapService, Planet, LayerItem } from '../services/map';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
+
+interface AIResponse {
+  name: string;
+  lat: number;
+  lon: number;
+  planet: Planet;
+  error?: string;
+}
 
 @Component({
   selector: 'app-map',
@@ -54,9 +62,12 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     return [...this.mapService.planetStates()[planet]];
   }
 
+  
+
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
 
+  private http = inject(HttpClient);
   mapService = inject(MapService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
@@ -207,6 +218,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       el.style.cursor = 'grab';
     });
   }
+  
 
   handleTerminalCommand(event: any): void {
     const inputEl = event.target as HTMLInputElement;
@@ -214,6 +226,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!command) return;
 
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
+    this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
     // Handle Logic
     if (command.includes('help')) {
@@ -224,6 +237,21 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (command === 'clear') {
       this.terminalLines.set([]);
     }
+    
+    this.http.get<AIResponse>(`http://localhost:8000/search?q=${command}`).subscribe({
+  next: (res: AIResponse) => { // Explicitly type 'res'
+    if (res.lat !== undefined && res.lon !== undefined) {
+      this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
+      // Use the service method we discussed earlier
+      this.mapService.flyToLocation(res.lon, res.lat, res.planet);
+    } else {
+      this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
+    }
+  },
+  error: () => {
+    this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
+  }
+});
 
     inputEl.value = '';
 
