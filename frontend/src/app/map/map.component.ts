@@ -213,31 +213,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   handleTerminalCommand(event: any): void {
     const inputEl = event.target as HTMLInputElement;
-    const command = event.target.value.toLowerCase();
+    const command = inputEl.value.trim().toLowerCase(); // Use .trim() to avoid empty spaces
     if (!command) return;
 
-    inputEl.focus();
+    // Log the commands to the terminal window
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
     this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
-    // Handle Logic
-    /* if (command.includes('help')) {
-      this.terminalLines.update(prev => [...prev, 'Available: earth, mars, moon, clear']);
-    } else if (command === 'mars') {
-      this.setPlanet('mars');
-      this.terminalLines.update(prev => [...prev, 'Switching to Mars CRS (IAU:49900)...']);
-    } else if (command === 'clear') {
-      this.terminalLines.set([]);
-    } */
-
-    setTimeout(() => this.closeModal(), 500); 
-
-    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`).subscribe({
-      next: (res: AIResponse) => { // Explicitly type 'res'
+    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com{command}`).subscribe({
+      next: (res: AIResponse) => {
         if (res.lat !== undefined && res.lon !== undefined) {
           this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
-          // Use the service method we discussed earlier
+
+          // Execute the move
           this.mapService.flyToLocation(res.lon, res.lat, res.planet);
+
+          // ONLY CLOSE HERE: Wait 2 seconds so the user can read the "Located" message
+          setTimeout(() => this.closeModal(), 2000);
         } else {
           this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
         }
@@ -246,9 +238,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
       }
     });
-
+    // Clear the input field for the next command
     inputEl.value = '';
-
-    event.target.value = '';
   }
 }
