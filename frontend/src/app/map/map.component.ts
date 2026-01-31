@@ -53,6 +53,12 @@ interface AIResponse {
 export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
+  @ViewChild('terminalInput') set terminalInputRef(el: ElementRef | undefined) {
+    if (el) {
+      // Small timeout ensures the browser is ready to receive focus
+      setTimeout(() => el.nativeElement.focus(), 0);
+    }
+  }
 
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
@@ -61,8 +67,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const planet = this.mapService.currentPlanet();
     return [...this.mapService.planetStates()[planet]];
   }
-
-
 
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';

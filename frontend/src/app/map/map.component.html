@@ -117,7 +117,7 @@
           }
           <div class="console-line current-line">
             <span class="prompt">></span>
-            <input type="text" class="console-write" (keyup.enter)="handleTerminalCommand($event)"
+            <input #terminalInput type="text" class="console-write" (keyup.enter)="handleTerminalCommand($event)"
               placeholder="Enter command..."/>
           </div>
         </div>
