@@ -47,7 +47,8 @@ else:
 async def ai_search(q: str):
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-lite',
+            # CHANGE THIS: Use a standard instruction-tuned ID
+            model='gemma-3-27b-it', 
             contents=q,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
@@ -56,8 +57,10 @@ async def ai_search(q: str):
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"AI Search Error: {e}")
+        # This print will show up in your PythonAnywhere Error Log
+        print(f"CRITICAL AI SEARCH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Register routers
 app.include_router(router)
