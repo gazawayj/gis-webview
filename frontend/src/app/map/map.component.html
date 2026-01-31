@@ -92,8 +92,8 @@
 </div>
 
 @if (isModalOpen) {
-<div class="modal-backdrop" (click)="closeModal()" (keydown)="closeModal($event)">
-  <div class="modal-window" (click)="$event.stopPropagation()" (keydown)="closeModal($event)">
+<div class="modal-backdrop" tabindex="0" (click)="closeModal()" (keydown)="closeModal($event)">
+  <div class="modal-window" tabindex="0" (click)="$event.stopPropagation()" (keydown)="closeModal($event)">
     <div class="modal-header">
       <h2>Add Layer Console</h2>
       <!-- Styled Close Button -->
