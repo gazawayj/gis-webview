@@ -84,8 +84,8 @@ describe('MapComponent', () => {
 
   it('setPlanet updates currentPlanet and animates view', () => {
     const animateSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
-    component.setPlanet('mars');
-    expect(component.currentPlanet).toBe('mars');
+    component.mapService.setPlanet('mars');
+    expect(component.mapService.currentPlanet()).toBe('mars');
     expect(animateSpy).toHaveBeenCalled();
   });
 
