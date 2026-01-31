@@ -232,7 +232,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     setTimeout(() => this.closeModal(), 500); 
 
-    this.http.get<AIResponse>(`http://localhost:8000/search?q=${command}`).subscribe({
+    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`).subscribe({
       next: (res: AIResponse) => { // Explicitly type 'res'
         if (res.lat !== undefined && res.lon !== undefined) {
           this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
