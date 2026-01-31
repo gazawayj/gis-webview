@@ -112,8 +112,6 @@ export class MapService {
 
     // Earth uses Web Mercator (meters), others use IAU (degrees)
     const targetCenter = fromLonLat([lon, lat]);//(planet === 'earth')
-      //? fromLonLat([lon, lat])
-      //: [lon, lat];
 
     // 2. Animate the view
     map.getView().animate({
