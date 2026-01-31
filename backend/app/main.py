@@ -6,11 +6,12 @@ from google.genai import Client
 from google.genai import types
 from app.routers import mola
 
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://gazawayj.github.io"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
