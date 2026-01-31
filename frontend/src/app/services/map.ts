@@ -239,10 +239,10 @@ export class MapService {
   }
 
   setPlanet(planet: Planet): void {
-    const mapInstance = this.map();
-    if (!mapInstance) return;
+    const mapServerInstance = this.map();
+    if (!mapServerInstance) return;
 
-    mapInstance.setView(new View({
+    mapServerInstance.setView(new View({
       center: [0, 0],
       zoom: 2,
       minZoom: 2
