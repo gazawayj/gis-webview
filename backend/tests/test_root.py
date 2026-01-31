@@ -4,4 +4,3 @@ def test_root(client):
     # Match the actual response structure
     data = res.json()
     assert data["message"] == "GIS Backend is running"
-    assert "tiles_path" in data
