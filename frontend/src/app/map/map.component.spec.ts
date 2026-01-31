@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed } from '@angular/core/testing';
 import { MapComponent } from './map.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -90,12 +90,12 @@ describe('MapComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('setPlanet updates currentPlanet and animates view', () => {
-    const animateSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
+  it('setPlanet updates currentPlanet and animates view', fakeAsync(() => {
+    const animatedSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
     component.mapService.setPlanet('mars');
     expect(component.mapService.currentPlanet()).toBe('mars');
-    expect(animateSpy).toHaveBeenCalled();
-  });
+    expect(animatedSpy).toHaveBeenCalled();
+  }));
 
   it('creates overlay layer when toggled on', () => {
     const map = component.mapService.map();
