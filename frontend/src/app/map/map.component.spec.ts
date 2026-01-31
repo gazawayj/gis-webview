@@ -30,11 +30,11 @@ vi.mock('ol/Map', () => ({
 // Mock Layer and Source classes used in MapService member initializers
 vi.mock('ol/layer/Tile', () => ({
   default: vi.fn().mockImplementation(function () {
-    return { 
-      setVisible: vi.fn(), 
-      setSource: vi.fn(), 
+    return {
+      setVisible: vi.fn(),
+      setSource: vi.fn(),
       setZIndex: vi.fn(),
-      get: vi.fn() 
+      get: vi.fn()
     };
   })
 }));
@@ -89,13 +89,15 @@ describe('MapComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+  fakeAsync(() => {
+    it('setPlanet updates currentPlanet and animates view', () => {
+      const animatedSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
+      component.mapService.setPlanet('mars');
+      expect(component.mapService.currentPlanet()).toBe('mars');
+      expect(animatedSpy).toHaveBeenCalled();
+    });
+  })
 
-  it('setPlanet updates currentPlanet and animates view', fakeAsync(() => {
-    const animatedSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');
-    component.mapService.setPlanet('mars');
-    expect(component.mapService.currentPlanet()).toBe('mars');
-    expect(animatedSpy).toHaveBeenCalled();
-  }));
 
   it('creates overlay layer when toggled on', () => {
     const map = component.mapService.map();
