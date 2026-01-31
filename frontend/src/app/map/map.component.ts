@@ -96,7 +96,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     const bootMessages = [
       'Initializing GIS Console...',
-      'Connection established to NASA GIBS...',
+      'Connection established to GIS Server...',
       'Ready for commands.'
     ];
     // Add them with a slight delay so they type one after another
@@ -221,14 +221,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
     // Handle Logic
-    if (command.includes('help')) {
+    /* if (command.includes('help')) {
       this.terminalLines.update(prev => [...prev, 'Available: earth, mars, moon, clear']);
     } else if (command === 'mars') {
       this.setPlanet('mars');
       this.terminalLines.update(prev => [...prev, 'Switching to Mars CRS (IAU:49900)...']);
     } else if (command === 'clear') {
       this.terminalLines.set([]);
-    }
+    } */
 
     setTimeout(() => this.closeModal(), 500); 
 

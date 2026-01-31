@@ -89,6 +89,8 @@ describe('MapComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  // Async waiting on animation frames
   fakeAsync(() => {
     it('setPlanet updates currentPlanet and animates view', () => {
       const animatedSpy = vi.spyOn(component.mapService.map()!.getView(), 'animate');

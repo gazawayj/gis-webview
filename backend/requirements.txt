@@ -1,7 +1,4 @@
 fastapi
-uvicorn[standard]
 pydantic
-pytest
-pytest-cov
 httpx
 google-genai
