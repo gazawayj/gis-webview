@@ -13,7 +13,9 @@ vi.mock('ol/Map', () => ({
         getArray: vi.fn().mockReturnValue([]),
         push: vi.fn()
       }),
-      setView: vi.fn(),
+      setView: vi.fn().mockReturnValue({
+        animate: vi.fn()
+      }),
       getView: vi.fn().mockReturnValue({
         animate: vi.fn(),
         getZoom: vi.fn().mockReturnValue(2),
