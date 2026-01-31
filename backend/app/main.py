@@ -32,7 +32,7 @@ If not found, return {"error": "location not found"}.
 async def ai_search(q: str):
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemma-3-27b-it',
             contents=q,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
