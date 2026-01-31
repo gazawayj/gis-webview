@@ -110,10 +110,10 @@ export class MapService {
       this.setPlanet(planet);
     }
 
-     // Earth uses Web Mercator (meters), others use IAU (degrees)
-    const targetCenter = (planet === 'earth') 
-      ? fromLonLat([lon, lat]) 
-      : [lon, lat];
+    // Earth uses Web Mercator (meters), others use IAU (degrees)
+    const targetCenter = fromLonLat([lon, lat]);//(planet === 'earth')
+      //? fromLonLat([lon, lat])
+      //: [lon, lat];
 
     // 2. Animate the view
     map.getView().animate({
@@ -244,18 +244,10 @@ export class MapService {
     const mapInstance = this.map();
     if (!mapInstance) return;
 
-    // Determine the CRS Code
-    let projectionCode = 'EPSG:3857'; // Earth (Web Mercator)
-    if (planet === 'mars') projectionCode = 'IAU:49900';
-    if (planet === 'moon') projectionCode = 'IAU:30100';
-
-    // Create a new View with the specific Planetary Projection
     mapInstance.setView(new View({
-      projection: projectionCode,
       center: [0, 0],
       zoom: 2,
-      //extent: planet === 'earth' ? undefined : [-180, -90, 180, 90],
-      multiWorld: true
+      minZoom: 2
     }));
 
     // Update state signals
@@ -273,36 +265,13 @@ export class MapService {
 
 
   private getBasemapSource(planet: Planet): XYZ {
-  const projectionCode = planet === 'mars' ? 'IAU:49900' : 
-                         planet === 'moon' ? 'IAU:30100' : 'EPSG:3857';
-  
-  const projection = getProjection(projectionCode);
-  
-  // If it's not Earth, we need a custom TileGrid to prevent the "Box" look
-  let tileGrid;
-  if (planet !== 'earth' && projection) {
-    const extent = [-180, -90, 180, 90]; // Global Lat/Lon extent
-    const size = getWidth(extent) / 256;
-    const resolutions = new Array(20);
-    const matrixIds = new Array(20);
-    for (let z = 0; z < 20; ++z) {
-      resolutions[z] = size / Math.pow(2, z);
-      matrixIds[z] = z;
-    }
-    tileGrid = new TileGrid({
-      origin: getTopLeft(extent),
-      resolutions: resolutions,
+    return new XYZ({
+      url: this.BASEMAP_URLS[planet],
+      crossOrigin: 'anonymous', // Helps with potential CORS issues
+      maxZoom: planet === 'earth' ? 12 : 5,
+      minZoom: 1
     });
   }
-
-  return new XYZ({
-    url: this.BASEMAP_URLS[planet],
-    crossOrigin: 'anonymous',
-    projection: projectionCode, // Force the source to use the planetary projection
-    wrapX: true,                // Enables continuous horizontal scrolling
-    tileGrid: tileGrid          // Applies the math to stretch the tiles correctly
-  });
-}
 
   private formatDMS(deg: number, isLat: boolean): string {
     const absDeg = Math.abs(deg);

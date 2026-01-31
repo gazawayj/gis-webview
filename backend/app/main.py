@@ -2,7 +2,6 @@ import os
 import json
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from google import genai
 from google.genai import Client
 from google.genai import types
 from app.routers import mola
@@ -23,7 +22,7 @@ router = APIRouter()
 
 SYSTEM_PROMPT = """
 You are a GIS assistant. When a user asks for a location on Earth, Mars, or the Moon, 
-return ONLY a JSON object with this EXACT schema:
+return ONLY a JSON object with this EXACT schema in degrees:
 { "name": string, "lat": float, "lon": float, "planet": "earth" | "mars" | "moon" }
 If not found, return {"error": "location not found"}.
 """
@@ -51,6 +50,7 @@ app.include_router(mola.router, prefix="/mola")
 @app.get("/")
 async def root():
     return {"message": "GIS Backend is running"}
+
 
 if __name__ == "__main__":
     import uvicorn
