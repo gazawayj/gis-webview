@@ -674,7 +674,6 @@
   overflow: hidden;
   border-right: none;
   border-right: 2px solid transparent;
-  animation: typing 3s steps(50, end) forwards;
 }
 
 .console-line:last-child {
@@ -683,18 +682,14 @@
   white-space: nowrap;
   border-right: 2px solid var(--primary-color); /* The cursor */
   width: 0;
-  animation: 
-    typing 3s steps(50, end) forwards,
-    blink-caret 0.75s step-end infinite;
+  animation: none;
 }
 
 .console-line:has(+ .current-line),
 .console-line:last-child:not(.current-line) {
   display: inline-block;
   border-right: 2px solid var(--primary-color);
-  animation: 
-    typing 3s steps(50, end) forwards,
-    blink-caret 0.75s step-end infinite;
+  animation: none;
 }
 
 .console-line:not(:last-of-type):not(:has(+ .current-line)) {
@@ -707,15 +702,7 @@
 
 .console-line:last-of-type {
   border-right: 2px solid var(--primary-color);
-  animation: 
-    typing 2.5s steps(40, end) forwards,
-    blink-caret 0.75s step-end infinite;
-}
-
-/* The typing motion */
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+  animation: none;
 }
 
 /* The blinking cursor effect */
@@ -765,7 +752,7 @@
 .prompt {
   font-weight: bold;
   color: var(--primary-color);
-  user-select: none; /* Prevent selecting the '>' prompt */
+  user-select: auto; /* Prevent selecting the '>' prompt */
 }
 
 /* Scrollbar for terminal */

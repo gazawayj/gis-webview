@@ -8,7 +8,8 @@ import {
   ChangeDetectorRef,
   inject,
   signal,
-  PLATFORM_ID
+  PLATFORM_ID,
+  input
 } from '@angular/core';
 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -103,7 +104,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       setTimeout(() => {
         this.terminalLines.update(prev => [...prev, msg]);
         this.cdr.detectChanges();
-      }, index * 4000);
+      }, index * 500);
     });
   }
 
@@ -215,6 +216,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const command = event.target.value.toLowerCase();
     if (!command) return;
 
+    inputEl.focus();
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
     this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
@@ -246,14 +248,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     inputEl.value = '';
-
-    // Single scroll handler
-    setTimeout(() => {
-      if (this.consoleContainer) {
-        const el = this.consoleContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
-      }
-    }, 50);
 
     event.target.value = '';
   }
