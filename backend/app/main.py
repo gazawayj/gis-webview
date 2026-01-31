@@ -27,12 +27,27 @@ return ONLY a JSON object with this EXACT schema in degrees:
 { "name": string, "lat": float, "lon": float, "planet": "earth" | "mars" | "moon" }
 If not found, return {"error": "location not found"}.
 """
+import requests
+username = 'gazawayj'
+token = 'ad4d35f12a99b2746049d4ee9a1424dafebc3f5c'
+
+response = requests.get(
+    'https://www.pythonanywhere.com/api/v0/user/{username}/cpu/'.format(
+        username=username
+    ),
+    headers={'Authorization': 'Token {token}'.format(token=token)}
+)
+if response.status_code == 200:
+    print('CPU quota info:')
+    print(response.content)
+else:
+    print('Got unexpected status code {}: {!r}'.format(response.status_code, response.content))
 
 @router.get("/search")
 async def ai_search(q: str):
     try:
         response = client.models.generate_content(
-            model='gemma-3-27b-it',
+            model='gemini-2.5-lite',
             contents=q,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
