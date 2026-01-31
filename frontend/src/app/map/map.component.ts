@@ -224,7 +224,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
     this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
-    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com{command}`).subscribe({
+    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`).subscribe({
+
       next: (res: AIResponse) => {
         if (res.lat !== undefined && res.lon !== undefined) {
           this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
