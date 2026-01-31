@@ -1,4 +1,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
+import { provideHttpClient } from '@angular/common/http';
 import { AppComponent } from './app/app';
 import { appConfig } from './app/app.config';
 import proj4 from 'proj4';
@@ -11,6 +12,9 @@ proj4.defs('IAU:30100', '+proj=longlat +a=1737400 +b=1737400 +no_defs +type=crs'
 register(proj4);
 
 // Bootstrap the Standalone Application using the correct method
-bootstrapApplication(AppComponent, appConfig)
-  .catch(err => console.error(err));
+bootstrapApplication(AppComponent, {
+  providers: [
+    provideHttpClient()
+  ]
+}).catch(err => console.error(err));
 
