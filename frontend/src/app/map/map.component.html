@@ -92,8 +92,8 @@
 </div>
 
 @if (isModalOpen) {
-<div class="modal-backdrop" (click)="closeModal()">
-  <div class="modal-window" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" (click)="closeModal()" (keydown)="closeModal($event)">
+  <div class="modal-window" (click)="$event.stopPropagation()" (keydown)="closeModal($event)">
     <div class="modal-header">
       <h2>Add Layer Console</h2>
       <!-- Styled Close Button -->
@@ -118,7 +118,7 @@
           <div class="console-line current-line">
             <span class="prompt">></span>
             <input type="text" class="console-write" (keyup.enter)="handleTerminalCommand($event)"
-              placeholder="Enter command..." autofocus />
+              placeholder="Enter command..."/>
           </div>
         </div>
       </div>
