@@ -238,7 +238,7 @@ export class MapService {
     this.planetStates.update(prev => ({ ...prev, [planet]: updatedLayers }));
   }
 
-  setPlanet(planet: Planet): void {
+  public setPlanet(planet: Planet): void {
     const mapServerInstance = this.map();
     if (!mapServerInstance) return;
 
