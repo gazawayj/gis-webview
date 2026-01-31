@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Gemini
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> $GITHUB_ENV
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -35,7 +38,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest httpx # Required for FastAPI testing
-          export GEMINI_API_KEY="AIzaSyD65DE1py04XQSUb2uMal1s4qAzBLa_ckY"
 
       - name: Create required directories
         run: mkdir -p tiles
