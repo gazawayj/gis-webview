@@ -13,6 +13,7 @@ vi.mock('ol/Map', () => ({
         getArray: vi.fn().mockReturnValue([]),
         push: vi.fn()
       }),
+      setView: vi.fn(),
       getView: vi.fn().mockReturnValue({
         animate: vi.fn(),
         getZoom: vi.fn().mockReturnValue(2),
@@ -27,7 +28,12 @@ vi.mock('ol/Map', () => ({
 // Mock Layer and Source classes used in MapService member initializers
 vi.mock('ol/layer/Tile', () => ({
   default: vi.fn().mockImplementation(function () {
-    return { setVisible: vi.fn(), setSource: vi.fn(), get: vi.fn() };
+    return { 
+      setVisible: vi.fn(), 
+      setSource: vi.fn(), 
+      setZIndex: vi.fn(),
+      get: vi.fn() 
+    };
   })
 }));
 
