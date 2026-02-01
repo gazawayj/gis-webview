@@ -47,7 +47,6 @@ export class MapService {
   private readonly loadingInternal = signal<boolean>(false);
   readonly isLoading = this.loadingInternal.asReadonly();
 
-
   constructor(private http: HttpClient) { }
 
   readonly planetStates = signal<Record<Planet, LayerItem[]>>({
