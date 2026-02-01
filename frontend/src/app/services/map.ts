@@ -88,40 +88,32 @@ export class MapService {
     properties: { id: 'base' }
   });
 
-  private readonly planetInfo = {
+  private readonly planetInfoStat = {
     earth: { latLabel: 'Latitude', lonLabel: 'Longitude', gravity: '9.81 m/s²' },
     mars: { latLabel: 'Planetocentric Lat', lonLabel: 'Aerographic Lon', gravity: '3.72 m/s²' },
     moon: { latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon', gravity: '1.62 m/s²' }
-  };
-
-  private planetCoordinates: Record<string, [number, number]> = {
-    earth: [0, 0],
-    mars: [0, 0], // MOLA center
-    moon: [0, 0]  // LROC center
   };
 
   public flyToLocation(lon: number, lat: number, planet: Planet): void {
     const map = this.mapInstance();
     if (!map) return;
 
-    // 1. Ensure we are on the right planet first
     if (this.currentPlanet() !== planet) {
       this.setPlanet(planet);
     }
 
     // Earth uses Web Mercator (meters), others use IAU (degrees)
-    const targetCenter = fromLonLat([lon, lat]);//(planet === 'earth')
+    const targetCenter = fromLonLat([lon, lat]);
 
-    // 2. Animate the view
     map.getView().animate({
       center: targetCenter,
-      zoom: 8,
+      zoom: 6,
       duration: 2200
     });
   }
 
   public updateLayerZIndex(layerId: string, zIndex: number): void {
-    const mapInstance = this.map(); // Assuming this is your signal or variable for ol/Map
+    const mapInstance = this.map();
     if (!mapInstance) return;
 
     // Search the Map's layer collection for the layer with the matching ID
@@ -264,12 +256,13 @@ export class MapService {
   private getBasemapSource(planet: Planet): XYZ {
     return new XYZ({
       url: this.BASEMAP_URLS[planet],
-      crossOrigin: 'anonymous', // Helps with potential CORS issues
+      crossOrigin: 'anonymous',
       maxZoom: planet === 'earth' ? 18 : 5,
       minZoom: 1
     });
   }
 
+  // Turn decimal degrees into DMS format
   private formatDMS(deg: number, isLat: boolean): string {
     const absDeg = Math.abs(deg);
     const d = Math.floor(absDeg);
@@ -287,7 +280,7 @@ export class MapService {
   }
 
   getPlanetInfo(planet: Planet) {
-    return this.planetInfo[planet];
+    return this.planetInfoStat[planet];
   }
 
   getPlanetStats() {
@@ -297,10 +290,6 @@ export class MapService {
       moon: { latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon', gravity: '1.62 m/s²' }
     };
     return stats[this.currentPlanet()];
-  }
-
-  private sortLayers(layers: LayerItem[]): LayerItem[] {
-    return [...layers].sort((a, b) => b.zIndex - a.zIndex);
   }
 }
 export { Map };

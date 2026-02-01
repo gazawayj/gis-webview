@@ -4,7 +4,7 @@ import socket
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google.genai import Client, types
-from app.routers import mola
+from app.routers.mola import router as mola_router
 
 # --- PythonAnywhere IPv4 patch (optional, guarded) ---
 if os.getenv("PYTHONANYWHERE_SITE"):
@@ -19,7 +19,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://gazawayj.github.io"],
+    allow_origins=["https://gazawayj.github.io", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,13 +59,14 @@ def ai_search(q: str):
                 response_mime_type="application/json",
             ),
         )
-        return json.loads(response.text)
+        return json.loads(response.text) # type: ignore
     except Exception as e:
         print(f"CRITICAL AI SEARCH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(router)
-app.include_router(mola.router, prefix="/mola")
+app.include_router(mola_router, prefix="/mola", tags=["mola"])
+
 
 @app.get("/")
 def root():

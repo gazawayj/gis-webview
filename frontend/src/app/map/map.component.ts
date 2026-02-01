@@ -72,7 +72,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public terminalInput: string = '';
 
   private http = inject(HttpClient);
-  mapService = inject(MapService);
+  private mapService = inject(MapService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
   public isModalOpen = false;
@@ -80,13 +80,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // These help the template find data in the service
   get currentPlanet() { return this.mapService.currentPlanet(); }
   get isLoading() { return this.mapService.isLoading(); }
-  get layers() {
-    // Sort descending by zIndex: 1 (Overlay) first, 0 (Basemap) last
-    return this.mapService.visibleLayers();
-  }
-  get currentStats() {
-    return this.mapService.getPlanetStats();
-  }
+  get layers() { return this.mapService.visibleLayers(); }
+  get currentStats() { return this.mapService.getPlanetStats(); }
+  get mapServiceInstance() { return this.mapService; }
 
   onAddLayer(): void {
     this.isModalOpen = true;
@@ -117,16 +113,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // The visual index is derived from how many items are above the current drag item
     const visualIndex = event.pointerPosition.y;
-    // Ylogic here to determine the new index based on visualIndex
   }
 
-  // ADD THIS METHOD to fix the TS2339 error
   closeModal(): void {
     this.isModalOpen = false;
-    this.cdr.detectChanges(); // Ensure the UI updates immediately
+    this.cdr.detectChanges();
   }
-
-
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -175,7 +167,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   public setPlanet(planet: Planet): void {
-    this.mapService.setPlanet(planet); // Let the service handle the CRS/View logic
+    this.mapService.setPlanet(planet);
     this.cdr.detectChanges();
   }
 
@@ -214,10 +206,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-
   handleTerminalCommand(event: any): void {
     const inputEl = event.target as HTMLInputElement;
-    const command = inputEl.value.trim().toLowerCase(); // Use .trim() to avoid empty spaces
+    const command = inputEl.value.trim().toLowerCase();
     if (!command) return;
 
     // Log the commands to the terminal window

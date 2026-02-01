@@ -106,7 +106,7 @@
   background: #fbfbfb;
   transition: background 0.2s;
   cursor: grab !important;
-  user-select: none;   /* Consolidatd */
+  user-select: none;
   touch-action: none;
 }
 
