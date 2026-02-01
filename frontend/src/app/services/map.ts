@@ -266,7 +266,7 @@ export class MapService {
     return new XYZ({
       url: this.BASEMAP_URLS[planet],
       crossOrigin: 'anonymous', // Helps with potential CORS issues
-      maxZoom: planet === 'earth' ? 12 : 5,
+      maxZoom: planet === 'earth' ? 18 : 5,
       minZoom: 1
     });
   }
