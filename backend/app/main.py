@@ -64,7 +64,7 @@ def ai_search(q: str):
         print(f"CRITICAL AI SEARCH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-app.include_router(router)
+app.include_router(router, prefix="/search", tags=["search"])
 app.include_router(mola_router, prefix="/mola", tags=["mola"])
 
 
