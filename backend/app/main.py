@@ -1,12 +1,22 @@
-from fastapi import FastAPI
-from app.routers import mola, search
+from flask import Flask, jsonify
+from app.routers.search import search_bp
+from flask_cors import CORS
+from app.routers.mola import mola_bp  # optional, remove if not needed
 
-app = FastAPI(title="GIS WebView Backend")
+def create_app():
+    app = Flask(__name__)
 
-# Include routers
-app.include_router(mola.router, prefix="/mola", tags=["MOLA"])
-app.include_router(search.router, prefix="/search", tags=["Search"])
+    CORS(app, resources={r"/*": {"origins": "https://gazawayj.github.io"}})
 
-@app.get("/")
-async def root():
-    return {"message": "GIS WebView backend is running"}
+    # Register blueprints
+    app.register_blueprint(search_bp, url_prefix="/search")
+    app.register_blueprint(mola_bp, url_prefix="/mola")  # optional
+
+    # Root path
+    @app.route("/")
+    def home():
+        return jsonify({"message": "GIS WebView backend is running"})
+
+    return app
+
+app = create_app()

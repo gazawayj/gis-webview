@@ -1,12 +1,11 @@
-from fastapi import APIRouter
+from flask import Blueprint, jsonify
 
-router = APIRouter()
+mola_bp = Blueprint("mola", __name__)
 
-@router.get("/")
-async def get_mola_features():
-    # Example MOLA feature
-    return [{
+@mola_bp.route("", methods=["GET"])
+def get_mola_features():
+    return jsonify([{
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [0, 0]},
         "properties": {"name": "Prime Meridian Center"}
-    }]
+    }])
