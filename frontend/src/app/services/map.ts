@@ -107,7 +107,7 @@ export class MapService {
 
     map.getView().animate({
       center: targetCenter,
-      zoom: 6,
+      zoom: 8,
       duration: 2200
     });
   }
