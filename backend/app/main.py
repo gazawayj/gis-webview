@@ -8,7 +8,7 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "https://gazawayj.github.io"}})
 
     # Register blueprints
-    app.register_blueprint(search_bp, url_prefix="/search")
+    app.register_blueprint(search_bp)
 
     # Root path
     @app.route("/")
