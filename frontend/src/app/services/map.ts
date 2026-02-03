@@ -13,6 +13,13 @@ import TileGrid from 'ol/tilegrid/TileGrid';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
 
+const FLY_TO_PRESETS: Record<Planet, {
+  zoom: number; duration: number;
+}> = {
+  earth: { zoom: 10, duration: 2200 },
+  moon: { zoom: 3, duration: 1400 },
+  mars: { zoom: 3, duration: 1400 }
+};
 
 export interface LayerItem {
   id: string;
@@ -94,23 +101,24 @@ export class MapService {
     moon: { latLabel: 'Selenographic Lat', lonLabel: 'Selenographic Lon', gravity: '1.62 m/s²' }
   };
 
-  public flyToLocation(lon: number, lat: number, planet: Planet): void {
-    const map = this.mapInstance();
-    if (!map) return;
+flyToLocation(lon: number, lat: number, planet: Planet): void {
+  const map = this.map();
+  if (!map) return;
 
-    if (this.currentPlanet() !== planet) {
-      this.setPlanet(planet);
-    }
+  const view = map.getView();
+  const center = fromLonLat([lon, lat]);
 
-    // Earth uses Web Mercator (meters), others use IAU (degrees)
-    const targetCenter = fromLonLat([lon, lat]);
+  const preset = FLY_TO_PRESETS[planet] ?? {
+    zoom: 3,
+    duration: 1200
+  };
 
-    map.getView().animate({
-      center: targetCenter,
-      zoom: 8,
-      duration: 2200
-    });
-  }
+  view.animate({
+    center,
+    zoom: preset.zoom,
+    duration: preset.duration
+  });
+}
 
   public updateLayerZIndex(layerId: string, zIndex: number): void {
     const mapInstance = this.map();
