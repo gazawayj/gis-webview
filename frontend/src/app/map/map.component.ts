@@ -37,6 +37,7 @@ interface AIResponse {
   error?: string;
 }
 
+
 @Component({
   selector: 'app-map',
   standalone: true,
