@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from app.routers.search import search_bp
 from flask_cors import CORS
-from app.routers.mola import mola_bp  # optional, remove if not needed
 
 def create_app():
     app = Flask(__name__)
