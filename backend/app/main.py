@@ -15,7 +15,7 @@ def create_app():
     # Root path
     @app.route("/")
     def home():
-        return jsonify({"message": "GIS WebView backend is running"})
+        return jsonify({"message": "GIS Backend is running"})
 
     return app
 

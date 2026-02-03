@@ -1,22 +1,13 @@
-from flask import Blueprint, request, jsonify
-from app.services.gemini import ai_search
+from flask import Blueprint, jsonify
+from app.db import get_mola_features 
 
 search_bp = Blueprint("search", __name__)
 
-@search_bp.route("/", methods=["GET"])
-def search():
-    query = request.args.get("q", "")
-    if not query:
-        return jsonify({"error": "No query provided"}), 400
+@search_bp.route("/mola", methods=["GET"])
+def mola():
+    features = get_mola_features()
 
-    result = ai_search(query)
-
-    # If AI returns a string JSON, parse it
-    if isinstance(result, str):
-        try:
-            import json
-            result = json.loads(result)
-        except Exception:
-            pass
-
-    return jsonify(result)
+    return jsonify({
+        "type": "FeatureCollection",
+        "features": features
+    })
