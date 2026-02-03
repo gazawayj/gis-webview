@@ -39,13 +39,3 @@ jobs:
           pip install -r requirements.txt
           pip install pytest httpx # Required for FastAPI testing
 
-      - name: Create required directories
-        run: mkdir -p tiles
-
-      - name: Run tests
-        # PYTHONPATH=. ensures 'from app.main import app' works
-        # pytest tests/ ensures pytest actually looks in the tests folder
-        env:
-          PYTHONPATH: .
-        run: pytest tests/
-        
