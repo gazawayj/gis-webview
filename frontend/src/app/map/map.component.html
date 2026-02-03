@@ -52,6 +52,7 @@
 <!-- Modal -->
 <div *ngIf="isModalOpen" class="modal-backdrop">
   <div class="modal fade-in">
+    
     <!-- Toolbar-style Header -->
     <div class="modal-header toolbar">
       <h2>Input Options</h2>
@@ -60,26 +61,12 @@
 
     <!-- Tabs -->
     <div class="modal-tabs">
-      <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
       <button [class.active]="modalMode==='manual'" (click)="modalMode='manual'">Manual</button>
+      <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
     </div>
 
     <!-- Tab Content -->
     <div class="modal-content">
-      <!-- Console Tab -->
-      <div class="console-wrapper" [class.active]="modalMode==='console'">
-        <div #consoleView class="console-input">
-          <div *ngFor="let line of terminalLines()">{{line}}</div>
-          <div class="terminal-input-row">
-            <span class="terminal-prompt">></span>
-            <input #terminalInput
-                   type="text"
-                   class="manual-input"
-                   placeholder="Enter commands here..."
-                   (keydown.enter)="handleTerminalCommand($event)">
-          </div>
-        </div>
-      </div>
 
       <!-- Manual Tab -->
       <div class="manual-wrapper" [class.active]="modalMode==='manual'">
@@ -97,6 +84,22 @@
           </div>
         </form>
       </div>
+
+      <!-- Console Tab -->
+      <div class="console-wrapper" [class.active]="modalMode==='console'">
+        <div #consoleView class="console-input">
+          <div *ngFor="let line of terminalLines()">{{line}}</div>
+          <div class="terminal-input-row">
+            <span class="terminal-prompt">></span>
+            <input #terminalInput
+                   type="text"
+                   class="manual-input"
+                   placeholder="Enter commands here..."
+                   (keydown.enter)="handleTerminalCommand($event)">
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Footer Buttons -->
