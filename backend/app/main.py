@@ -9,7 +9,6 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(search_bp, url_prefix="/search")
-    app.register_blueprint(mola_bp, url_prefix="/mola")  # optional
 
     # Root path
     @app.route("/")
