@@ -14,8 +14,8 @@ def create_app():
 
     # Root path
     @app.route("/")
-    def home():
-        return jsonify({"message": "GIS Backend is running"})
+    def root():
+        return jsonify(status="GIS Backend is running")
 
     return app
 
