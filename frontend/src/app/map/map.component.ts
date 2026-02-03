@@ -4,30 +4,17 @@ import {
   OnDestroy,
   ViewChild,
   ElementRef,
-  Inject,
   ChangeDetectorRef,
   inject,
   signal,
-  PLATFORM_ID,
+  PLATFORM_ID
 } from '@angular/core';
 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import proj4 from 'proj4';
-import { register } from 'ol/proj/proj4';
-
-import {
-  DragDropModule,
-  CdkDropList,
-  CdkDragPlaceholder,
-  CdkDragDrop,
-  CdkDragMove,
-  CdkDrag,
-  moveItemInArray
-} from '@angular/cdk/drag-drop';
-
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map';
-import { HttpClient, provideHttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
 interface AIResponse {
   name: string;
@@ -40,14 +27,7 @@ interface AIResponse {
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    DragDropModule,
-    CdkDrag,
-    CdkDropList,
-    CdkDragPlaceholder
-  ],
+  imports: [CommonModule, FormsModule, DragDropModule],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
@@ -60,29 +40,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ========== MAP DATA GETTERS ==========
-  get zoomDisplay() { return this.mapService.zoomDisplay(); }
-  get currentLon() { return this.mapService.currentLon(); }
-  get currentLat() { return this.mapService.currentLat(); }
-  get currentLayersArray(): LayerItem[] {
-    const planet = this.mapService.currentPlanet();
-    return [...this.mapService.planetStates()[planet]];
-  }
+  private http = inject(HttpClient);
+  private mapService = inject(MapService);
+  private cdr = inject(ChangeDetectorRef);
+  private platformId = inject(PLATFORM_ID);
+
+  public isModalOpen = false;
+  public modalMode: 'manual' | 'console' = 'manual';
 
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
-
-  // ========== MODAL STATE ==========
-  public isModalOpen = false;
-  public activeTab: 'console' | 'manual' = 'console';
-  public consoleValue: string = '';
-  public manualValue: string = '';
 
   public newLayer: {
     name: string;
     type: 'vector' | 'raster';
     source: string;
-    color?: string;
+    color: string;
     visible: boolean;
   } = {
     name: '',
@@ -92,44 +65,71 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     visible: true
   };
 
-  private http = inject(HttpClient);
-  private mapService = inject(MapService);
-  private cdr = inject(ChangeDetectorRef);
-  private platformId = inject(PLATFORM_ID);
-
-  // ========== GETTERS FOR TEMPLATE ==========
+  // Map and sidebar getters
   get currentPlanet() { return this.mapService.currentPlanet(); }
-  get isLoading() { return this.mapService.isLoading(); }
-  get layers() { return this.mapService.visibleLayers(); }
+  get layers() { return [...this.mapService.visibleLayers()]; }
+  get zoomDisplay() { return this.mapService.zoomDisplay(); }
+  get currentLon() { return this.mapService.currentLon(); }
+  get currentLat() { return this.mapService.currentLat(); }
   get currentStats() { return this.mapService.getPlanetStats(); }
-  get mapServiceInstance() { return this.mapService; }
+  get isLoading() { return this.mapService.isLoading(); }
 
-  // ================= MODAL METHODS =================
-  openModal(tab: 'console' | 'manual' = 'console') {
-    this.activeTab = tab;
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!this.mapContainer?.nativeElement) {
+      console.error('Map container not found.');
+      return;
+    }
+
+    const scaleContainer = document.createElement('div');
+    scaleContainer.className = 'scale-drag-container';
+
+    this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
+    this.mapContainer.nativeElement.appendChild(scaleContainer);
+
+    queueMicrotask(() => {
+      this.setPlanet('earth');
+      this.makeScaleDraggable(scaleContainer);
+    });
+
+    const scrollInterval = setInterval(() => {
+      if (this.consoleContainer) {
+        const el = this.consoleContainer.nativeElement;
+        el.scrollTop = el.scrollHeight;
+      }
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    const map = this.mapService.map();
+    if (map) map.setTarget(undefined);
+  }
+
+  setPlanet(planet: Planet) {
+    this.mapService.setPlanet(planet);
+    this.cdr.detectChanges();
+  }
+
+  toggleLayer(layer: LayerItem) {
+    this.mapService.toggleLayer(layer);
+    this.cdr.detectChanges();
+  }
+
+  onLayerDropped(event: CdkDragDrop<LayerItem[]>) {
+    const layersCopy = [...this.mapService.planetStates()[this.currentPlanet]];
+    moveItemInArray(layersCopy, event.previousIndex, event.currentIndex);
+    this.mapService.reorderLayers(layersCopy);
+    this.cdr.detectChanges();
+  }
+
+  onAddLayer() {
     this.isModalOpen = true;
     this.bootConsole();
   }
 
   closeModal() {
     this.isModalOpen = false;
-    this.consoleValue = '';
-    this.manualValue = '';
     this.cdr.detectChanges();
-  }
-
-  submitModal() {
-    if (this.activeTab === 'console') {
-      console.log('Console input:', this.consoleValue);
-    } else {
-      console.log('Manual input:', this.manualValue);
-    }
-    this.closeModal();
-  }
-
-  // ================= LAYER METHODS =================
-  onAddLayer(): void {
-    this.openModal('manual'); // Open manual tab by default for new layers
   }
 
   createManualLayer() {
@@ -161,77 +161,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     };
   }
 
-  private bootConsole(): void {
+  private bootConsole() {
     this.terminalLines.set([]);
     const bootMessages = [
       'Initializing GIS Console...',
       'Connection established to GIS Server...',
       'Ready for commands.'
     ];
-    bootMessages.forEach((msg, index) => {
+    bootMessages.forEach((msg, idx) => {
       setTimeout(() => {
         this.terminalLines.update(prev => [...prev, msg]);
         this.cdr.detectChanges();
-      }, index * 500);
+      }, idx * 500);
     });
   }
 
-  onLayerMoved(event: CdkDragMove<any>): void {
-    const layers = this.currentLayersArray;
-    const visualIndex = event.pointerPosition.y;
-  }
-
-  onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
-    const currentPlanet = this.mapService.currentPlanet();
-    const layers = [...this.mapService.planetStates()[currentPlanet]];
-    moveItemInArray(layers, event.previousIndex, event.currentIndex);
-    this.mapService.reorderLayers(layers);
-    this.cdr.detectChanges();
-  }
-
-  toggleLayer(layer: LayerItem): void {
-    this.mapService.toggleLayer(layer);
-    this.cdr.detectChanges();
-  }
-
-  public setPlanet(planet: Planet): void {
-    this.mapService.setPlanet(planet);
-    this.cdr.detectChanges();
-  }
-
-  // ================= SCALE DRAG =================
-  private makeScaleDraggable(el: HTMLElement): void {
-    let dragging = false;
-    let startX = 0, startY = 0;
-
-    el.style.position = 'absolute';
-    el.style.bottom = '10px';
-    el.style.left = '10px';
-    el.style.cursor = 'grab';
-
-    el.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      startX = e.clientX - el.offsetLeft;
-      startY = e.clientY - el.offsetTop;
-      el.setPointerCapture(e.pointerId);
-      el.style.cursor = 'grabbing';
-      el.style.bottom = 'auto';
-    });
-
-    el.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      el.style.left = `${e.clientX - startX}px`;
-      el.style.top = `${e.clientY - startY}px`;
-    });
-
-    el.addEventListener('pointerup', () => {
-      dragging = false;
-      el.style.cursor = 'grab';
-    });
-  }
-
-  // ================= TERMINAL =================
-  handleTerminalCommand(event: any): void {
+  handleTerminalCommand(event: any) {
     const inputEl = event.target as HTMLInputElement;
     const command = inputEl.value.trim().toLowerCase();
     if (!command) return;
@@ -257,31 +202,33 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     inputEl.value = '';
   }
 
-  // ================= LIFECYCLE =================
-  ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (!this.mapContainer || !this.mapContainer.nativeElement) return;
+  private makeScaleDraggable(el: HTMLElement) {
+    let dragging = false;
+    let startX = 0, startY = 0;
 
-    const scaleContainer = document.createElement('div');
-    scaleContainer.className = 'scale-drag-container';
-    this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
-    this.mapContainer.nativeElement.appendChild(scaleContainer);
+    el.style.position = 'absolute';
+    el.style.bottom = '10px';
+    el.style.left = '10px';
+    el.style.cursor = 'grab';
 
-    queueMicrotask(() => {
-      this.setPlanet('earth');
-      this.makeScaleDraggable(scaleContainer);
+    el.addEventListener('pointerdown', e => {
+      dragging = true;
+      startX = e.clientX - el.offsetLeft;
+      startY = e.clientY - el.offsetTop;
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
+      el.style.bottom = 'auto';
     });
 
-    const scrollInterval = setInterval(() => {
-      if (this.consoleContainer) {
-        const el = this.consoleContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
-      }
-    }, 100);
-  }
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      el.style.left = `${e.clientX - startX}px`;
+      el.style.top = `${e.clientY - startY}px`;
+    });
 
-  ngOnDestroy(): void {
-    const map = this.mapService.map();
-    if (map) map.setTarget(undefined);
+    el.addEventListener('pointerup', () => {
+      dragging = false;
+      el.style.cursor = 'grab';
+    });
   }
 }
