@@ -1,1 +1,0 @@
-import{a as e}from"./chunk-2LV2AYBP.js";import{a as r}from"./chunk-UIWRYSI4.js";import"./chunk-KAT7YFEL.js";var o=class extends r{decodeBlock(t){return e(new Uint8Array(t)).buffer}};export{o as default};
