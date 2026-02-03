@@ -4,131 +4,103 @@
     <h1>GIS Web Viewer</h1>
 
     <div class="planet-buttons">
-      <button (click)="setPlanet('earth')" [class.active]="currentPlanet === 'earth'">Earth</button>
-      <button (click)="setPlanet('moon')" [class.active]="currentPlanet === 'moon'">Moon</button>
-      <button (click)="setPlanet('mars')" [class.active]="currentPlanet === 'mars'">Mars</button>
+      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
+      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
+      <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
     </div>
 
     <!-- Layers Container -->
     <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($event)"
       [style.counter-reset]="'layer-counter ' + (layers.length + 1)">
-      @if (layers.length === 0) {
-      <div class="empty-hint" style="text-align: center; color: #999; font-size: 0.8rem; padding: 1rem;">
-        No layers available for this planet.
-      </div>
-      }
-
-      @if (layers.length > 0) {
-      <div class="drag-hint">
-        Click and drag layers to reorder stack
-      </div>
-      }
+      <div *ngIf="layers.length === 0" class="empty-hint">No layers available for this planet.</div>
+      <div *ngIf="layers.length > 0" class="drag-hint">Click and drag layers to reorder stack</div>
 
       <div class="layer-actions">
-        <button class="add-layer-btn" (click)="onAddLayer()">
+        <button class="add-layer-btn" (click)="openModal('manual')">
           <span class="plus-icon">+</span> Add Layer
         </button>
       </div>
 
-      <div style="flex: 1"></div>
+      <div style="flex:1"></div>
 
-      @for (layer of layers; track layer.id; let i = $index) {
-      <!-- The whole label is the draggable zone -->
-      <label class="overlay-item" cdkDrag>
+      <label *ngFor="let layer of layers; let i=index" class="overlay-item" cdkDrag>
         <span class="drag-handle">⠿</span>
         <span class="layer-number live-rank"></span>
-        <!-- Clicks here are ignored by cdkDrag so the checkbox still works -->
         <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
-
         <div class="layer-info">
-          <strong>{{ layer.name }}</strong>
-          <span class="hint">{{ layer.description }}</span>
+          <strong>{{layer.name}}</strong>
+          <span class="hint">{{layer.description}}</span>
         </div>
-
-        <!-- Ensure structural directives are imported in the component -->
         <div class="drag-placeholder" *cdkDragPlaceholder></div>
       </label>
-      }
     </div>
 
-    <!-- Planetary Stats (Pushed to bottom) -->
+    <!-- Stats -->
     <div class="stats-panel">
       <div class="stat-item">
         <span>Zoom Level</span>
-        <strong>{{ zoomDisplay }}</strong>
+        <strong>{{zoomDisplay}}</strong>
       </div>
       <div class="coords-display-lon">
-        <span>{{ currentStats.lonLabel }}</span>
-        <strong>{{ currentLon }}</strong>
+        <span>{{currentStats.lonLabel}}</span>
+        <strong>{{currentLon}}</strong>
       </div>
-
-      <!-- Latitude Item (Matching stat-item pattern) -->
       <div class="coords-display-lat">
-        <span>{{ currentStats.latLabel }}</span>
-        <strong>{{ currentLat }}</strong>
+        <span>{{currentStats.latLabel}}</span>
+        <strong>{{currentLat}}</strong>
       </div>
       <div class="stat-item">
         <span>Surface Gravity</span>
-        <!-- currentStats is a getter returning an object -->
-        <strong>{{ currentStats.gravity }}</strong>
+        <strong>{{currentStats.gravity}}</strong>
       </div>
     </div>
   </aside>
 
-  <!-- Map Area -->
+  <!-- Map -->
   <main class="map-wrapper">
     <div #mapContainer id="mapContainer" class="map-container"></div>
-
-    <!-- Loading Spinner -->
-    @if (isLoading) {
-    <div class="loading-overlay">
+    <div *ngIf="isLoading" class="loading-overlay">
       <div class="loading-card">
         <div class="spinner"></div>
         <span>Loading Map Data...</span>
       </div>
     </div>
-    }
   </main>
 </div>
 
-@if (isModalOpen) {
-<div class="modal-backdrop" tabindex="0" (click)="closeModal()" (keydown.escape)="closeModal()">
-  <div class="modal-window" tabindex="0" (click)="$event.stopPropagation()" (keydown.escape)="closeModal()">
-    <div class="modal-header">
-      <h2>Add Layer Console</h2>
-      <!-- Styled Close Button -->
-      <button class="close-modal-btn" (click)="closeModal()">
-        <span>&times;</span>
-      </button>
+<!-- Modal -->
+<div *ngIf="isModalOpen" class="layer-modal">
+  <div class="modal-content">
+    <!-- Close Button -->
+    <button class="modal-close" (click)="closeModal()">×</button>
+
+    <!-- Left Side: Tabs & Inputs -->
+    <div class="modal-left">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button [class.active]="activeTab === 'console'" (click)="activeTab='console'">Console</button>
+        <button [class.active]="activeTab === 'manual'" (click)="activeTab='manual'">Manual</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div *ngIf="activeTab === 'console'" class="terminal-container">
+        <textarea class="console-input" placeholder="Enter commands here..." [(ngModel)]="consoleValue"></textarea>
+      </div>
+      <div *ngIf="activeTab === 'manual'" class="manual-form">
+        <textarea class="manual-input" placeholder="Enter manual input here..." [(ngModel)]="manualValue"></textarea>
+      </div>
     </div>
 
-    <div class="modal-content">
-      <!-- THE BOXED TERMINAL -->
-      <div class="terminal-container">
-        <div class="terminal-header">
-          <span class="terminal-title">system_console.sh</span>
-        </div>
+    <!-- Right Side: Preview / Info -->
+    <div class="modal-right">
+      <p *ngIf="activeTab==='console'">Console mode allows you to type commands to control the GIS.</p>
+      <p *ngIf="activeTab==='manual'">Manual input allows you to create a new layer with your parameters.</p>
+    </div>
 
-        <div class="console-view" #consoleView>
-          @for (line of terminalLines(); track $index) {
-          <div class="console-line" [style.animation-delay]="$index * 0.2 + 's'">
-            {{ line }}
-          </div>
-          }
-          <div class="console-line current-line">
-            <span class="prompt">></span>
-            <input #terminalInput type="text" class="console-write" (keyup.enter)="handleTerminalCommand($event)"
-              placeholder="Enter command..."/>
-          </div>
-        </div>
-      </div>
-
-      <div class="additional-content">
-        <h3>Available Data Modules</h3>
-        <p>The terminal above is docked for system logs. Select modules below to expand your view.</p>
-        <!-- Future content goes here -->
-      </div>
+    <!-- Footer Buttons -->
+    <div class="modal-buttons">
+      <button class="cancel-btn" (click)="closeModal()">Cancel</button>
+      <button class="ok-btn" (click)="submitModal()">OK</button>
     </div>
   </div>
 </div>
-}

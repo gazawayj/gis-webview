@@ -9,10 +9,10 @@ import {
   inject,
   signal,
   PLATFORM_ID,
-  input
 } from '@angular/core';
 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
 
@@ -37,12 +37,12 @@ interface AIResponse {
   error?: string;
 }
 
-
 @Component({
   selector: 'app-map',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     DragDropModule,
     CdkDrag,
     CdkDropList,
@@ -56,11 +56,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
   @ViewChild('terminalInput') set terminalInputRef(el: ElementRef | undefined) {
     if (el) {
-      // Small timeout ensures the browser is ready to receive focus
       setTimeout(() => el.nativeElement.focus(), 0);
     }
   }
 
+  // ========== MAP DATA GETTERS ==========
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
   get currentLat() { return this.mapService.currentLat(); }
@@ -72,35 +72,102 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
 
+  // ========== MODAL STATE ==========
+  public isModalOpen = false;
+  public activeTab: 'console' | 'manual' = 'console';
+  public consoleValue: string = '';
+  public manualValue: string = '';
+
+  public newLayer: {
+    name: string;
+    type: 'vector' | 'raster';
+    source: string;
+    color?: string;
+    visible: boolean;
+  } = {
+    name: '',
+    type: 'vector',
+    source: '',
+    color: '#ff0000',
+    visible: true
+  };
+
   private http = inject(HttpClient);
   private mapService = inject(MapService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
-  public isModalOpen = false;
 
-  // These help the template find data in the service
+  // ========== GETTERS FOR TEMPLATE ==========
   get currentPlanet() { return this.mapService.currentPlanet(); }
   get isLoading() { return this.mapService.isLoading(); }
   get layers() { return this.mapService.visibleLayers(); }
   get currentStats() { return this.mapService.getPlanetStats(); }
   get mapServiceInstance() { return this.mapService; }
 
-  onAddLayer(): void {
+  // ================= MODAL METHODS =================
+  openModal(tab: 'console' | 'manual' = 'console') {
+    this.activeTab = tab;
     this.isModalOpen = true;
-    //boot the background terminal
     this.bootConsole();
   }
 
-  private bootConsole(): void {
-    // Clear any old lines
-    this.terminalLines.set([]);
+  closeModal() {
+    this.isModalOpen = false;
+    this.consoleValue = '';
+    this.manualValue = '';
+    this.cdr.detectChanges();
+  }
 
+  submitModal() {
+    if (this.activeTab === 'console') {
+      console.log('Console input:', this.consoleValue);
+    } else {
+      console.log('Manual input:', this.manualValue);
+    }
+    this.closeModal();
+  }
+
+  // ================= LAYER METHODS =================
+  onAddLayer(): void {
+    this.openModal('manual'); // Open manual tab by default for new layers
+  }
+
+  createManualLayer() {
+    if (!this.newLayer.name || !this.newLayer.source) {
+      alert('Please enter a layer name and source.');
+      return;
+    }
+
+    const layer: LayerItem = {
+      id: this.newLayer.name.toLowerCase().replace(/\s+/g, '-'),
+      name: this.newLayer.name,
+      description: `User-added ${this.newLayer.type} layer`,
+      type: this.newLayer.type,
+      visible: this.newLayer.visible,
+      zIndex: 999,
+      source: this.newLayer.source,
+      color: this.newLayer.color
+    };
+
+    this.mapService.addLayer(layer, this.currentPlanet);
+    this.closeModal();
+
+    this.newLayer = {
+      name: '',
+      type: 'vector',
+      source: '',
+      color: '#ff0000',
+      visible: true
+    };
+  }
+
+  private bootConsole(): void {
+    this.terminalLines.set([]);
     const bootMessages = [
       'Initializing GIS Console...',
       'Connection established to GIS Server...',
       'Ready for commands.'
     ];
-    // Add them with a slight delay so they type one after another
     bootMessages.forEach((msg, index) => {
       setTimeout(() => {
         this.terminalLines.update(prev => [...prev, msg]);
@@ -111,64 +178,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onLayerMoved(event: CdkDragMove<any>): void {
     const layers = this.currentLayersArray;
-
-    // The visual index is derived from how many items are above the current drag item
     const visualIndex = event.pointerPosition.y;
-  }
-
-  closeModal(): void {
-    this.isModalOpen = false;
-    this.cdr.detectChanges();
-  }
-
-  ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (!this.mapContainer || !this.mapContainer.nativeElement) {
-      console.error('Map Container element not found.');
-      return;
-    }
-
-    // Create container for ScaleLine
-    const scaleContainer = document.createElement('div');
-    scaleContainer.className = 'scale-drag-container';
-
-    // Initialize Map via Service
-    this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
-    this.mapContainer.nativeElement.appendChild(scaleContainer);
-
-    // Initial Planet Setup
-    queueMicrotask(() => {
-      this.setPlanet('earth');
-      this.makeScaleDraggable(scaleContainer);
-    });
-
-    // Console boot up
-    const scrollInterval = setInterval(() => {
-      if (this.consoleContainer) {
-        const el = this.consoleContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
-      }
-    }, 100);
-  }
-
-  ngOnDestroy(): void {
-    const map = this.mapService.map();
-    if (map) {
-      map.setTarget(undefined);
-    }
   }
 
   onLayerDropped(event: CdkDragDrop<LayerItem[]>): void {
     const currentPlanet = this.mapService.currentPlanet();
     const layers = [...this.mapService.planetStates()[currentPlanet]];
-
     moveItemInArray(layers, event.previousIndex, event.currentIndex);
     this.mapService.reorderLayers(layers);
-    this.cdr.detectChanges();
-  }
-
-  public setPlanet(planet: Planet): void {
-    this.mapService.setPlanet(planet);
     this.cdr.detectChanges();
   }
 
@@ -177,6 +194,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  public setPlanet(planet: Planet): void {
+    this.mapService.setPlanet(planet);
+    this.cdr.detectChanges();
+  }
+
+  // ================= SCALE DRAG =================
   private makeScaleDraggable(el: HTMLElement): void {
     let dragging = false;
     let startX = 0, startY = 0;
@@ -207,25 +230,20 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  // ================= TERMINAL =================
   handleTerminalCommand(event: any): void {
     const inputEl = event.target as HTMLInputElement;
     const command = inputEl.value.trim().toLowerCase();
     if (!command) return;
 
-    // Log the commands to the terminal window
     this.terminalLines.update(prev => [...prev, `> ${command}`]);
     this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
 
     this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`).subscribe({
-
       next: (res: AIResponse) => {
         if (res.lat !== undefined && res.lon !== undefined) {
           this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
-
-          // Execute the move
           this.mapService.flyToLocation(res.lon, res.lat, res.planet);
-
-          // ONLY CLOSE HERE: Wait 2 seconds so the user can read the "Located" message
           setTimeout(() => this.closeModal(), 2000);
         } else {
           this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
@@ -235,7 +253,35 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
       }
     });
-    // Clear the input field for the next command
+
     inputEl.value = '';
+  }
+
+  // ================= LIFECYCLE =================
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!this.mapContainer || !this.mapContainer.nativeElement) return;
+
+    const scaleContainer = document.createElement('div');
+    scaleContainer.className = 'scale-drag-container';
+    this.mapService.initMap(this.mapContainer.nativeElement, scaleContainer);
+    this.mapContainer.nativeElement.appendChild(scaleContainer);
+
+    queueMicrotask(() => {
+      this.setPlanet('earth');
+      this.makeScaleDraggable(scaleContainer);
+    });
+
+    const scrollInterval = setInterval(() => {
+      if (this.consoleContainer) {
+        const el = this.consoleContainer.nativeElement;
+        el.scrollTop = el.scrollHeight;
+      }
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    const map = this.mapService.map();
+    if (map) map.setTarget(undefined);
   }
 }
