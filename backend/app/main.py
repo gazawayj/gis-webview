@@ -5,7 +5,7 @@ from flask_cors import CORS
 def create_app():
     app = Flask(__name__)
 
-    CORS(app, resources={r"/*": {"origins": "https://gazawayj.github.io"}})
+    CORS(app, resources={r"/*": {"origins": ["https://gazawayj.github.io", "https://gazawayj.pythonanywhere.com"]}})
 
     # Register blueprints
     app.register_blueprint(search_bp)

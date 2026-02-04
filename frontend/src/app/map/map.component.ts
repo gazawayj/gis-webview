@@ -124,6 +124,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onAddLayer() {
     this.isModalOpen = true;
+    this.modalMode = 'console';
     this.bootConsole();
   }
 

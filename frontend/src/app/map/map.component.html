@@ -21,7 +21,7 @@
 
       <label *ngFor="let layer of layers; let i=index" class="overlay-item" cdkDrag>
         <span class="drag-handle">⠿</span>
-        <span class="layer-number live-rank"></span>
+        <span class="layer-number">{{ i + 1 }}</span>
         <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
         <div class="layer-info">
           <strong>{{layer.name}}</strong>

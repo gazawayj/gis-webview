@@ -16,15 +16,13 @@
 .overlay-panel{display:flex;flex-direction:column;flex:1;min-height:0;gap:.5rem;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.05);border-radius:12px;padding:.5rem;margin:.5rem 0;box-shadow:inset 0 2px 4px rgba(0,0,0,.02)}
 .empty-hint{text-align:center;color:#999;font-size:.8rem;padding:1rem}
 .drag-hint{display:flex;align-items:center;justify-content:center;gap:8px;font-size:.7rem;color:#888;padding:.25rem 0;border-bottom:1px solid rgba(0,0,0,0.05);margin-bottom:auto;font-style:italic;letter-spacing:.3px}
-.overlay-item{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid #eee;border-radius:6px;background:#fbfbfb;transition:background .2s;cursor:grab !important;user-select:none;touch-action:none;counter-increment:layer-counter -1}
+.overlay-item{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid #eee;border-radius:6px;background:#fbfbfb;transition:background .2s;cursor:grab !important;user-select:none;touch-action:none;}
 .overlay-item:active{cursor:grabbing !important}
 .overlay-item:hover{background-color:#fcfcfc;box-shadow:0 2px 4px rgba(0,0,0,0.05);border-color:#d1d1d1}
 .overlay-item input[type="checkbox"]{cursor:pointer !important;transform:scale(1.4);margin:0 12px;accent-color:var(--primary-color);z-index:2}
 .layer-number{background-color:var(--primary-color);color:var(--text-color-light);border-radius:50%;width:20px;height:20px;display:flex;justify-content:center;align-items:center;font-size:.6rem;font-weight:bold;flex-shrink:0;margin-left:.25rem;transition:all .3s}
-.live-rank::before{content:counter(layer-counter)}
-.cdk-drag-preview .live-rank::before{content:""}
 .drag-handle{color:var(--text-color-dark);font-size:1rem;font-weight:200;margin-top:.35rem;padding-right:2px;line-height:1}
-.drag-placeholder{background:var(--primary-color);border:2px dashed var(--primary-color);border-radius:8px;min-height:60px;margin-bottom:8px;position:relative;transition:transform .25s;counter-increment:layer-counter -1}
+.drag-placeholder{background:var(--primary-color);border:2px dashed var(--primary-color);border-radius:8px;min-height:60px;margin-bottom:8px;position:relative;transition:transform .25s;}
 .drag-placeholder::after{content:"...";position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--primary-color);font-weight:bold}
 .layer-info{display:flex;flex-direction:column;gap:.1rem;pointer-events:none}
 .layer-info strong{font-size:.95rem;color:var(--text-color-dark)}
