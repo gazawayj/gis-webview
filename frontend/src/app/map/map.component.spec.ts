@@ -93,26 +93,25 @@ describe('MapComponent', () => {
   // Async waiting on animation frames
   fakeAsync(() => {
     it('setPlanet updates currentPlanet and animates view', () => {
-      const animatedSpy = vi.spyOn(component.currentPlanet.mapServiceInstance.map()!.getView(), 'animate');
-      component.mapServiceInstance.setPlanet('mars');
-      expect(component.mapServiceInstance.currentPlanet()).toBe('mars');
+      const animatedSpy = vi.spyOn(component['mapService'].map()!.getView(), 'animate');
+      component['mapService'].setPlanet('mars');
+      expect(component['mapService'].currentPlanet()).toBe('mars');
       expect(animatedSpy).toHaveBeenCalled();
     });
   })
 
 
   it('creates overlay layer when toggled on', () => {
-    const map = component.mapServiceInstance.map();
+    const map = component['mapService'].map();
     const layerSpy = vi.spyOn(map!, 'addLayer');
 
-    // Ensure the service thinks the layer doesn't exist yet
     vi.spyOn(map!.getLayers(), 'getArray').mockReturnValue([]);
 
     component.toggleLayer({
-      id: 'lroc', // Matches OVERLAY_URLS key
+      id: 'lroc',
       name: 'LROC',
       type: 'overlay',
-      visible: false, // Service will flip this to true
+      visible: false, 
       zIndex: 1
     } as any);
 
@@ -120,7 +119,7 @@ describe('MapComponent', () => {
   });
 
   it('should handle map initialization', () => {
-    const map = component.mapServiceInstance.map();
+    const map = component['mapService'].map();
     expect(map).toBeDefined();
     expect(map!.getTarget()).toBeDefined();
   });
