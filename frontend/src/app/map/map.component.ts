@@ -15,6 +15,12 @@ import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map.service';
 import { HttpClient } from '@angular/common/http';
+import { take } from 'rxjs/operators';
+
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import GeoJSON from 'ol/format/GeoJSON';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 
 interface AIResponse {
   name: string;
@@ -35,9 +41,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
   @ViewChild('terminalInput') set terminalInputRef(el: ElementRef | undefined) {
-    if (el) {
-      setTimeout(() => el.nativeElement.focus(), 0);
-    }
+    if (el) setTimeout(() => el.nativeElement.focus(), 0);
   }
 
   private http = inject(HttpClient);
@@ -47,7 +51,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   public isModalOpen = false;
   public modalMode: 'manual' | 'console' = 'manual';
-
   public terminalLines = signal<string[]>(['']);
   public terminalInput: string = '';
 
@@ -58,14 +61,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     color: string;
     visible: boolean;
   } = {
-    name: '',
-    type: 'vector',
-    source: '',
-    color: '#ff0000',
-    visible: true
-  };
+      name: '',
+      type: 'vector',
+      source: '',
+      color: '#ff0000',
+      visible: true
+    };
 
-  // Map and sidebar getters
+  // Expose mapService properties to template
   get currentPlanet() { return this.mapService.currentPlanet(); }
   get layers() { return [...this.mapService.visibleLayers()]; }
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
@@ -75,11 +78,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   get isLoading() { return this.mapService.isLoading(); }
 
   ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (!this.mapContainer?.nativeElement) {
-      console.error('Map container not found.');
-      return;
-    }
+    if (!isPlatformBrowser(this.platformId) || !this.mapContainer?.nativeElement) return;
 
     const scaleContainer = document.createElement('div');
     scaleContainer.className = 'scale-drag-container';
@@ -92,7 +91,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.makeScaleDraggable(scaleContainer);
     });
 
-    const scrollInterval = setInterval(() => {
+    this.testAddActiveFires();
+
+    // Scroll console automatically
+    setInterval(() => {
       if (this.consoleContainer) {
         const el = this.consoleContainer.nativeElement;
         el.scrollTop = el.scrollHeight;
@@ -105,15 +107,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (map) map.setTarget(undefined);
   }
 
-  setPlanet(planet: Planet) {
-    this.mapService.setPlanet(planet);
-    this.cdr.detectChanges();
-  }
-
-  toggleLayer(layer: LayerItem) {
-    this.mapService.toggleLayer(layer);
-    this.cdr.detectChanges();
-  }
+  // Exposed methods
+  setPlanet(planet: Planet) { this.mapService.setPlanet(planet); this.cdr.detectChanges(); }
+  toggleLayer(layer: LayerItem) { this.mapService.toggleLayer(layer); this.cdr.detectChanges(); }
 
   onLayerDropped(event: CdkDragDrop<LayerItem[]>) {
     const layersCopy = [...this.mapService.planetStates()[this.currentPlanet]];
@@ -133,6 +129,54 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+testAddActiveFires() {
+  const url = 'active-fires.geojson';
+
+  const vectorSource = new VectorSource({
+    url,
+    format: new GeoJSON()
+  });
+
+  const vectorLayer = new VectorLayer({
+    source: vectorSource,
+    style: new Style({
+      image: new CircleStyle({
+        radius: 6,
+        fill: new Fill({ color: 'red' }),
+        stroke: new Stroke({ color: '#fff', width: 1 })
+      })
+    })
+  });
+
+  const map = this.mapService.map();
+  if (!map) return;
+
+  // Add layer to map
+  map.addLayer(vectorLayer);
+
+  // Wait until features are loaded, then zoom to extent
+  vectorSource.once('change', () => {
+    if (vectorSource.getState() === 'ready') {
+      const extent = vectorSource.getExtent();
+      map.getView().fit(extent, { maxZoom: 4, padding: [50,50,50,50] });
+    }
+  });
+
+  // Also register in MapService
+  this.mapService.addLayer({
+    id: 'active-fires',
+    name: 'Active Fires',
+    description: 'MODIS thermal anomalies',
+    type: 'vector',
+    visible: true,
+    zIndex: 5,
+    source: url,
+    color: 'rgba(255,0,0,0.5)'
+  }, 'earth');
+}
+
+
+
   createManualLayer() {
     if (!this.newLayer.name || !this.newLayer.source) {
       alert('Please enter a layer name and source.');
@@ -151,30 +195,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     };
 
     this.mapService.addLayer(layer, this.currentPlanet);
+    this.mapService.refreshLayers(this.currentPlanet);
+
     this.closeModal();
 
-    this.newLayer = {
-      name: '',
-      type: 'vector',
-      source: '',
-      color: '#ff0000',
-      visible: true
-    };
+    this.newLayer = { name: '', type: 'vector', source: '', color: '#ff0000', visible: true };
   }
 
   private bootConsole() {
     this.terminalLines.set([]);
-    const bootMessages = [
-      'Initializing GIS Console...',
-      'Connection established to GIS Server...',
-      'Ready for commands.'
-    ];
-    bootMessages.forEach((msg, idx) => {
-      setTimeout(() => {
-        this.terminalLines.update(prev => [...prev, msg]);
-        this.cdr.detectChanges();
-      }, idx * 500);
-    });
+    ['Initializing GIS Console...', 'Connection established to GIS Server...', 'Ready for commands.']
+      .forEach((msg, idx) => {
+        setTimeout(() => {
+          this.terminalLines.update(prev => [...prev, msg]);
+          this.cdr.detectChanges();
+        }, idx * 500);
+      });
   }
 
   handleTerminalCommand(event: any) {
@@ -182,30 +218,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const command = inputEl.value.trim().toLowerCase();
     if (!command) return;
 
-    this.terminalLines.update(prev => [...prev, `> ${command}`]);
-    this.terminalLines.update(prev => [...prev, `AI: Analyzing request...`]);
+    this.terminalLines.update(prev => [...prev, `> ${command}`, `AI: Analyzing request...`]);
 
-    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`).subscribe({
-      next: (res: AIResponse) => {
-        if (res.lat !== undefined && res.lon !== undefined) {
-          this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
-          this.mapService.flyToLocation(res.lon, res.lat, res.planet);
-          setTimeout(() => this.closeModal(), 2000);
-        } else {
-          this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
+    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`)
+      .pipe(take(1))
+      .subscribe({
+        next: (res: AIResponse) => {
+          if (res.lat !== undefined && res.lon !== undefined) {
+            this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
+            this.mapService.flyToLocation(res.lon, res.lat, res.planet);
+            setTimeout(() => this.closeModal(), 2000);
+          } else {
+            this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
+          }
+        },
+        error: () => {
+          this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
         }
-      },
-      error: () => {
-        this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
-      }
-    });
+      });
 
     inputEl.value = '';
   }
 
   private makeScaleDraggable(el: HTMLElement) {
-    let dragging = false;
-    let startX = 0, startY = 0;
+    let dragging = false, startX = 0, startY = 0;
 
     el.style.position = 'absolute';
     el.style.bottom = '10px';

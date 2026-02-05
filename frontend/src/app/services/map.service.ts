@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -13,6 +13,7 @@ import { Fill, Stroke, Style } from 'ol/style';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
 import { HttpClient } from '@angular/common/http';
+import { take } from 'rxjs/operators';
 
 export type Planet = 'earth' | 'mars' | 'moon';
 
@@ -28,14 +29,23 @@ export interface LayerItem {
   olLayer?: TileLayer<XYZ> | VectorLayer;
 }
 
+// Register Mars/Moon projections
 proj4.defs('IAU:49900', '+proj=longlat +a=3396190 +b=3376200 +no_defs +type=crs'); // Mars
 proj4.defs('IAU:30100', '+proj=longlat +a=1737400 +b=1737400 +no_defs +type=crs'); // Moon
 register(proj4);
 
+// Fly-to presets
 const FLY_TO_PRESETS: Record<Planet, { zoom: number; duration: number }> = {
   earth: { zoom: 10, duration: 2200 },
   moon: { zoom: 3, duration: 1400 },
   mars: { zoom: 3, duration: 1400 }
+};
+
+// Planet projections
+const PLANET_PROJECTIONS: Record<Planet, string> = {
+  earth: 'EPSG:3857',
+  mars: 'IAU:49900',
+  moon: 'IAU:30100'
 };
 
 @Injectable({ providedIn: 'root' })
@@ -93,9 +103,10 @@ export class MapService {
   flyToLocation(lon: number, lat: number, planet: Planet) {
     const map = this.map();
     if (!map) return;
-    const center = fromLonLat([lon, lat]);
     const view = map.getView();
     const preset = FLY_TO_PRESETS[planet] ?? { zoom: 3, duration: 1200 };
+    const proj = view.getProjection().getCode();
+    const center = proj === 'EPSG:3857' ? fromLonLat([lon, lat]) : [lon, lat];
     view.animate({ center, zoom: preset.zoom, duration: preset.duration });
   }
 
@@ -128,61 +139,87 @@ export class MapService {
   setPlanet(planet: Planet) {
     const map = this.map();
     if (!map) return;
-    map.setView(new View({ center: fromLonLat([0, 0]), zoom: 2 }));
+
+    const projection = PLANET_PROJECTIONS[planet];
+    map.setView(new View({ center: [0, 0], zoom: 2, projection }));
     this.baseLayer.setSource(new XYZ({ url: this.BASEMAP_URLS[planet], crossOrigin: 'anonymous' }));
     this.currentPlanet.set(planet);
+    this.refreshLayers(planet);
   }
 
   addLayer(layer: LayerItem, planet: Planet) {
     const map = this.map();
     if (!map) return;
 
+    // Prevent duplicate layers
+    const exists = this.planetStates()[planet].some(l => l.id === layer.id);
+    if (exists) return;
+
     let olLayer: TileLayer<XYZ> | VectorLayer;
 
     if (layer.type === 'vector') {
+      const vectorSource = new VectorSource();
+
       olLayer = new VectorLayer({
-        source: new VectorSource({ url: layer.source, format: new GeoJSON() }),
+        source: vectorSource,
         visible: layer.visible,
         style: new Style({
-          fill: new Fill({ color: layer.color || 'red' }),
-          stroke: new Stroke({ color: '#fff', width: 1 })
+          fill: new Fill({ color: layer.color || 'rgba(255,0,0,0.3)' }),
+          stroke: new Stroke({ color: layer.color || 'red', width: 2 })
         })
       });
+
+      // Add layer to the map immediately
+      map.addLayer(olLayer);
+      layer.olLayer = olLayer;
+
+      // Fetch the GeoJSON manually
+      this.http.get(`/assets/tiles/${planet}/${layer.source}`, { responseType: 'json' })
+        .pipe(take(1))
+        .subscribe((data: any) => {
+          const features = new GeoJSON().readFeatures(data, {
+            featureProjection: map.getView().getProjection() // converts from 4326 to map projection
+          });
+          vectorSource.addFeatures(features);
+        });
+
     } else if (layer.type === 'raster') {
       olLayer = new TileLayer({
         source: new XYZ({ url: layer.source, crossOrigin: 'anonymous' }),
         visible: layer.visible
       });
+      map.addLayer(olLayer);
+      layer.olLayer = olLayer;
+
     } else {
-      // basemap/overlay logic (existing)
+      // default basemap fallback
       olLayer = new TileLayer({
         source: new XYZ({ url: this.BASEMAP_URLS[planet], crossOrigin: 'anonymous' }),
         visible: layer.visible
       });
+      map.addLayer(olLayer);
+      layer.olLayer = olLayer;
     }
 
-    map.addLayer(olLayer);
-    layer.olLayer = olLayer;
-
-    // Update planet state
-    this.planetStates.update(prev => {
-      const updated = [...prev[planet], layer];
-      return { ...prev, [planet]: updated };
-    });
+    // Save layer in state
+    this.planetStates.update(prev => ({
+      ...prev,
+      [planet]: [...prev[planet], layer]
+    }));
   }
+
 
   toggleLayer(layer: LayerItem) {
     const map = this.map();
     if (!map) return;
-
     const newState = !layer.visible;
     if (layer.olLayer) layer.olLayer.setVisible(newState);
 
-    this.planetStates.update(prev => {
-      const cur = this.currentPlanet();
-      const updated = prev[cur].map(l => (l.id === layer.id ? { ...l, visible: newState } : l));
-      return { ...prev, [cur]: updated };
-    });
+    const cur = this.currentPlanet();
+    this.planetStates.update(prev => ({
+      ...prev,
+      [cur]: prev[cur].map(l => (l.id === layer.id ? { ...l, visible: newState } : l))
+    }));
   }
 
   getPlanetStats() {
@@ -195,6 +232,27 @@ export class MapService {
     return info[planet];
   }
 
+  refreshLayers(planet: Planet = this.currentPlanet()) {
+    const map = this.map();
+    if (!map) return;
+
+    // Remove all non-base layers first
+    map.getLayers().getArray()
+      .filter(l => l !== this.baseLayer)
+      .forEach(l => map.removeLayer(l));
+
+    // Add all layers for the planet
+    const layers = this.planetStates()[planet];
+    layers.forEach(layer => {
+      if (!layer.olLayer) {
+        // If OL layer hasn't been created, add it
+        this.addLayer(layer, planet);
+      } else {
+        map.addLayer(layer.olLayer);
+        layer.olLayer.setVisible(layer.visible);
+      }
+    });
+  }
 
   reorderLayers(newOrder: LayerItem[]) {
     const map = this.map();
@@ -202,13 +260,8 @@ export class MapService {
     const total = newOrder.length;
 
     const updatedLayers = newOrder.map((layer, index) => ({ ...layer, zIndex: total - index }));
-    updatedLayers.forEach(layer => {
-      layer.olLayer?.setZIndex(layer.zIndex);
-    });
+    updatedLayers.forEach(layer => layer.olLayer?.setZIndex(layer.zIndex));
 
     this.planetStates.update(prev => ({ ...prev, [this.currentPlanet()]: updatedLayers }));
   }
-
-  // Utility
-  private formatDMS(deg: number, isLat: boolean) { return `${deg.toFixed(2)}°`; }
 }
