@@ -13,7 +13,7 @@ import {
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { MapService, Planet, LayerItem } from '../services/map';
+import { MapService, Planet, LayerItem } from '../services/map.service';
 import { HttpClient } from '@angular/common/http';
 
 interface AIResponse {
