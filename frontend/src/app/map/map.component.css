@@ -1,7 +1,7 @@
 /* ===================== GLOBAL ===================== */
 @import "ol/ol.css";
 
-:root{--primary-color:#c47909;--text-color-dark:#333;--text-color-light:#fff;--border-color-light:#ddd;--font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-mono:'Courier New',Courier,monospace}
+:root{--primary-color:#513968;--text-color-dark:#333;--text-color-light:#fff;--border-color-light:#ddd;--font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-mono:'Courier New',Courier,monospace}
 :host,.page{display:flex;height:100vh;width:100vw;margin:0;font-family:var(--font-sans)}
 
 /* ===================== SIDEBAR ===================== */
