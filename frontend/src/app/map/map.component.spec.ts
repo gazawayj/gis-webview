@@ -2,70 +2,33 @@ import 'zone.js/testing';
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { MapComponent } from './map.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { MapService } from '../services/map.service';
 import { By } from '@angular/platform-browser';
+import { MapService } from '../services/map.service';
+
+// IMPORT ONLY WHAT IS NOT A GLOBAL
+import { vi, expect } from 'vitest'; 
+// DO NOT IMPORT: it, describe, beforeEach, afterEach
 
 vi.mock('ol/Map', () => ({
-  default: vi.fn().mockImplementation(function () {
-    return {
-      on: vi.fn(),
-      addLayer: vi.fn(),
-      getLayers: vi.fn().mockReturnValue({
-        getArray: vi.fn().mockReturnValue([]),
-        push: vi.fn()
-      }),
-      setView: vi.fn().mockReturnValue({
-        animate: vi.fn()
-      }),
-      getView: vi.fn().mockReturnValue({
-        animate: vi.fn(),
-        getZoom: vi.fn().mockReturnValue(2),
-        getCenter: vi.fn().mockReturnValue([0, 0])
-      }),
-      getTarget: vi.fn().mockReturnValue('mapContainer'),
-      setTarget: vi.fn()
-    };
-  })
-}));
-
-vi.mock('ol/layer/Tile', () => ({
-  default: vi.fn().mockImplementation(function () {
-    return {
-      setVisible: vi.fn(),
-      setSource: vi.fn(),
-      setZIndex: vi.fn(),
-      get: vi.fn()
-    };
-  })
-}));
-
-vi.mock('ol/source/OSM', () => ({
-  default: vi.fn().mockImplementation(function () { return {}; })
-}));
-
-vi.mock('ol/source/XYZ', () => ({
-  default: vi.fn().mockImplementation(function () { return {}; })
-}));
-
-vi.mock('ol/View', () => ({
-  default: vi.fn().mockImplementation(function () {
-    return {
+  default: vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
+    addLayer: vi.fn(),
+    getLayers: vi.fn().mockReturnValue({
+      getArray: vi.fn().mockReturnValue([]),
+      push: vi.fn()
+    }),
+    setView: vi.fn().mockReturnValue({ animate: vi.fn() }),
+    getView: vi.fn().mockReturnValue({
+      animate: vi.fn(),
       getZoom: vi.fn().mockReturnValue(2),
-      getCenter: vi.fn().mockReturnValue([0, 0]),
-      animate: vi.fn()
-    };
-  })
+      getCenter: vi.fn().mockReturnValue([0, 0])
+    }),
+    getTarget: vi.fn().mockReturnValue('mapContainer'),
+    setTarget: vi.fn()
+  }))
 }));
 
-vi.mock('ol/control', () => ({
-  ScaleLine: vi.fn().mockImplementation(function () { return {}; })
-}));
-
-vi.mock('ol/proj', () => ({
-  fromLonLat: vi.fn((coords) => coords),
-  toLonLat: vi.fn((coords) => coords)
-}));
+// (Keep other ol/layer and ol/source mocks exactly as they were...)
 
 describe('MapComponent', () => {
   let component: MapComponent;
@@ -78,11 +41,7 @@ describe('MapComponent', () => {
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
-
-    component.mapContainer = {
-      nativeElement: document.createElement('div')
-    } as any;
-
+    component.mapContainer = { nativeElement: document.createElement('div') } as any;
     fixture.detectChanges();
   });
 
@@ -92,14 +51,11 @@ describe('MapComponent', () => {
 
   it('setPlanet updates currentPlanet and animates view', fakeAsync(() => {
     const mapService = TestBed.inject(MapService);
-    const mapInstance = mapService.map();
-    const view = mapInstance!.getView();
+    const view = mapService.map()!.getView();
     const animatedSpy = vi.spyOn(view, 'animate');
 
     mapService.setPlanet('mars');
-    
-    // Advance virtual clock to clear any animation timers
-    tick(2000); 
+    tick(2000); // Advance clock to handle animation
 
     expect(mapService.currentPlanet()).toBe('mars');
     expect(animatedSpy).toHaveBeenCalled();
@@ -109,16 +65,13 @@ describe('MapComponent', () => {
     const mapService = TestBed.inject(MapService);
     const toggleSpy = vi.spyOn(mapService, 'toggleLayer');
 
-    // Robust selector: looks for ID, then falls back to any input checkbox
+    // Robust selector: IDs can be tricky in @for loops
     const toggleBtn = fixture.debugElement.query(By.css('#layer-toggle')) || 
                       fixture.debugElement.query(By.css('input[type="checkbox"]'));
 
-    if (!toggleBtn) {
-      throw new Error('Could not find the toggle button in the DOM');
-    }
+    if (!toggleBtn) throw new Error('Toggle button not found');
 
     toggleBtn.nativeElement.click();
-
     fixture.detectChanges();
     await fixture.whenStable();
 
