@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MapService } from './map.service';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { expect, describe, it, beforeEach } from 'vitest';
 
 describe('MapService', () => {
   let service: MapService;
@@ -9,7 +10,6 @@ describe('MapService', () => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
     });
-    
     service = TestBed.inject(MapService);
   });
 
