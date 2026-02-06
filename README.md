@@ -27,12 +27,12 @@ A modern web application for interactive geospatial visualization and experiment
 
 **GIS WebView** is an evolving geospatial web platform designed to explore modern patterns for GIS visualization directly in the browser.
 
-The project focuses on efficiently rendering planetary-scale spatial data—including raster imagery, vector layers, and tiled map services—using **Angular** and **OpenLayers**. The frontend provides interactive mapping, layer management, and user controls, while the backend serves GIS-friendly formats such as **GeoJSON**, raster metadata, and map tiles.
+The project focuses on rendering planetary-scale spatial data. Raster imagery, vector layers, and tiled map services—using **Angular** and **OpenLayers**. The frontend provides interactive mapping, layer management, and user controls, while the backend serves GIS-friendly formats such as **GeoJSON**, raster metadata (coming soon), and map tiles.
 
-This repository serves both as:
+This project serves both as:
 
-- A hands-on learning project for creating a modern web-based GIS, usable for planetary and exo-planetary investigations.
-- A foundation for a more complete, extensible GIS visualization system.
+- A learning project for creating a modern web-based GIS, usable for planetary and exo-planetary investigations.
+- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance.
 
 ---
 
@@ -45,10 +45,10 @@ This repository serves both as:
   CI pipelines powered by GitHub Actions handle builds, linting, and tests.  
 
 - **Optimized Frontend Bundling**  
-  Webpack-based builds focused on performance, caching, and minimal load times.  
+  Webpack-based build.  
 
 - **Standards-Based Spatial Formats**  
-  Native support for GeoJSON and common web mapping protocols.
+  Support for GeoJSON.
 
 ---
 
@@ -60,7 +60,7 @@ Code quality and stability are enforced through automated workflows:
   Ensures consistent coding standards across all supported languages.  
 
 - **Test Automation**  
-  Frontend and backend tests run automatically as part of CI.  
+  Frontend and backend tests run automatically as part of CI. **May temporarily break during frontend/backend changes, as time allows for repair.**  
 
 > CI workflows are iterative and will evolve alongside the project.
 
@@ -71,30 +71,27 @@ Code quality and stability are enforced through automated workflows:
 Planned and exploratory features for upcoming iterations include:
 
 - **Advanced Layer Management**  
-  Drag-and-drop layer ordering, opacity controls, and grouping for complex map compositions.  
+  Drag-and-drop layer ordering (soon), opacity controls (coming), and grouping (coming) for complex map compositions.  
 
 - **Custom Projections & Planetary CRS**  
-  First-class support for non-Earth coordinate systems, including custom definitions for Mars and Moon datasets.  
+  Support for non-Earth coordinate systems, including custom definitions for Mars and Moon datasets.  
 
 - **Raster Analysis Tools**  
-  On-the-fly slope, hillshade, and elevation profiling for planetary DEMs.  
+  On-the-fly slope, hillshade, and elevation profiling for planetary DEMs (coming).  
 
 - **Vector Query & Inspection**  
-  Feature selection, attribute inspection, and spatial querying directly within the map view.  
+  Feature selection, attribute inspection, and spatial querying directly within the map view (coming).  
 
 - **Time-Aware Data Visualization**  
-  Support for temporal layers and animated map playback.  
-
-- **Performance Scaling**  
-  Improved tile caching, lazy loading, and WebGL acceleration for large datasets.  
+  Support for temporal layers and animated map playback (coming).  
 
 - **Pluggable Data Sources**  
-  Modular backend connectors for WMS, WMTS, XYZ, and cloud-hosted GIS services.  
+  Modular backend connectors for XYZ, and cloud-hosted (coming) GIS services.  
 
 - **Integrated AI Assistance**  
-  Plain-language AI assistance for intelligent, automated layer creation.  
+  Plain-language AI assistance for intelligent, automated layer creation (coming).  
 
-> Features will be implemented incrementally, guided by real-world GIS workflows and performance considerations rather than sheer volume.
+> Features will be implemented incrementally.
 
 ---
 
@@ -102,12 +99,12 @@ Planned and exploratory features for upcoming iterations include:
 
 Current areas of active development include:
 
-- Expanding planetary basemap and CRS support.  
+-- - Expanding planetary basemap and CRS support. -- done.
 - Improving automated test coverage for map interactions.  
-- Refining CI workflows for faster developer feedback.  
+-- - Refining CI workflows for faster developer feedback. -- done.
 - Experimenting with additional spatial data formats and services.  
 
-> The guiding principle of this project is **steady, visible improvement** rather than rapid feature expansion.
+> I'm looking for **steady, visible improvement** rather than rapid feature expansion.
 
 ---
 
