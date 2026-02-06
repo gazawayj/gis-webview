@@ -3,6 +3,8 @@ import { MapComponent } from './map.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Map from 'ol/Map';
+import { MapService } from '../services/map.service';
+import { By } from '@angular/platform-browser';
 
 vi.mock('ol/Map', () => ({
   default: vi.fn().mockImplementation(function () {
@@ -101,19 +103,15 @@ describe('MapComponent', () => {
   })
 
 
-  it('creates overlay layer when toggled on', () => {
-    const map = component['mapService'].map();
-    const layerSpy = vi.spyOn(map!, 'addLayer');
+  it('creates overlay layer when toggled on', async () => {
+    const mapService = TestBed.inject(MapService);
+    const layerSpy = vi.spyOn(mapService, 'addLayer'); // Ensure this matches your method name
 
-    vi.spyOn(map!.getLayers(), 'getArray').mockReturnValue([]);
+    const toggle = fixture.debugElement.query(By.css('#layer-toggle')).nativeElement;
+    toggle.click();
 
-    component.toggleLayer({
-      id: 'lroc',
-      name: 'LROC',
-      type: 'overlay',
-      visible: false, 
-      zIndex: 1
-    } as any);
+    fixture.detectChanges(); // Trigger the logic
+    await fixture.whenStable();
 
     expect(layerSpy).toHaveBeenCalled();
   });
