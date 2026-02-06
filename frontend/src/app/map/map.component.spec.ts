@@ -58,18 +58,26 @@ describe('MapComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('setPlanet updates currentPlanet and animates view', fakeAsync(() => {
-    const mapService = TestBed.inject(MapService);
-    const map = mapService.map();
-    const view = map!.getView();
-    const animatedSpy = vi.spyOn(view, 'animate');
+  it('setPlanet updates currentPlanet and animates view', async () => {
+  const mapService = TestBed.inject(MapService);
+  const mapInstance = mapService.map();
+  
+  // Ensure we are spying on the correct view object
+  const view = mapInstance!.getView();
+  const animatedSpy = vi.spyOn(view, 'animate');
 
-    mapService.setPlanet('mars');
-    tick(2000); // Advance the virtual clock for the animation duration
+  // Trigger the change
+  mapService.setPlanet('mars');
+  
+  // Manually trigger Angular's change detection cycle
+  fixture.detectChanges();
+  
+  // Wait for any asynchronous tasks (like the view update) to complete
+  await fixture.whenStable();
 
-    expect(mapService.currentPlanet()).toBe('mars');
-    expect(animatedSpy).toHaveBeenCalled();
-  }));
+  expect(mapService.currentPlanet()).toBe('mars');
+  expect(animatedSpy).toHaveBeenCalled();
+});
 
   it('creates overlay layer when toggled on', async () => {
     const mapService = TestBed.inject(MapService);
