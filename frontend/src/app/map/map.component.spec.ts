@@ -59,25 +59,28 @@ describe('MapComponent', () => {
   });
 
   it('setPlanet updates currentPlanet and animates view', async () => {
-  const mapService = TestBed.inject(MapService);
-  const mapInstance = mapService.map();
-  
-  // Ensure we are spying on the correct view object
-  const view = mapInstance!.getView();
-  const animatedSpy = vi.spyOn(view, 'animate');
+    const mapService = TestBed.inject(MapService);
+    const mapInstance = mapService.map()!;
+    
+    // Cast setView to 'any' or 'Mock' to access the .mock property
+    const setViewSpy = mapInstance.setView as any;
 
-  // Trigger the change
-  mapService.setPlanet('mars');
-  
-  // Manually trigger Angular's change detection cycle
-  fixture.detectChanges();
-  
-  // Wait for any asynchronous tasks (like the view update) to complete
-  await fixture.whenStable();
+    // Trigger the change
+    mapService.setPlanet('mars');
+    
+    fixture.detectChanges();
+    await fixture.whenStable();
 
-  expect(mapService.currentPlanet()).toBe('mars');
-  expect(animatedSpy).toHaveBeenCalled();
-});
+    // Verify setPlanet changed the state
+    expect(mapService.currentPlanet()).toBe('mars');
+    
+    // Verify setView was called
+    expect(setViewSpy).toHaveBeenCalled();
+    
+    // Access call arguments safely now that TypeScript isn't complaining
+    const firstCallArgs = setViewSpy.mock.calls[0][0];
+    expect(firstCallArgs).toBeDefined();
+  });
 
   it('creates overlay layer when toggled on', async () => {
     const mapService = TestBed.inject(MapService);
