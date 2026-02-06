@@ -2,7 +2,7 @@
 
 A modern web application for interactive geospatial visualization and experimentation.
 
-**Live at:** https://gazawayj.github.io/gis-webview/
+**Live at:** https://gazawayj.github.io/
 (Taken local to redo one of the backends. Still visible, just not functional for a few days.)
 
 ## Application Status
