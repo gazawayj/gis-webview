@@ -22,6 +22,8 @@ import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 
+import Papa from 'papaparse';
+
 interface AIResponse {
   name: string;
   lat: number;
@@ -91,7 +93,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.makeScaleDraggable(scaleContainer);
     });
 
-    this.testAddActiveFires();
+    this.addFIRMSLayer();
 
     // Scroll console automatically
     setInterval(() => {
@@ -128,54 +130,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.isModalOpen = false;
     this.cdr.detectChanges();
   }
-
-testAddActiveFires() {
-  const url = 'active-fires.geojson';
-
-  const vectorSource = new VectorSource({
-    url,
-    format: new GeoJSON()
-  });
-
-  const vectorLayer = new VectorLayer({
-    source: vectorSource,
-    style: new Style({
-      image: new CircleStyle({
-        radius: 6,
-        fill: new Fill({ color: 'red' }),
-        stroke: new Stroke({ color: '#fff', width: 1 })
-      })
-    })
-  });
-
-  const map = this.mapService.map();
-  if (!map) return;
-
-  // Add layer to map
-  map.addLayer(vectorLayer);
-
-  // Wait until features are loaded, then zoom to extent
-  vectorSource.once('change', () => {
-    if (vectorSource.getState() === 'ready') {
-      const extent = vectorSource.getExtent();
-      map.getView().fit(extent, { maxZoom: 4, padding: [50,50,50,50] });
-    }
-  });
-
-  // Also register in MapService
-  this.mapService.addLayer({
-    id: 'active-fires',
-    name: 'Active Fires',
-    description: 'MODIS thermal anomalies',
-    type: 'vector',
-    visible: true,
-    zIndex: 5,
-    source: url,
-    color: 'rgba(255,0,0,0.5)'
-  }, 'earth');
-}
-
-
 
   createManualLayer() {
     if (!this.newLayer.name || !this.newLayer.source) {
@@ -268,4 +222,74 @@ testAddActiveFires() {
       el.style.cursor = 'grab';
     });
   }
+
+  /**
+   * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
+   */
+  private addFIRMSLayer() {
+  this.http.get('http://localhost:3000/firms', { responseType: 'text' })
+    .pipe(take(1))
+    .subscribe({
+      next: (csvData: string) => {
+        const parsed = Papa.parse(csvData, { header: true });
+
+        // Filter valid rows
+        const validRows = (parsed.data as any[])
+          .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
+
+        console.log(`FIRMS: Loaded ${validRows.length} valid fire points.`);
+
+        const features = validRows.map(row => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
+          },
+          properties: {
+            brightness: row.brightness,
+            date: row.acq_date,
+            time: row.acq_time,
+            confidence: row.confidence,
+            satellite: row.satellite
+          }
+        }));
+
+        const geojson = {
+          type: 'FeatureCollection',
+          features
+        };
+
+        const firesLayer = new VectorLayer({
+          source: new VectorSource({
+            features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
+          }),
+          style: new Style({
+            image: new CircleStyle({
+              radius: 8, // slightly bigger for visibility
+              fill: new Fill({ color: 'red' }),
+              stroke: new Stroke({ color: '#fff', width: 1 })
+            })
+          }),
+          visible: true
+        });
+
+        const map = this.mapService.map();
+        if (map) {
+          map.addLayer(firesLayer);
+
+          // Fly to the first fire for testing
+          if (features.length > 0) {
+            const [lon, lat] = features[0].geometry.coordinates;
+            this.mapService.flyToLocation(lon, lat, this.currentPlanet);
+          }
+        } else {
+          console.warn('FIRMS: Map object not available yet.');
+        }
+      },
+      error: (err) => {
+        console.error('Error loading FIRMS CSV:', err);
+      }
+    });
+}
+
 }
