@@ -1,36 +1,24 @@
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { AppComponent } from './app';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import request from 'supertest';
+import { app } from '../server'; 
 
-describe('AppComponent', () => {
-  let fixture: ComponentFixture<AppComponent>;
-  let component: AppComponent;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [AppComponent, HttpClientTestingModule],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(AppComponent);
-    component = fixture.componentInstance;
+describe('Backend API Endpoints', () => {
+  it('GET /api/status should return system health', async () => {
+    const res = await request(app).get('/api/status');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('status', 'online');
   });
 
-  it('should create the app', () => {
-    expect(component).toBeTruthy();
+  it('GET /api/layers/:planet should return correct planet layers', async () => {
+    const res = await request(app).get('/api/layers/mars');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    // Verify a known Mars layer exists
+    expect(res.body[0]).toHaveProperty('id', 'mars-base');
   });
 
-  it('should render title', () => {
-    // 1. Manually trigger change detection so the template renders
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    
-    // 2. Adjust the selector to match HTML. 
-    const titleElement = compiled.querySelector('h1') || compiled.querySelector('.title');
-    
-    expect(titleElement).toBeTruthy();
-    // 3. Match the actual text content 
-    expect(titleElement?.textContent).toContain('GIS Web Viewer');
+  it('should return 404 for unknown planets', async () => {
+    const res = await request(app).get('/api/layers/pluto');
+    expect(res.status).toBe(404);
   });
 });

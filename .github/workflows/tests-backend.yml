@@ -16,7 +16,6 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
 
-    # Set working directory if your backend is in a subfolder (e.g., 'backend')
     defaults:
       run:
         working-directory: ./backend 
@@ -28,17 +27,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use your project's specific Node version
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: './backend/package-lock.json'
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Backend Tests
-        # Ensure your package.json has a "test" script defined
-        run: npm test
-
-      # Optional: Add build step if your backend uses TypeScript
       - name: Build Backend
+        run: npm install -D supertest @types/supertest
+
+      - name: Add Supertest
         run: npm run build --if-present
+
+      - name: Run Backend Tests
+        run: npm test
