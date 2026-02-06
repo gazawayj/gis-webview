@@ -3,15 +3,23 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { MapService } from './map.service';
 import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock OpenLayers Map since initMap creates a real one
 vi.mock('ol/Map', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    setView: vi.fn(),
-    addLayer: vi.fn(),
-    getView: vi.fn().mockReturnValue({
-      getProjection: vi.fn().mockReturnValue({ getCode: () => 'EPSG:3857' })
-    })
-  }))
+  default: function () {
+    return {
+      on: vi.fn(),
+      addLayer: vi.fn(),
+      setView: vi.fn(),
+      getView: vi.fn().mockReturnValue({
+        animate: vi.fn(),
+        getProjection: vi.fn().mockReturnValue({ getCode: () => 'EPSG:3857' })
+      })
+    };
+  }
+}));
+
+// Also ensure ScaleLine is mocked as a constructor
+vi.mock('ol/control', () => ({
+  ScaleLine: function () { return {}; }
 }));
 
 describe('MapService Advanced Logic', () => {
