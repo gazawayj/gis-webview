@@ -25,7 +25,7 @@ The project focuses on efficiently rendering planetary-scale spatial data—incl
 
 This repository serves both as:
 
-- A hands-on learning environment for modern web-based GIS
+- A hands-on learning project for creating a modern web-based GIS usable for planetary and exo-planetary investigations
 - A foundation for a more complete, extensible GIS visualization system
 
 ## Key Features
@@ -47,7 +47,7 @@ Code quality and stability are enforced through automated workflows:
   Ensures consistent coding standards across all supported languages.
 - **Test Automation**  
   Frontend and backend tests run automatically as part of CI.
-> CI workflows are intentionally iterative and evolve alongside new features.
+> CI workflows are iterative and will evolve along with the program.
 
 ## Future Features
 
