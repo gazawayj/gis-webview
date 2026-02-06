@@ -1,6 +1,4 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite';
-import { inlineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 import angular from '@analogjs/vite-plugin-angular';
 
 export default defineConfig({
@@ -9,7 +7,5 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    include: ['src/**/*.{test,spec}.ts'],
-    reporters: ['default'],
   },
 });
