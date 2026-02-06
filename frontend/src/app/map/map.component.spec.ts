@@ -37,7 +37,6 @@ vi.mock('ol/control', () => ({ ScaleLine: function() { return {}; } }));
 vi.mock('ol/proj', () => ({ fromLonLat: vi.fn((c) => c), toLonLat: vi.fn((c) => c), register: vi.fn() }));
 vi.mock('ol/format/GeoJSON', () => ({ default: function() { return { readFeatures: vi.fn().mockReturnValue([]) }; } }));
 
-// --- Test Suite ---
 describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
@@ -86,8 +85,7 @@ describe('MapComponent', () => {
     const mapService = TestBed.inject(MapService);
     const toggleSpy = vi.spyOn(mapService, 'toggleLayer');
 
-    const toggleBtn = fixture.debugElement.query(By.css('input[type="checkbox"]')) || 
-                      fixture.debugElement.query(By.css('#layer-toggle'));
+    const toggleBtn = fixture.debugElement.query(By.css('input[type="checkbox"]')) || fixture.debugElement.query(By.css('#layer-toggle'));
 
     if (!toggleBtn) throw new Error('Toggle button not found');
 
