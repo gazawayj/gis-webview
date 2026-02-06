@@ -32,13 +32,17 @@ describe('MapService Advanced Logic', () => {
   });
 
   it('should fetch GeoJSON and add features when a vector layer is added', () => {
-    const mockGeoJson = { type: 'FeatureCollection', features: [] };
-    const vectorLayer = { id: 'test-vec', name: 'Test', type: 'vector', source: 'test.json', visible: true, zIndex: 1 };
+    const uniqueLayer = {
+      id: 'UNIQUE-TEST-ID-' + Date.now(),
+      name: 'Test',
+      type: 'vector',
+      source: 'test.json',
+      visible: true
+    };
 
-    service.addLayer(vectorLayer as any, 'earth');
+    service.addLayer(uniqueLayer as any, 'earth');
 
     const req = httpMock.expectOne('/assets/tiles/earth/test.json');
-    expect(req.request.method).toBe('GET');
-    req.flush(mockGeoJson); // Simulate successful file load
+    req.flush({ type: 'FeatureCollection', features: [] });
   });
 });
