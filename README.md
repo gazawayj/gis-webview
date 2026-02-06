@@ -99,9 +99,9 @@ Planned and exploratory features for upcoming iterations include:
 
 Current areas of active development include:
 
--- - Expanding planetary basemap and CRS support. -- done.
+~~ - Expanding planetary basemap and CRS support. ~~ done.
 - Improving automated test coverage for map interactions.  
--- - Refining CI workflows for faster developer feedback. -- done.
+~~ - Refining CI workflows for faster developer feedback. ~~ done.
 - Experimenting with additional spatial data formats and services.  
 
 > I'm looking for **steady, visible improvement** rather than rapid feature expansion.
