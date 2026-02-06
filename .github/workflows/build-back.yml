@@ -13,30 +13,31 @@ on:
       - 'backend/tiles/**/*.png'
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
-    
-    # Ensures commands run inside the backend folder by default
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Set up Gemini
-        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> $GITHUB_ENV
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
-          cache: 'pip'
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          export PYTHONPATH=$PWD
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          python app/main.py
+      - name: Install Dependencies
+        run: npm ci
 
+      - name: Run Unit Tests
+        # Vitest needs to run in 'run' mode (non-watch) for CI
+        run: npm test -- --run
+
+      - name: Build Application
+        run: npm run build -- --configuration=production
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: dist/
