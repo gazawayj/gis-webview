@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
-import { app } from '../server'; 
+import { app } from '../server';
+
+vi.mock('@angular/ssr/node', () => ({
+  AngularNodeAppEngine: function () {
+    return { handle: vi.fn() };
+  },
+  createNodeRequestHandler: vi.fn(),
+  writeResponseToNodeResponse: vi.fn(),
+  isMainModule: vi.fn().mockReturnValue(false)
+}));
 
 describe('Backend API Endpoints', () => {
   it('GET /api/status should return system health', async () => {
