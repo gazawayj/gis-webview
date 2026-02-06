@@ -140,7 +140,7 @@ export class MapService {
     const map = this.map();
     if (!map) return;
 
-    const projection = PLANET_PROJECTIONS[planet];
+    const projection = PLANET_PROJECTIONS['earth'];
     map.setView(new View({ center: [0, 0], zoom: 2, projection }));
     this.baseLayer.setSource(new XYZ({ url: this.BASEMAP_URLS[planet], crossOrigin: 'anonymous' }));
     this.currentPlanet.set(planet);
