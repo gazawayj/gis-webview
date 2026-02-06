@@ -19,7 +19,7 @@ A modern web application for interactive geospatial visualization and experiment
 
 ## Technology Stack
 
-[![Tech Stack](https://skillicons.dev/icons?i=js,html,css,webpack,py,nodejs,github,angular,anaconda)](https://skillicons.dev)
+[![Tech Stack](https://skillicons.dev/icons?i=github,js,html,css,py,nodejs,angular)](https://skillicons.dev)
 
 ---
 
