@@ -92,29 +92,44 @@ describe('MapComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // Async waiting on animation frames
-  fakeAsync(() => {
-    it('setPlanet updates currentPlanet and animates view', () => {
-      const animatedSpy = vi.spyOn(component['mapService'].map()!.getView(), 'animate');
-      component['mapService'].setPlanet('mars');
-      expect(component['mapService'].currentPlanet()).toBe('mars');
-      expect(animatedSpy).toHaveBeenCalled();
-    });
-  })
+  it('setPlanet updates currentPlanet and animates view', fakeAsync(() => {
+    const mapService = TestBed.inject(MapService);
+    const view = mapService.map()!.getView();
+    const animatedSpy = vi.spyOn(view, 'animate');
+
+    mapService.setPlanet('mars');
+
+    expect(mapService.currentPlanet()).toBe('mars');
+    expect(animatedSpy).toHaveBeenCalled();
+  }));
+
 
 
   it('creates overlay layer when toggled on', async () => {
+    // 1. Get the service and the specific layer
     const mapService = TestBed.inject(MapService);
-    const layerSpy = vi.spyOn(mapService, 'addLayer'); // Ensure this matches your method name
+    const planet = mapService.currentPlanet();
+    const layerToToggle = mapService.planetStates()[planet][0];
 
-    const toggle = fixture.debugElement.query(By.css('#layer-toggle')).nativeElement;
-    toggle.click();
+    // 2. Setup the spy on the actual logic that handles the toggle
+    const toggleSpy = vi.spyOn(mapService, 'toggleLayer');
 
-    fixture.detectChanges(); // Trigger the logic
+    // 3. Trigger the UI click
+    const toggleBtn = fixture.debugElement.query(By.css('#layer-toggle'));
+    if (!toggleBtn) {
+      throw new Error('Could not find the toggle button in the DOM');
+    }
+
+    toggleBtn.nativeElement.click();
+
+    // 4. Standard Angular lifecycle updates
+    fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(layerSpy).toHaveBeenCalled();
+    // 5. Verify the service method was called
+    expect(toggleSpy).toHaveBeenCalled();
   });
+
 
   it('should handle map initialization', () => {
     const map = component['mapService'].map();
