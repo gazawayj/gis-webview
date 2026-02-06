@@ -1,15 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { MapService } from './map.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('MapService', () => {
   let service: MapService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      // No need to add providers if your service is providedIn: 'root'
+      imports: [HttpClientTestingModule],
     });
     
-    // FIX: Inject the CLASS (MapService), not the variable (service)
     service = TestBed.inject(MapService);
   });
 
