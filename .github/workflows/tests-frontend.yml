@@ -31,4 +31,4 @@ jobs:
         run: cd frontend && npm install @angular/platform-server --legacy-peer-deps
 
       - name: Run Unit Tests
-        run: npm test -- --run
+        run: cd frontend && npm test -- --run
