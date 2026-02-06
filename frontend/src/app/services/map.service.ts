@@ -151,7 +151,7 @@ export class MapService {
     const map = this.map();
     if (!map) return;
 
-    // Prevent duplicate layers
+    // Prevent duplicate layers by going through IDs
     const exists = this.planetStates()[planet].some(l => l.id === layer.id);
     if (exists) return;
 
@@ -169,7 +169,7 @@ export class MapService {
         })
       });
 
-      // Add layer to the map immediately
+      // Add layer to the map
       map.addLayer(olLayer);
       layer.olLayer = olLayer;
 
@@ -178,7 +178,7 @@ export class MapService {
         .pipe(take(1))
         .subscribe((data: any) => {
           const features = new GeoJSON().readFeatures(data, {
-            featureProjection: map.getView().getProjection() // converts from 4326 to map projection
+            featureProjection: map.getView().getProjection()
           });
           vectorSource.addFeatures(features);
         });
