@@ -5,6 +5,13 @@ import { getTestBed } from '@angular/core/testing';
 import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
 import { vi } from 'vitest';
 
+
+declare const Zone: any;
+const ProxyZoneSpec = (Zone as any)['ProxyZoneSpec'];
+if (ProxyZoneSpec) {
+  Zone.current.fork(new ProxyZoneSpec());
+}
+
 // Initialize with the standard (non-dynamic) testing module
 getTestBed().initTestEnvironment(
   BrowserTestingModule,
