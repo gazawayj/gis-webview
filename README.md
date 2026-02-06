@@ -56,7 +56,7 @@ Planned and exploratory features for upcoming iterations include:
 - **Advanced Layer Management**  
   Drag-and-drop layer ordering, opacity controls, and grouping for complex map compositions.
 - **Custom Projections & Planetary CRS**  
-  First-class support for non-Earth coordinate systems, including custom WKT definitions for Mars and Moon datasets.
+  First-class support for non-Earth coordinate systems, including custom definitions for Mars and Moon datasets.
 - **Raster Analysis Tools**  
   On-the-fly slope, hillshade, and elevation profiling for planetary DEMs.
 - **Vector Query & Inspection**  
@@ -67,6 +67,8 @@ Planned and exploratory features for upcoming iterations include:
   Improved tile caching, lazy loading, and WebGL acceleration for large datasets.
 - **Pluggable Data Sources**  
   Modular backend connectors for WMS, WMTS, XYZ, and cloud-hosted GIS services.
+- **Integrated AI-assistance**  
+  Plain-speech AI assistance for intelligent, automated layer creation.
 >These features will be implemented incrementally, guided by real-world GIS workflows and performance considerations rather than feature volume alone.
 
 ## Project Direction
