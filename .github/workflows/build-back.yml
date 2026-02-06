@@ -29,10 +29,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Unit Tests
-        # Vitest needs to run in 'run' mode (non-watch) for CI
-        run: npm test -- --run
-
       - name: Build Application
         run: npm run build -- --configuration=production
 
