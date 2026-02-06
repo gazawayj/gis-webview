@@ -1,6 +1,6 @@
 # GIS WebView
 
-A modern, high-performance web application for interactive geospatial visualization and experimentation.
+A modern web application for interactive geospatial visualization and experimentation.
 
 **Live at:** https://gazawayj.github.io/gis-webview/
 (Taken local to redo one of the backends. Still visible, just not functional for a few days.)
