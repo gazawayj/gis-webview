@@ -8,7 +8,11 @@ vi.mock('ol/Map', () => ({
     return {
       on: vi.fn(),
       addLayer: vi.fn(),
+      removeLayer: vi.fn(),
       setView: vi.fn(),
+      getLayers: vi.fn().mockReturnValue({
+        getArray: vi.fn().mockReturnValue([])
+      }),
       getView: vi.fn().mockReturnValue({
         animate: vi.fn(),
         getProjection: vi.fn().mockReturnValue({ getCode: () => 'EPSG:3857' })
