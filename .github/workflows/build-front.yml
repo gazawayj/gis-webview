@@ -24,14 +24,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4 # Checkout the repository code
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4 # Configure the specified Node.js version
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm' # Cache npm dependencies for faster installs
+        cache: 'npm'
         cache-dependency-path: './frontend/package-lock.json' 
     - name: Install dependencies
-      working-directory: ./frontend
       run: npm install --legacy-peer-deps
     - name: Build project
-      working-directory: ./frontend
       run: npm run build -- --configuration=production
