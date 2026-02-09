@@ -1,110 +1,71 @@
-<div class="page">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <h1>GIS Web Viewer</h1>
-    <div class="planet-buttons">
-      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
-      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
-      <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
+<div class="map-wrapper">
+  <div #mapContainer class="map-container"></div>
+  <div #scaleContainer class="scale-container"></div>
+
+  <!-- Planet selection -->
+  <div class="planet-buttons">
+    <button *ngFor="let planet of planets" (click)="setPlanet(planet)">
+      {{ planet | titlecase }}
+    </button>
+  </div>
+
+  <!-- Overlay Layers Panel -->
+  <div class="overlay-panel" cdkDropList (cdkDropListDropped)="mapService.reorderLayers($event)">
+    <div *ngIf="visibleLayers().length === 0" class="empty-hint">
+      No layers available
+    </div>
+    <div *ngIf="visibleLayers().length > 0" class="drag-hint">
+      Drag to reorder
     </div>
 
-    <!-- Layers Container -->
-    <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($event)">
-      <div *ngIf="layers.length===0" class="empty-hint">No layers available for this planet.</div>
-      <div *ngIf="layers.length>0" class="drag-hint">Click and drag layers to reorder stack</div>
+    <label *ngFor="let layer of visibleLayers(); let i = index" class="overlay-item" cdkDrag>
+      <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
+      {{ layer.name }}
+      <div class="drag-placeholder" *cdkDragPlaceholder></div>
+    </label>
+  </div>
 
-      <div class="layer-actions">
-        <button class="add-layer-btn" (click)="onAddLayer()"><span class="plus-icon">+</span> Add Layer</button>
-      </div>
+  <!-- Add Layer Button -->
+  <button class="add-layer-btn" (click)="openAddLayerModal()">
+    <span class="plus-icon">+</span> Add Layer
+  </button>
 
-      <div style="flex:1"></div>
+  <!-- Loading Overlay -->
+  <div *ngIf="mapService.isLoading()" class="loading-overlay">
+    Loading...
+  </div>
 
-      <label *ngFor="let layer of layers; let i=index" class="overlay-item" cdkDrag>
-        <span class="drag-handle">⠿</span>
-        <span class="layer-number">{{ i + 1 }}</span>
-        <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)">
-        <div class="layer-info">
-          <strong>{{layer.name}}</strong>
-          <span class="hint">{{layer.description}}</span>
-        </div>
-        <div class="drag-placeholder" *cdkDragPlaceholder></div>
-      </label>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats-panel">
-      <div class="stat-item"><span>Zoom Level</span><strong>{{zoomDisplay}}</strong></div>
-      <div class="coords-display-lon"><span>{{currentStats.lonLabel}}</span><strong>{{currentLon}}</strong></div>
-      <div class="coords-display-lat"><span>{{currentStats.latLabel}}</span><strong>{{currentLat}}</strong></div>
-      <div class="stat-item"><span>Surface Gravity</span><strong>{{currentStats.gravity}}</strong></div>
-    </div>
-  </aside>
-
-  <!-- Map -->
-  <main class="map-wrapper">
-    <div #mapContainer id="mapContainer" class="map-container"></div>
-    <div *ngIf="isLoading" class="loading-overlay">
-      <div class="loading-card"><div class="spinner"></div><span>Loading Map Data...</span></div>
-    </div>
-  </main>
-</div>
-
-<!-- Modal -->
-<div *ngIf="isModalOpen" class="modal-backdrop">
-  <div class="modal fade-in">
-    
-    <!-- Toolbar-style Header -->
-    <div class="modal-header toolbar">
-      <h2>Input Options</h2>
-      <button class="close-btn" (click)="closeModal()">×</button>
-    </div>
-
-    <!-- Tabs -->
-    <div class="modal-tabs">
-      <button [class.active]="modalMode==='manual'" (click)="modalMode='manual'">Manual</button>
-      <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
-    </div>
-
-    <!-- Tab Content -->
+  <!-- Modal for adding layers -->
+  <div *ngIf="isModalOpen()" class="modal-backdrop">
     <div class="modal-content">
+      <button class="close-btn" (click)="cancelModal()">×</button>
 
-      <!-- Manual Tab -->
-      <div class="manual-wrapper" [class.active]="modalMode==='manual'">
-        <form class="manual-form">
-          <div class="form-row">
-            <label>Layer Name:<input type="text" [(ngModel)]="newLayer.name" name="layerName" placeholder="Enter layer name"></label>
-            <label>Layer Type:<select [(ngModel)]="newLayer.type" name="layerType"><option value="vector">Vector</option><option value="raster">Raster</option></select></label>
-          </div>
-          <div class="form-row">
-            <label>URL:<input type="text" [(ngModel)]="newLayer.source" name="layerSource" placeholder="Enter URL"></label>
-          </div>
-          <div class="form-row">
-            <label>Color:<input type="color" [(ngModel)]="newLayer.color" name="layerColor"></label>
-            <label>Visible:<input type="checkbox" [(ngModel)]="newLayer.visible" name="layerVisible"></label>
-          </div>
-        </form>
-      </div>
+      <h3>Add Layer</h3>
 
-      <!-- Console Tab -->
-      <div class="console-wrapper" [class.active]="modalMode==='console'">
-        <div #consoleView class="console-input">
-          <div *ngFor="let line of terminalLines()">{{line}}</div>
-          <div class="terminal-input-row">
-            <span class="terminal-prompt">></span>
-            <input #terminalInput
-                   type="text"
-                   class="manual-input"
-                   placeholder="Enter commands here..."
-                   (keydown.enter)="handleTerminalCommand($event)">
-          </div>
-        </div>
+      <label>Name: <input type="text" [(ngModel)]="newLayer().name"></label>
+      <label>Type:
+        <select [(ngModel)]="newLayer().type">
+          <option value="vector">Vector</option>
+          <option value="raster">Raster</option>
+          <option value="overlay">Overlay</option>
+        </select>
+      </label>
+      <label>Source URL: <input type="text" [(ngModel)]="newLayer().source"></label>
+      <label>Color: <input type="color" [(ngModel)]="newLayer().color"></label>
+      <label>Visible: <input type="checkbox" [(ngModel)]="newLayer().visible"></label>
+
+      <div class="modal-actions">
+        <button (click)="cancelModal()">Cancel</button>
+        <button (click)="submitLayerModal()">OK</button>
       </div>
     </div>
+  </div>
 
-    <!-- Footer Buttons -->
-    <div class="modal-footer">
-      <button class="cancel-btn" (click)="closeModal()">Cancel</button>
-      <button class="ok-btn" (click)="modalMode==='manual'?createManualLayer():null">OK</button>
+  <!-- Terminal -->
+  <div class="terminal">
+    <input #terminalInput type="text" (keydown.enter)="handleTerminalCommand($event)">
+    <div *ngFor="let line of mapService.terminalLines()">
+      {{ line }}
     </div>
   </div>
 </div>
