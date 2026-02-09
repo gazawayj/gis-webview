@@ -3,12 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "serve:ssr:frontend": "node dist/frontend/server/server.mjs",
     "start": "vite",
-    "ng": "ng",
-    "watch": "ng build --watch --configuration development",
+    "build": "vite build",
+    "preview": "vite preview",
+    "watch": "vite build --watch",
     "test": "vitest run",
     "lint": "ng lint"
   },
