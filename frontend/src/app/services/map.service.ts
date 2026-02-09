@@ -170,6 +170,7 @@ export class MapService {
       });
 
       // Add layer to the map
+      olLayer.set('id', layer.id);
       map.addLayer(olLayer);
       layer.olLayer = olLayer;
 

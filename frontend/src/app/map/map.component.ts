@@ -136,7 +136,28 @@ export class MapComponent implements AfterViewInit, OnInit, OnDestroy {
 
   // Exposed methods
   setPlanet(planet: Planet) { this.mapService.setPlanet(planet); this.cdr.detectChanges(); }
-  toggleLayer(layer: LayerItem) { this.mapService.toggleLayer(layer); this.cdr.detectChanges(); }
+  
+  toggleLayer(layer: LayerItem) {
+  const map = this.mapService.map();
+  if (!map) return;
+
+  const newState = !layer.visible;
+  const planet = this.mapService.currentPlanet();
+
+  // 1. Update the OpenLayers instance directly
+  // Search the map for the layer if the direct reference is lost
+  const olLayer = layer.olLayer || map.getLayers().getArray().find(l => l.get('id') === layer.id);
+  
+  if (olLayer) {
+    olLayer.setVisible(newState);
+  }
+
+  // 2. Update the Signal state to reflect the change in the UI
+  this.mapService.planetStates.update(prev => ({
+    ...prev,
+    [planet]: prev[planet].map(l => l.id === layer.id ? { ...l, visible: newState } : l)
+  }));
+}
 
   onLayerDropped(event: CdkDragDrop<LayerItem[]>) {
     const layersCopy = [...this.mapService.planetStates()[this.currentPlanet]];
@@ -252,44 +273,65 @@ export class MapComponent implements AfterViewInit, OnInit, OnDestroy {
    * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
    */
   private addFIRMSLayer() {
-    const url = `${environment.backendUrl}/firms`;
+  const url = `${environment.backendUrl}/firms`;
 
-    this.http.get(url, { responseType: 'text' }).pipe(take(1)).subscribe({
-      next: (csvData: string) => {
-        try {
-          const parsed = Papa.parse(csvData, { header: true });
-          const validRows = (parsed.data as any[])
-            .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
+  this.http.get(url, { responseType: 'text' }).pipe(take(1)).subscribe({
+    next: (csvData: string) => {
+      try {
+        const parsed = Papa.parse(csvData, { header: true });
+        const validRows = (parsed.data as any[])
+          .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
 
-          console.log(`FIRMS: Loaded ${validRows.length} valid fire points.`);
-          if (validRows.length === 0) return;
+        if (validRows.length === 0) return;
 
-          const features = validRows.map(row => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)] },
-            properties: { brightness: row.brightness, date: row.acq_date, time: row.acq_time, confidence: row.confidence, satellite: row.satellite }
-          }));
+        const features = validRows.map(row => ({
+          type: 'Feature',
+          geometry: { 
+            type: 'Point', 
+            coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)] 
+          },
+          properties: { ...row }
+        }));
 
-          const geojson = { type: 'FeatureCollection', features };
-          const firesLayer = new VectorLayer({
-            source: new VectorSource({ features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' }) }),
-            style: new Style({
-              image: new CircleStyle({ radius: 8, fill: new Fill({ color: 'red' }), stroke: new Stroke({ color: '#fff', width: 1 }) })
-            }),
-            visible: true
-          });
+        const geojson = { type: 'FeatureCollection', features };
+        
+        // 1. Create the OpenLayers Instance
+        const firesLayerInstance = new VectorLayer({
+          source: new VectorSource({ 
+            features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' }) 
+          }),
+          style: new Style({
+            image: new CircleStyle({ 
+              radius: 8, 
+              fill: new Fill({ color: 'red' }), 
+              stroke: new Stroke({ color: '#fff', width: 1 }) 
+            })
+          }),
+          visible: true
+        });
 
-          const map = this.mapService.map();
-          if (map) map.addLayer(firesLayer);
+        // 2. Wrap it in a LayerItem so the Service accepts it
+        const firmsLayerItem: LayerItem = {
+          id: 'firms-nasa-fires',
+          name: 'NASA FIRMS Fires',
+          description: 'Real-time thermal anomalies (24h)',
+          visible: true,
+          type: 'vector',
+          zIndex: 10,
+          olLayer: firesLayerInstance // Pass the actual OL object here
+        };
 
-        } catch (err) {
-          console.error('FIRMS: Failed to parse CSV', err);
-        }
-      },
-      error: (err) => {
-        console.warn(`FIRMS: Backend not ready or failed to fetch CSV. Retrying in 5s...`);
-        setTimeout(() => this.addFIRMSLayer(), 5000);
+        // 3. Register it via the service (this handles adding it to the map AND the sidebar)
+        this.mapService.addLayer(firmsLayerItem, 'earth');
+
+      } catch (err) {
+        console.error('FIRMS: Failed to parse CSV', err);
       }
-    });
-  }
+    },
+    error: (err) => {
+      console.warn(`FIRMS: Backend not ready. Retrying in 5s...`);
+      setTimeout(() => this.addFIRMSLayer(), 5000);
+    }
+  });
+}
 }
