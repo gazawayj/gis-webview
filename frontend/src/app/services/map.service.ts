@@ -170,7 +170,7 @@ export class MapService {
       layer.olLayer = olLayer;
 
       // Fetch the GeoJSON manually
-      this.http.get(`/assets/tiles/${planet}/${layer.source}`, { responseType: 'json' })
+      this.http.get(`assets/tiles/${planet}/${layer.source}`, { responseType: 'json' })
         .pipe(take(1))
         .subscribe((data: any) => {
           const features = new GeoJSON().readFeatures(data, {
