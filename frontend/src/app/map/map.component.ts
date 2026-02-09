@@ -73,4 +73,5 @@ export class MapComponent implements OnInit {
   onLayerDropped(event: CdkDragDrop<LayerItem[]>) {
     this.mapService.reorderLayers(event);
   }
+  
 }
