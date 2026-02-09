@@ -15,9 +15,15 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map.service';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { CommonModule, TitleCasePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { TitleCasePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import GeoJSON from 'ol/format/GeoJSON';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Style, Fill, Stroke } from 'ol/style';
+import CircleStyle from 'ol/style/Circle';
+import { take } from 'rxjs';
+import { environment } from '../../environments/environment.prod';
 
 @Component({
   selector: 'app-map',
@@ -62,7 +68,7 @@ export class MapComponent implements OnInit {
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
   get currentLat() { return this.mapService.currentLat(); }
-  get currentStats() { return this.mapService.getPlanetStats(); }
+  get currentStats() { return this.mapService.planetStates(); }
   get isLoading() { return this.mapService.isLoading(); }
 
   ngOnInit() {
