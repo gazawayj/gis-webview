@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Verify this path matches your 'dist' folder structure
-          path: './dist/frontend/browser' 
+          path: 'frontend/dist/frontend/browser' 
 
   deploy:
     needs: build
