@@ -19,17 +19,25 @@ jobs:
         working-directory: ./frontend
     strategy:
       matrix:
-        node-version: [22.x] # Use a specific Node.js version 
+        node-version: [22.x]
 
     steps:
-    - uses: actions/checkout@v4 # Checkout the repository code
+    - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json' 
+        cache-dependency-path: './frontend/package-lock.json'
+    
+    # Install Angular CLI globally (optional, ensures ng command is available)
+    - name: Install Angular CLI
+      run: npm install -g @angular/cli@21.1.3 --legacy-peer-deps
+
+    # Install all dependencies using legacy peer deps to avoid conflicts
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci --legacy-peer-deps
+
+    # Build project with production configuration
     - name: Build project
       run: npm run build -- --configuration=production
