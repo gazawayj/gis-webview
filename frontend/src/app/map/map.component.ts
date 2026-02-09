@@ -16,6 +16,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { MapService, Planet, LayerItem } from '../services/map.service';
 import { HttpClient } from '@angular/common/http';
 import { take } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -106,7 +107,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   
 ngOnInit() {
-  this.http.get('https://YOUR_RENDER_URL.onrender.com/health')
+  this.http.get(`${environment.apiBase}/health`, { responseType: 'text' })
+
     .subscribe({
       next: () => console.log('Backend awake'),
       error: () => console.warn('Backend waking up...')
@@ -183,7 +185,7 @@ ngOnInit() {
 
     this.terminalLines.update(prev => [...prev, `> ${command}`, `AI: Analyzing request...`]);
 
-    this.http.get<AIResponse>(`https://gazawayj.pythonanywhere.com/search?q=${command}`)
+    this.http.get<AIResponse>(`${environment.apiBase}/ai`)
       .pipe(take(1))
       .subscribe({
         next: (res: AIResponse) => {
@@ -236,7 +238,7 @@ ngOnInit() {
    * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
    */
   private addFIRMSLayer() {
-  this.http.get('http://localhost:3000/firms', { responseType: 'text' })
+  this.http.get(`${environment.apiBase}/firms`, { responseType: 'text' })
     .pipe(take(1))
     .subscribe({
       next: (csvData: string) => {
