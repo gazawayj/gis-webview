@@ -215,7 +215,7 @@ export class MapComponent implements AfterViewInit, OnInit, OnDestroy {
           this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
         }
       });
-
+    //remove input line
     inputEl.value = '';
   }
 
