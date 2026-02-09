@@ -1,37 +1,29 @@
 import {
-  Component,
-  AfterViewInit,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  ElementRef,
-  ChangeDetectorRef,
-  inject,
-  signal,
-  PLATFORM_ID
+  Component, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef,
+  ChangeDetectorRef, inject, signal, PLATFORM_ID
 } from '@angular/core';
-
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MapService, Planet, LayerItem } from '../services/map.service';
-import { TitleCasePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import GeoJSON from 'ol/format/GeoJSON';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import { Style, Fill, Stroke } from 'ol/style';
-import CircleStyle from 'ol/style/Circle';
-import { take } from 'rxjs';
 import { environment } from '../../environments/environment.prod';
+import Papa from 'papaparse';
+
+export interface PlanetStats {
+  lonLabel: string;
+  latLabel: string;
+  gravity: number;
+  [key: string]: any;
+}
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, TitleCasePipe, FormsModule, DragDropModule],
+  imports: [CommonModule, FormsModule, DragDropModule],
   templateUrl: './map.component.html'
 })
-export class MapComponent implements OnInit {
+export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
   @ViewChild('terminalInput') set terminalInputRef(el: ElementRef | undefined) {
@@ -43,58 +35,46 @@ export class MapComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
 
+  public planets: Planet[] = ['earth', 'mars', 'moon'];
   public isModalOpen = false;
   public modalMode: 'manual' | 'console' = 'manual';
-  public terminalLines = signal<string[]>(['']);
-  public terminalInput: string = '';
+  public terminalInput = '';
+  public terminalLines = signal<string[]>([]);
 
-  public newLayer: {
-    name: string;
-    type: 'vector' | 'raster';
-    source: string;
-    color: string;
-    visible: boolean;
-  } = {
-    name: '',
-    type: 'vector',
-    source: '',
-    color: '#ff0000',
-    visible: true
-  };
+  public newLayer = { name: '', type: 'vector' as const, source: '', color: '#ff0000', visible: true };
 
-  // Expose mapService properties to template
   get currentPlanet() { return this.mapService.currentPlanet(); }
-  get layers() { return [...this.mapService.visibleLayers()]; }
+  get layers() { return [...this.mapService.planetStats()[this.currentPlanet]]; }
   get zoomDisplay() { return this.mapService.zoomDisplay(); }
   get currentLon() { return this.mapService.currentLon(); }
   get currentLat() { return this.mapService.currentLat(); }
-  get currentStats() { return this.mapService.planetStates(); }
   get isLoading() { return this.mapService.isLoading(); }
 
-  ngOnInit() {
-    this.pingBackend(0);
+  // Provide stats for template
+  get currentStats(): PlanetStats {
+    switch (this.currentPlanet) {
+      case 'earth': return { lonLabel: 'Longitude', latLabel: 'Latitude', gravity: 9.81 };
+      case 'mars': return { lonLabel: 'Longitude', latLabel: 'Latitude', gravity: 3.721 };
+      case 'moon': return { lonLabel: 'Longitude', latLabel: 'Latitude', gravity: 1.622 };
+      default: return { lonLabel: '', latLabel: '', gravity: 0 };
+    }
   }
 
-  private pingBackend(retries: number) {
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY = 3000; // 3 seconds
+  ngOnInit() { this.pingBackend(0); }
 
-    this.http.get(`${environment.backendUrl}/health`, { responseType: 'text' })
-      .pipe(take(1))
+  private pingBackend(retries: number) {
+    const MAX_RETRIES = 5, RETRY_DELAY = 3000;
+    this.http.get(`${environment.backendUrl}/health`, { responseType: 'text' }).pipe()
       .subscribe({
         next: () => console.log('Backend awake ✅', environment.backendUrl),
         error: () => {
-          if (retries < MAX_RETRIES) {
-            console.warn(`Backend not awake yet. Retrying in ${RETRY_DELAY / 1000}s...`);
-            setTimeout(() => this.pingBackend(retries + 1), RETRY_DELAY);
-          } else {
-            console.error('Backend failed to respond after multiple attempts.');
-          }
+          if (retries < MAX_RETRIES) setTimeout(() => this.pingBackend(retries + 1), RETRY_DELAY);
+          else console.error('Backend failed to respond.');
         }
       });
   }
 
-  ngAfterViewInit(): void {
+  ngAfterViewInit() {
     if (!isPlatformBrowser(this.platformId) || !this.mapContainer?.nativeElement) return;
 
     const scaleContainer = document.createElement('div');
@@ -108,135 +88,55 @@ export class MapComponent implements OnInit {
       this.makeScaleDraggable(scaleContainer);
     });
 
-    this.addFIRMSLayer();
-
-    // Scroll console automatically
     setInterval(() => {
-      if (this.consoleContainer) {
-        const el = this.consoleContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
-      }
+      if (this.consoleContainer) this.consoleContainer.nativeElement.scrollTop = this.consoleContainer.nativeElement.scrollHeight;
     }, 100);
   }
 
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     const map = this.mapService.map();
     if (map) map.setTarget(undefined);
   }
 
-  // Exposed methods
   setPlanet(planet: Planet) { this.mapService.setPlanet(planet); this.cdr.detectChanges(); }
-  
-  toggleLayer(layer: LayerItem) {
-  const map = this.mapService.map();
-  if (!map) return;
 
-  const newState = !layer.visible;
-  const planet = this.mapService.currentPlanet();
+  toggleLayer(layer: LayerItem) { this.mapService.toggleLayer(layer); }
 
-  // 1. Update the OpenLayers instance directly
-  // Search the map for the layer if the direct reference is lost
-  const olLayer = layer.olLayer || map.getLayers().getArray().find(l => l.get('id') === layer.id);
-  
-  if (olLayer) {
-    olLayer.setVisible(newState);
-  }
-
-  // 2. Update the Signal state to reflect the change in the UI
-  this.mapService.planetStates.update(prev => ({
-    ...prev,
-    [planet]: prev[planet].map(l => l.id === layer.id ? { ...l, visible: newState } : l)
-  }));
-}
-
+  // ---------------- Drag & Drop ----------------
   onLayerDropped(event: CdkDragDrop<LayerItem[]>) {
-    const layersCopy = [...this.mapService.planetStates()[this.currentPlanet]];
-    moveItemInArray(layersCopy, event.previousIndex, event.currentIndex);
-    this.mapService.reorderLayers(layersCopy);
+    const planetLayers = [...this.mapService.planetStats()[this.currentPlanet]];
+    moveItemInArray(planetLayers, event.previousIndex, event.currentIndex);
+    this.mapService.reorderLayersFromArray(planetLayers);
     this.cdr.detectChanges();
   }
 
-  onAddLayer() {
-    this.isModalOpen = true;
-    this.modalMode = 'console';
-    this.bootConsole();
-  }
-
-  closeModal() {
-    this.isModalOpen = false;
-    this.cdr.detectChanges();
-  }
+  // ---------------- Modal ----------------
+  onAddLayer() { this.isModalOpen = true; this.modalMode = 'manual'; }
+  closeModal() { this.isModalOpen = false; this.cdr.detectChanges(); }
+  submitLayerModal() { this.createManualLayer(); }
 
   createManualLayer() {
-    if (!this.newLayer.name || !this.newLayer.source) {
-      alert('Please enter a layer name and source.');
-      return;
-    }
-
-    const layer: LayerItem = {
-      id: this.newLayer.name.toLowerCase().replace(/\s+/g, '-'),
-      name: this.newLayer.name,
-      description: `User-added ${this.newLayer.type} layer`,
-      type: this.newLayer.type,
-      visible: this.newLayer.visible,
-      zIndex: 999,
-      source: this.newLayer.source,
-      color: this.newLayer.color
-    };
-
-    this.mapService.addLayer(layer, this.currentPlanet);
-    this.mapService.refreshLayers(this.currentPlanet);
-
-    this.closeModal();
-
+    if (!this.newLayer.name || !this.newLayer.source) { alert('Enter name and source.'); return; }
+    this.mapService.createManualLayer(this.newLayer);
     this.newLayer = { name: '', type: 'vector', source: '', color: '#ff0000', visible: true };
+    this.closeModal();
   }
 
-  private bootConsole() {
-    this.terminalLines.set([]);
-    ['Initializing GIS Console...', 'Connection established to GIS Server...', 'Ready for commands.']
-      .forEach((msg, idx) => {
-        setTimeout(() => {
-          this.terminalLines.update(prev => [...prev, msg]);
-          this.cdr.detectChanges();
-        }, idx * 500);
-      });
-  }
-
-  handleTerminalCommand(event: any) {
-    const inputEl = event.target as HTMLInputElement;
-    const command = inputEl.value.trim().toLowerCase();
+  // ---------------- Terminal ----------------
+  handleTerminalCommand(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    const inputEl = keyboardEvent.target as HTMLInputElement;
+    const command = inputEl.value.trim();
     if (!command) return;
 
-    this.terminalLines.update(prev => [...prev, `> ${command}`, `AI: Analyzing request...`]);
-
-    this.http.get<AIResponse>(`${environment.backendUrl}/ai`)
-      .pipe(take(1))
-      .subscribe({
-        next: (res: AIResponse) => {
-          if (res.lat !== undefined && res.lon !== undefined) {
-            this.terminalLines.update(prev => [...prev, `AI: Located ${res.name}. Moving...`]);
-            this.mapService.flyToLocation(res.lon, res.lat, res.planet);
-            setTimeout(() => this.closeModal(), 2000);
-          } else {
-            this.terminalLines.update(prev => [...prev, `AI: Location not found.`]);
-          }
-        },
-        error: () => {
-          this.terminalLines.update(prev => [...prev, `AI: Error connecting to server.`]);
-        }
-      });
-    //remove input line
+    this.terminalLines.update(prev => [...prev, `> ${command}`]);
     inputEl.value = '';
   }
 
+  // ---------------- Utilities ----------------
   private makeScaleDraggable(el: HTMLElement) {
     let dragging = false, startX = 0, startY = 0;
-
-    el.style.position = 'absolute';
-    el.style.bottom = '10px';
-    el.style.left = '10px';
-    el.style.cursor = 'grab';
+    el.style.position = 'absolute'; el.style.bottom = '10px'; el.style.left = '10px'; el.style.cursor = 'grab';
 
     el.addEventListener('pointerdown', e => {
       dragging = true;
@@ -258,69 +158,4 @@ export class MapComponent implements OnInit {
       el.style.cursor = 'grab';
     });
   }
-  /**
-   * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
-   */
-  private addFIRMSLayer() {
-  const url = `${environment.backendUrl}/firms`;
-
-  this.http.get(url, { responseType: 'text' }).pipe(take(1)).subscribe({
-    next: (csvData: string) => {
-      try {
-        const parsed = Papa.parse(csvData, { header: true });
-        const validRows = (parsed.data as any[])
-          .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
-
-        if (validRows.length === 0) return;
-
-        const features = validRows.map(row => ({
-          type: 'Feature',
-          geometry: { 
-            type: 'Point', 
-            coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)] 
-          },
-          properties: { ...row }
-        }));
-
-        const geojson = { type: 'FeatureCollection', features };
-        
-        // 1. Create the OpenLayers Instance
-        const firesLayerInstance = new VectorLayer({
-          source: new VectorSource({ 
-            features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' }) 
-          }),
-          style: new Style({
-            image: new CircleStyle({ 
-              radius: 8, 
-              fill: new Fill({ color: 'red' }), 
-              stroke: new Stroke({ color: '#fff', width: 1 }) 
-            })
-          }),
-          visible: true
-        });
-
-        // 2. Wrap it in a LayerItem so the Service accepts it
-        const firmsLayerItem: LayerItem = {
-          id: 'firms-nasa-fires',
-          name: 'NASA FIRMS Fires',
-          description: 'Real-time thermal anomalies (24h)',
-          visible: true,
-          type: 'vector',
-          zIndex: 10,
-          olLayer: firesLayerInstance // Pass the actual OL object here
-        };
-
-        // 3. Register it via the service (this handles adding it to the map AND the sidebar)
-        this.mapService.addLayer(firmsLayerItem, 'earth');
-
-      } catch (err) {
-        console.error('FIRMS: Failed to parse CSV', err);
-      }
-    },
-    error: (err) => {
-      console.warn(`FIRMS: Backend not ready. Retrying in 5s...`);
-      setTimeout(() => this.addFIRMSLayer(), 5000);
-    }
-  });
-}
 }
