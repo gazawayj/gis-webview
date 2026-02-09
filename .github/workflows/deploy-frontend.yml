@@ -1,4 +1,4 @@
-name: Deploy Angular to GitHub Pages
+name: Deploy Frontend to GitHub Pages
 
 on:
   push:
@@ -26,24 +26,24 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         working-directory: frontend
 
       - name: Build
-        run: npm run build -- --configuration production --base-href /gis-webview/
+        # Vite production build with GitHub Pages base path
+        run: npm run build -- --base /gis-webview/
         working-directory: frontend
 
       - name: Debug and Map Folder
-        # This force-aligns whatever Angular built to a predictable path
+        # Force-align build output to a predictable folder
         run: |
           echo "Checking directory structure..."
           ls -R frontend/dist/
           mkdir -p frontend/deploy-ready
-          # Copy the actual browser files (wherever they are) to a flat 'deploy-ready' folder
-          cp -r frontend/dist/frontend/browser/* frontend/deploy-ready/ || cp -r frontend/dist/frontend/* frontend/deploy-ready/
+          # Copy the actual build output to 'deploy-ready'
+          cp -r frontend/dist/* frontend/deploy-ready/
 
       - name: Add .nojekyll
-        # Target 'deploy-ready' since that's what you are deploying
         run: touch frontend/deploy-ready/.nojekyll
 
       - name: Deploy
