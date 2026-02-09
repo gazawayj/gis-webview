@@ -6,12 +6,13 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: '*',            // allow all origins
-  methods: ['GET'],       // allow GET only
-  allowedHeaders: ['Content-Type']
+  origin: [
+    'https://gazawayj.github.io',
+    'http://localhost:4200'
+  ]
 }));
 
 // Your NASA FIRMS Map Key
@@ -21,6 +22,11 @@ const FIRMS_MAP_KEY = '8c771d8430508dba8db3afeb34e9ff72';
 const DEFAULT_SOURCE = 'VIIRS_SNPP_NRT';
 const DEFAULT_AREA = 'world';
 const DEFAULT_RANGE = '1';
+
+// Used to wake up free-tier app hosting.
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', ts: Date.now() });
+});
 
 app.get('/firms', async (req, res) => {
   try {

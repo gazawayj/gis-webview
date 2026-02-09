@@ -104,6 +104,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }, 100);
   }
 
+  
+ngOnInit() {
+  this.http.get('https://YOUR_RENDER_URL.onrender.com/health')
+    .subscribe({
+      next: () => console.log('Backend awake'),
+      error: () => console.warn('Backend waking up...')
+    });
+}
+
   ngOnDestroy(): void {
     const map = this.mapService.map();
     if (map) map.setTarget(undefined);
