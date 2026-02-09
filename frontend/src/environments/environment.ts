@@ -1,7 +1,10 @@
-// src/environments/environment.ts
 export const environment = {
   production: false,
-  backendUrl: window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://gis-webview.onrender.com'
+  get backendUrl(): string {
+    // If running in production (built with --configuration=production), use Render URL
+    // Otherwise, default to localhost for dev
+    return this.production 
+      ? 'https://gis-webview.onrender.com' 
+      : 'http://localhost:3000';
+  }
 };
