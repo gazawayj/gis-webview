@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "ng serve",
-    "build": "ng build --configuration production --base-href /gis-webview/",
+    "start": "vite",
+    "build": "vite build",
     "preview": "vite preview",
     "watch": "vite build --watch",
     "test": "vitest run",

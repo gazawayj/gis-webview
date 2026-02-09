@@ -1,14 +1,16 @@
-name: Build and Deploy Front
+name: Build Front
 
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - 'public/tiles/**/*.png'
+      - 'backend/tiles/**/*.png'
 
 jobs:
   build:
@@ -16,34 +18,26 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
+    strategy:
+      matrix:
+        node-version: [22.x]
+
     steps:
+      # Checkout repository code
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # Setup Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: './frontend/package-lock.json'
-      
+
+      # Install dependencies using legacy peer deps to avoid conflicts
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # Build project with Vite (production)
       - name: Build project
         run: npm run build
-
-      - name: List build output
-        run: ls -R dist/
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Verify this path matches your 'dist' folder structure
-          path: 'frontend/dist/frontend' 
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
