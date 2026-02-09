@@ -268,7 +268,6 @@ export class MapComponent implements AfterViewInit, OnInit, OnDestroy {
       el.style.cursor = 'grab';
     });
   }
-
   /**
    * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
    */
