@@ -2,6 +2,7 @@ import {
   Component,
   AfterViewInit,
   OnDestroy,
+  OnInit,
   ViewChild,
   ElementRef,
   ChangeDetectorRef,
@@ -40,7 +41,7 @@ interface AIResponse {
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
-export class MapComponent implements AfterViewInit, OnDestroy {
+export class MapComponent implements AfterViewInit, OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('consoleView') private consoleContainer!: ElementRef;
   @ViewChild('terminalInput') set terminalInputRef(el: ElementRef | undefined) {
@@ -64,12 +65,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     color: string;
     visible: boolean;
   } = {
-      name: '',
-      type: 'vector',
-      source: '',
-      color: '#ff0000',
-      visible: true
-    };
+    name: '',
+    type: 'vector',
+    source: '',
+    color: '#ff0000',
+    visible: true
+  };
 
   // Expose mapService properties to template
   get currentPlanet() { return this.mapService.currentPlanet(); }
@@ -79,6 +80,29 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   get currentLat() { return this.mapService.currentLat(); }
   get currentStats() { return this.mapService.getPlanetStats(); }
   get isLoading() { return this.mapService.isLoading(); }
+
+  ngOnInit() {
+    this.pingBackend(0);
+  }
+
+  private pingBackend(retries: number) {
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 3000; // 3 seconds
+
+    this.http.get(`${environment.backendUrl}/health`, { responseType: 'text' })
+      .pipe(take(1))
+      .subscribe({
+        next: () => console.log('Backend awake ✅', environment.backendUrl),
+        error: () => {
+          if (retries < MAX_RETRIES) {
+            console.warn(`Backend not awake yet. Retrying in ${RETRY_DELAY / 1000}s...`);
+            setTimeout(() => this.pingBackend(retries + 1), RETRY_DELAY);
+          } else {
+            console.error('Backend failed to respond after multiple attempts.');
+          }
+        }
+      });
+  }
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId) || !this.mapContainer?.nativeElement) return;
@@ -104,16 +128,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     }, 100);
   }
-
-  
-ngOnInit() {
-  this.http.get(`${environment.apiBase}/health`, { responseType: 'text' })
-
-    .subscribe({
-      next: () => console.log('Backend awake'),
-      error: () => console.warn('Backend waking up...')
-    });
-}
 
   ngOnDestroy(): void {
     const map = this.mapService.map();
@@ -185,7 +199,7 @@ ngOnInit() {
 
     this.terminalLines.update(prev => [...prev, `> ${command}`, `AI: Analyzing request...`]);
 
-    this.http.get<AIResponse>(`${environment.apiBase}/ai`)
+    this.http.get<AIResponse>(`${environment.backendUrl}/ai`)
       .pipe(take(1))
       .subscribe({
         next: (res: AIResponse) => {
@@ -238,69 +252,44 @@ ngOnInit() {
    * Load NASA FIRMS CSV via backend proxy, convert to GeoJSON, add to map
    */
   private addFIRMSLayer() {
-  this.http.get(`${environment.apiBase}/firms`, { responseType: 'text' })
-    .pipe(take(1))
-    .subscribe({
+    const url = `${environment.backendUrl}/firms`;
+
+    this.http.get(url, { responseType: 'text' }).pipe(take(1)).subscribe({
       next: (csvData: string) => {
-        const parsed = Papa.parse(csvData, { header: true });
+        try {
+          const parsed = Papa.parse(csvData, { header: true });
+          const validRows = (parsed.data as any[])
+            .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
 
-        // Filter valid rows
-        const validRows = (parsed.data as any[])
-          .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
+          console.log(`FIRMS: Loaded ${validRows.length} valid fire points.`);
+          if (validRows.length === 0) return;
 
-        console.log(`FIRMS: Loaded ${validRows.length} valid fire points.`);
+          const features = validRows.map(row => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)] },
+            properties: { brightness: row.brightness, date: row.acq_date, time: row.acq_time, confidence: row.confidence, satellite: row.satellite }
+          }));
 
-        const features = validRows.map(row => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
-          },
-          properties: {
-            brightness: row.brightness,
-            date: row.acq_date,
-            time: row.acq_time,
-            confidence: row.confidence,
-            satellite: row.satellite
-          }
-        }));
+          const geojson = { type: 'FeatureCollection', features };
+          const firesLayer = new VectorLayer({
+            source: new VectorSource({ features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' }) }),
+            style: new Style({
+              image: new CircleStyle({ radius: 8, fill: new Fill({ color: 'red' }), stroke: new Stroke({ color: '#fff', width: 1 }) })
+            }),
+            visible: true
+          });
 
-        const geojson = {
-          type: 'FeatureCollection',
-          features
-        };
+          const map = this.mapService.map();
+          if (map) map.addLayer(firesLayer);
 
-        const firesLayer = new VectorLayer({
-          source: new VectorSource({
-            features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-          }),
-          style: new Style({
-            image: new CircleStyle({
-              radius: 8, // slightly bigger for visibility
-              fill: new Fill({ color: 'red' }),
-              stroke: new Stroke({ color: '#fff', width: 1 })
-            })
-          }),
-          visible: true
-        });
-
-        const map = this.mapService.map();
-        if (map) {
-          map.addLayer(firesLayer);
-
-          // Fly to the first fire for testing
-          if (features.length > 0) {
-            const [lon, lat] = features[0].geometry.coordinates;
-            this.mapService.flyToLocation(lon, lat, this.currentPlanet);
-          }
-        } else {
-          console.warn('FIRMS: Map object not available yet.');
+        } catch (err) {
+          console.error('FIRMS: Failed to parse CSV', err);
         }
       },
       error: (err) => {
-        console.error('Error loading FIRMS CSV:', err);
+        console.warn(`FIRMS: Backend not ready or failed to fetch CSV. Retrying in 5s...`);
+        setTimeout(() => this.addFIRMSLayer(), 5000);
       }
     });
-}
-
+  }
 }
