@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "ng serve",
-   "build": "ng build --base-href /gis-webview/",
+    "build": "ng build --configuration production --base-href /gis-webview/",
     "preview": "vite preview",
     "watch": "vite build --watch",
     "test": "vitest run",
