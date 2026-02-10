@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 import { MapComponent, Layer } from './map.component';
 
 // =====================
-// Mock OL classes
+// Mock OpenLayers Classes
 // =====================
 class MockTileLayer {
   visible = true;
@@ -20,19 +20,6 @@ class MockVectorLayer extends MockTileLayer {
 }
 
 // =====================
-// Mock PlatformLocation
-// =====================
-const mockPlatformLocation = {
-  pathname: '/',
-  search: '',
-  hash: '',
-  replaceState: vi.fn(),
-  pushState: vi.fn(),
-  onPopState: vi.fn(),
-  getBaseHrefFromDOM: vi.fn()
-} as unknown as any;
-
-// =====================
 // Mock HttpClient
 // =====================
 const mockHttp = {
@@ -43,19 +30,22 @@ const mockHttp = {
 // Mock PapaParse
 // =====================
 vi.mock('papaparse', () => ({
-  parse: vi.fn((csv: string, options: any) => ({
+  parse: vi.fn((_csv: string, _options: any) => ({
     data: [
       { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
     ]
   }))
 }));
 
-describe('MapComponent', () => {
+// =====================
+// Tests
+// =====================
+describe('MapComponent (logic-only, Vitest)', () => {
   let component: MapComponent;
 
   beforeEach(() => {
-    // Inject the mocked PlatformLocation instead of Angular DI
-    component = new MapComponent({} as any, mockPlatformLocation, mockHttp);
+    // Construct component with fully mocked dependencies
+    component = new MapComponent({} as any, {} as any, mockHttp);
 
     // Mock mapContainer to bypass DOM
     component.mapContainer = { nativeElement: {} } as any;
