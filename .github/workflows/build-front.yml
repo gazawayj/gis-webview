@@ -1,4 +1,4 @@
-name: Build Frontend (Production)
+name: Build & Deploy Frontend (Production)
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - 'backend/tiles/**/*.png'
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,11 +44,15 @@ jobs:
 
       # 5. Build Angular project in production mode
       - name: Build project (Production)
-        run: npm run build
+        run: ng build --configuration production
 
-      # 6. Upload production build artifacts
+      # 6. Upload production build artifacts (optional, for debugging or reuse)
       - name: Upload production build
         uses: actions/upload-artifact@v4
         with:
           name: angular-production-build
           path: ./dist
+
+      # 7. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
