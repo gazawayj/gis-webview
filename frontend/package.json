@@ -7,8 +7,8 @@
     "build": "ng build --configuration production --base-href /gis-webview/",
     "watch": "ng build --watch --configuration development",
     "preview": "ng serve --host 0.0.0.0 --port 4200",
-    "test": "vitest run --environment jsdom",
-    "test:watch": "vitest --watch --environment jsdom",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "ng lint"
   },
   "packageManager": "npm@11.6.2",
