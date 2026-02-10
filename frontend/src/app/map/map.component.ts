@@ -397,7 +397,7 @@ export class MapComponent implements OnInit {
           // Sync zIndex and visibility according to current panel order
           this.reorderMapLayers();
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Error loading FIRMS CSV:', err);
         }
       });
