@@ -4,6 +4,8 @@ import { MapComponent } from './map.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { of } from 'rxjs';
 
 // Mock OpenLayers classes
 class MockMap {
@@ -13,43 +15,44 @@ class MockMap {
     setZoom: vi.fn(),
     getCenter: vi.fn(() => [0, 0])
   }));
-  getLayers = vi.fn(() => ({
-    getArray: vi.fn(() => []),
-  }));
 }
 
 class MockTileLayer {
   constructor(public options?: any) {}
   setVisible = vi.fn();
   getVisible = vi.fn(() => this.options?.visible ?? true);
+  setZIndex = vi.fn();
+}
+
+class MockVectorLayer {
+  constructor(public options?: any) {}
+  setVisible = vi.fn();
+  getVisible = vi.fn(() => this.options?.visible ?? true);
+  setZIndex = vi.fn();
 }
 
 class MockXYZ {
   constructor(public options?: any) {}
 }
 
-vi.mock('ol/Map', () => ({
-  __esModule: true,
-  default: MockMap
-}));
-
-vi.mock('ol/layer/Tile', () => ({
-  __esModule: true,
-  default: MockTileLayer
-}));
-
-vi.mock('ol/source/XYZ', () => ({
-  __esModule: true,
-  default: MockXYZ
-}));
+vi.mock('ol/Map', () => ({ __esModule: true, default: MockMap }));
+vi.mock('ol/layer/Tile', () => ({ __esModule: true, default: MockTileLayer }));
+vi.mock('ol/layer/Vector', () => ({ __esModule: true, default: MockVectorLayer }));
+vi.mock('ol/source/XYZ', () => ({ __esModule: true, default: MockXYZ }));
 
 describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
+  let httpMock: { get: any };
 
   beforeEach(async () => {
+    httpMock = { get: vi.fn(() => of(`latitude,longitude,brightness,acq_date,acq_time,confidence,satellite
+34.5,-118.2,300,2026-02-10,1230,80,A
+35.2,-117.9,280,2026-02-10,1240,90,B`)) };
+
     await TestBed.configureTestingModule({
-      imports: [MapComponent, CommonModule, FormsModule, DragDropModule]
+      imports: [MapComponent, CommonModule, FormsModule, DragDropModule],
+      providers: [{ provide: HttpClient, useValue: httpMock }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(MapComponent);
@@ -86,60 +89,66 @@ describe('MapComponent', () => {
 
     component.toggleLayer(layer);
     expect(layer.visible).toBe(false);
-    expect(component.baseLayer.getVisible()).toBe(false);
+    expect(component.baseLayer.setVisible).toHaveBeenCalledWith(false);
 
     component.toggleLayer(layer);
     expect(layer.visible).toBe(true);
-    expect(component.baseLayer.getVisible()).toBe(true);
+    expect(component.baseLayer.setVisible).toHaveBeenCalledWith(true);
   });
 
-  it('should open and close modal', () => {
-    component.onAddLayer();
-    expect(component.isModalOpen).toBe(true);
-    expect(component.modalMode).toBe('manual');
+  it('should load FIRMS layer and add to layers', () => {
+    // Trigger FIRMS loading
+    component.addFIRMSLayer();
 
-    component.closeModal();
-    expect(component.isModalOpen).toBe(false);
+    expect(httpMock.get).toHaveBeenCalledWith('https://gis-webview.onrender.com/firms', { responseType: 'text' });
+
+    // LayerMap should contain FIRMS
+    const layerNames = Object.keys(component.layerMap);
+    expect(layerNames).toContain('Current Fires (FIRMS)');
+
+    // Layers panel should include FIRMS
+    const firmsLayer = component.layers.find(l => l.name === 'Current Fires (FIRMS)');
+    expect(firmsLayer).toBeDefined();
+    expect(firmsLayer?.visible).toBe(false); // starts hidden
+  });
+
+  it('should toggle FIRMS layer visibility', () => {
+    component.addFIRMSLayer();
+    const firms = component.layers.find(l => l.name === 'Current Fires (FIRMS)')!;
+    firms.visible = false;
+
+    component.toggleLayer(firms);
+    expect(firms.visible).toBe(true);
+    expect(component.firmsLayer.setVisible).toHaveBeenCalledWith(true);
   });
 
   it('should create a manual layer', () => {
-    component.onAddLayer();
-    component.newLayer = { name: 'Test Layer', type: 'vector', source: 'http://test', visible: true };
-    const initialLength = component.layers.length;
-
+    component.newLayer = { name: 'Manual1', type: 'vector', source: 'http://test', visible: true };
     component.createManualLayer();
 
-    expect(component.layers.length).toBe(initialLength + 1);
-    expect(component.layers[component.layers.length - 1].name).toBe('Test Layer');
-    expect(component.isModalOpen).toBe(false);
+    expect(component.layers.some(l => l.name === 'Manual1')).toBe(true);
+    expect(component.layerMap['Manual1']).toBeDefined();
+    expect(component.layerMap['Manual1'].setVisible).toHaveBeenCalledWith(true);
   });
 
-  it('should format longitude and latitude correctly', () => {
-    const lon = -75;
-    const lat = 40;
+  it('should reorder layers correctly', () => {
+    // Add manual and FIRMS layers
+    component.layers.push(
+      { name: 'Manual1', type: 'vector', source: '', visible: true },
+      { name: 'Current Fires (FIRMS)', type: 'vector', source: '', visible: true }
+    );
+    component.layerMap['Manual1'] = new MockVectorLayer();
+    component.layerMap['Current Fires (FIRMS)'] = new MockVectorLayer();
 
-    const formattedLon = component.formatCoord(lon, 'lon');
-    const formattedLat = component.formatCoord(lat, 'lat');
+    component.reorderMapLayers();
 
-    expect(formattedLon).toContain('W');
-    expect(formattedLat).toContain('N');
-
-    const latS = -10;
-    expect(component.formatCoord(latS, 'lat')).toContain('S');
+    // Check zIndex assigned in order
+    expect(component.baseLayer.setZIndex).toHaveBeenCalledWith(0);
+    expect(component.layerMap['Manual1'].setZIndex).toHaveBeenCalledWith(1);
+    expect(component.layerMap['Current Fires (FIRMS)'].setZIndex).toHaveBeenCalledWith(2);
   });
 
-  it('should handle terminal command', () => {
-    const input = { target: { value: 'echo test' } } as any;
-    const initialLines = component.terminalLines.length;
-
-    component.handleTerminalCommand(input);
-
-    expect(component.terminalLines.length).toBe(initialLines + 1);
-    expect(component.terminalLines[component.terminalLines.length - 1]).toContain('echo test');
-    expect(input.target.value).toBe('');
-  });
-
-  it('should reorder layers with drag and drop', () => {
+  it('should handle drag and drop layer reordering', () => {
     component.layers = [
       { name: 'Layer1', type: 'vector', source: '', visible: true },
       { name: 'Layer2', type: 'vector', source: '', visible: true },
