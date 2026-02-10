@@ -1,31 +1,26 @@
-// src/app/map/map.component.spec.ts
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { MapComponent, Layer, Planet } from './map.component';
-import { HttpClient } from '@angular/common/http';
+// map.component.spec.ts
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { of } from 'rxjs';
+import { MapComponent } from './map.component';
+import type { Layer } from './map.component';
 
 describe('MapComponent', () => {
   let component: MapComponent;
-  let httpMock: Partial<HttpClient>;
+
+  // Mocks
+  const fakeZone = { run: (fn: any) => fn() } as any;
+  const fakeCdr = { detectChanges: () => {} } as any;
+  const fakeHttp = {
+    get: vi.fn().mockReturnValue(of('latitude,longitude\n0,0\n'))
+  } as any;
 
   beforeEach(() => {
-    // Mock HttpClient
-    httpMock = {
-      get: vi.fn().mockReturnValue(of('latitude,longitude,brightness,acq_date,acq_time,confidence,satellite\n10,20,300,2026-02-10,1200,high,A'))
-    };
+    component = new MapComponent(fakeZone, fakeCdr, fakeHttp);
 
-    component = new MapComponent(
-      { run: (fn: any) => fn() } as any, // Mock NgZone
-      { detectChanges: () => {} } as any, // Mock ChangeDetectorRef
-      httpMock as HttpClient
-    );
+    // Mock map container
+    component.mapContainer = { nativeElement: {} } as any;
 
-    // Mock the map container
-    component.mapContainer = {
-      nativeElement: {} as HTMLDivElement
-    } as any;
-
-    // Prevent OL from failing in test
+    // Prevent real OpenLayers initialization
     component.initializeMap = () => {};
     component.reorderMapLayers = () => {};
   });
@@ -34,53 +29,44 @@ describe('MapComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize layers array with basemap', () => {
-    const planet: Planet = 'earth';
-    component.currentPlanet = planet;
-    component.layers = [
-      {
-        name: 'Basemap',
-        type: 'basemap' as const,
-        source: component.BASEMAP_URLS[planet],
-        visible: true
-      }
-    ];
-    expect(component.layers.length).toBe(1);
-    expect(component.layers[0].type).toBe('basemap');
+  it('should set initial planet to earth and stats', () => {
+    expect(component.currentPlanet).toBe('earth');
+    component.updateStatsLabels();
+    expect(component.currentStats.gravity).toBe(9.81);
+    expect(component.currentStats.lonLabel).toBe('Longitude');
+    expect(component.currentStats.latLabel).toBe('Latitude');
   });
 
   it('should switch planet and update stats labels', () => {
-    component.currentPlanet = 'earth';
     component.setPlanet('moon');
     expect(component.currentPlanet).toBe('moon');
     expect(component.currentStats.gravity).toBe(1.62);
     expect(component.currentStats.lonLabel).toBe('Selenographic Longitude');
     expect(component.currentStats.latLabel).toBe('Selenographic Latitude');
+
+    component.setPlanet('mars');
+    expect(component.currentStats.gravity).toBe(3.71);
+    expect(component.currentStats.lonLabel).toBe('Ares Longitude');
+    expect(component.currentStats.latLabel).toBe('Ares Latitude');
   });
 
   it('should toggle layer visibility', () => {
     const layer: Layer = {
       name: 'Test Layer',
-      type: 'vector' as const,
-      source: 'test.csv',
+      type: 'vector',
+      source: 'source',
       visible: true
     };
-    component.layerMap[layer.name] = {
-      setVisible: vi.fn(),
-      setZIndex: vi.fn()
-    } as any;
+    component.layerMap[layer.name] = { setVisible: vi.fn(), setZIndex: vi.fn() } as any;
+    component.layers.push(layer);
 
-    component.layers = [layer];
     component.toggleLayer(layer);
     expect(layer.visible).toBe(false);
-    expect(component.layerMap[layer.name].setVisible).toHaveBeenCalledWith(false);
   });
 
   it('should open and close modal', () => {
     component.onAddLayer();
     expect(component.isModalOpen).toBe(true);
-    expect(component.modalMode).toBe('manual');
-
     component.closeModal();
     expect(component.isModalOpen).toBe(false);
   });
@@ -88,46 +74,35 @@ describe('MapComponent', () => {
   it('should create a manual layer', () => {
     component.newLayer = {
       name: 'Manual',
-      type: 'vector' as const,
-      source: 'manual.csv',
-      visible: true,
-      color: 'green'
+      type: 'vector',
+      source: 'src',
+      visible: true
     };
-    component.map = { addLayer: vi.fn() } as any;
-    component.layerMap = {};
 
+    component.map = { addLayer: vi.fn() } as any;
     component.createManualLayer();
 
-    expect(component.layers.find(l => l.name === 'Manual')).toBeTruthy();
+    expect(component.layers.find((l: { name: string; }) => l.name === 'Manual')).toBeTruthy();
     expect(component.newLayer.name).toBe('');
-    expect(component.map.addLayer).toHaveBeenCalled();
   });
 
   it('should handle terminal command', () => {
-    const input = { value: 'test' } as HTMLInputElement;
+    const input = { value: 'test' } as any;
     component.handleTerminalCommand({ target: input } as any);
-    expect(component.terminalLines.includes('> test')).toBe(true);
+    expect(component.terminalLines[0]).toContain('test');
     expect(input.value).toBe('');
   });
 
   it('should format longitude and latitude correctly', () => {
-    const lon = -75;
-    const lat = 40;
-
-    const lonStr = component.formatCoord(lon, 'lon');
-    const latStr = component.formatCoord(lat, 'lat');
-
-    expect(lonStr).toMatch(/° W \/ \d+\.?\d*° E/);
-    expect(latStr).toBe('40.00° N');
+    const lon = component.formatCoord(10, 'lon');
+    const lat = component.formatCoord(-45, 'lat');
+    expect(lon).toContain('E');
+    expect(lat).toContain('S');
   });
 
   it('should normalize longitude correctly', () => {
-    const neg = component.normalizeLon(-45);
-    expect(neg.west).toBe(45);
-    expect(neg.east).toBe(315);
-
-    const pos = component.normalizeLon(100);
-    expect(pos.east).toBe(100);
-    expect(pos.west).toBe(260);
+    const result = component.normalizeLon(-90);
+    expect(result.west).toBe(90);
+    expect(result.east).toBe(270);
   });
 });

@@ -187,7 +187,7 @@ export class MapComponent implements OnInit {
     });
   }
 
-  private updateStatsLabels(): void {
+  updateStatsLabels(): void {
     switch (this.currentPlanet) {
       case 'earth':
         this.currentStats.lonLabel = 'Longitude';
