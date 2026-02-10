@@ -30,9 +30,9 @@ import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import Papa from 'papaparse';
 
-type Planet = 'earth' | 'moon' | 'mars';
+export type Planet = 'earth' | 'moon' | 'mars';
 
-interface Layer {
+export interface Layer {
   name: string;
   type: 'vector' | 'raster' | 'basemap';
   source: string;
@@ -295,7 +295,7 @@ export class MapComponent implements OnInit {
     this.reorderMapLayers();
   }
 
-  private reorderMapLayers(): void {
+  reorderMapLayers(): void {
     if (!this.map) return;
 
     // Iterate through layers array in panel order (top = last, bottom = first)
