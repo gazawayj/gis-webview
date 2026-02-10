@@ -1,3 +1,4 @@
+// map.component.ts
 import {
   Component,
   ElementRef,
@@ -50,14 +51,7 @@ export class MapComponent implements OnInit {
 
   map!: Map;
 
-  /**
-   * OpenLayers basemap layer
-   */
   baseLayer!: TileLayer<XYZ>;
-
-  /**
-   * Layer pane model (includes basemap as first entry)
-   */
   layers: Layer[] = [];
 
   isLoading = true;
@@ -109,9 +103,6 @@ export class MapComponent implements OnInit {
       })
     });
 
-    /**
-     * Basemap appears as the FIRST layer in the layer pane
-     */
     this.layers = [
       {
         name: 'Basemap',
@@ -148,12 +139,12 @@ export class MapComponent implements OnInit {
         if (!center) return;
 
         const zoom = view.getZoom() ?? 2;
-
         let lonLat: [number, number];
 
         if (this.currentPlanet === 'earth') {
           lonLat = olToLonLat(center) as [number, number];
         } else {
+          // Approximation for Mars & Moon
           const OL_WORLD_HALF = 20037508.342789244;
           lonLat = [
             (center[0] / OL_WORLD_HALF) * 180,
@@ -161,16 +152,7 @@ export class MapComponent implements OnInit {
           ];
         }
 
-        if (this.currentPlanet === 'earth') {
-          this.currentStats.lonLabel = 'Longitude';
-          this.currentStats.latLabel = 'Latitude';
-        } else if (this.currentPlanet === 'moon') {
-          this.currentStats.lonLabel = 'Selenographic Longitude';
-          this.currentStats.latLabel = 'Selenographic Latitude';
-        } else {
-          this.currentStats.lonLabel = 'Ares Longitude';
-          this.currentStats.latLabel = 'Ares Latitude';
-        }
+        this.updateStatsLabels();
 
         this.currentLon = parseFloat(lonLat[0].toFixed(6));
         this.currentLat = parseFloat(lonLat[1].toFixed(6));
@@ -184,23 +166,45 @@ export class MapComponent implements OnInit {
     view.on('change:center', () => updateAll());
     view.on('change:resolution', () => updateAll());
     this.map.on('pointermove', (evt: MapBrowserEvent<any>) => {
-      if (evt.coordinate) {
-        updateAll(evt.coordinate as [number, number]);
-      }
+      if (evt.coordinate) updateAll(evt.coordinate as [number, number]);
     });
+  }
+
+  private updateStatsLabels(): void {
+    switch (this.currentPlanet) {
+      case 'earth':
+        this.currentStats.lonLabel = 'Longitude';
+        this.currentStats.latLabel = 'Latitude';
+        this.currentStats.gravity = 9.81;
+        break;
+      case 'moon':
+        this.currentStats.lonLabel = 'Selenographic Longitude';
+        this.currentStats.latLabel = 'Selenographic Latitude';
+        this.currentStats.gravity = 1.62;
+        break;
+      case 'mars':
+        this.currentStats.lonLabel = 'Ares Longitude';
+        this.currentStats.latLabel = 'Ares Latitude';
+        this.currentStats.gravity = 3.71;
+        break;
+    }
+  }
+
+  private normalizeLon(value: number): { west: number; east: number } {
+    const abs = Math.abs(value);
+    return {
+      west: value < 0 ? abs : 360 - value,
+      east: value >= 0 ? value : 360 - abs
+    };
   }
 
   setPlanet(planet: Planet): void {
     if (planet === this.currentPlanet) return;
 
     this.currentPlanet = planet;
-
-    if (planet === 'earth') this.currentStats.gravity = 9.81;
-    if (planet === 'moon') this.currentStats.gravity = 1.62;
-    if (planet === 'mars') this.currentStats.gravity = 3.71;
+    this.updateStatsLabels();
 
     const url = this.BASEMAP_URLS[planet];
-
     this.baseLayer.setSource(new XYZ({ url }));
     this.layers[0].source = url;
 
@@ -235,8 +239,7 @@ export class MapComponent implements OnInit {
   }
 
   handleTerminalCommand(evt: Event): void {
-    const keyboardEvent = evt as KeyboardEvent;
-    const inputEl = keyboardEvent.target as HTMLInputElement;
+    const inputEl = evt.target as HTMLInputElement;
     const command = inputEl.value.trim();
     if (!command) return;
 
@@ -253,18 +256,14 @@ export class MapComponent implements OnInit {
     return this.terminalLines;
   }
 
-  formatCoord(value: number, type: 'lon' | 'lat'): string {const abs = Math.abs(value);
-
-  if (type === 'lon') {
-    // Negative → W, Positive → E
-    const west = value < 0 ? abs : 360 - value;
-    const east = value >= 0 ? value : 360 - abs;
-
-    return `${west.toFixed(2)}° W / ${east.toFixed(2)}° E`;
-  } else {
-    // Latitude: Positive → N, Negative → S
-    const dir = value >= 0 ? 'N' : 'S';
-    return `${abs.toFixed(2)}° ${dir}`;
+  formatCoord(value: number, type: 'lon' | 'lat'): string {
+    if (type === 'lon') {
+      const { west, east } = this.normalizeLon(value);
+      return `${west.toFixed(2)}° W / ${east.toFixed(2)}° E`;
+    } else {
+      const abs = Math.abs(value);
+      const dir = value >= 0 ? 'N' : 'S';
+      return `${abs.toFixed(2)}° ${dir}`;
+    }
   }
-}
 }
