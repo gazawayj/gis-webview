@@ -20,6 +20,19 @@ class MockVectorLayer extends MockTileLayer {
 }
 
 // =====================
+// Mock PlatformLocation
+// =====================
+const mockPlatformLocation = {
+  pathname: '/',
+  search: '',
+  hash: '',
+  replaceState: vi.fn(),
+  pushState: vi.fn(),
+  onPopState: vi.fn(),
+  getBaseHrefFromDOM: vi.fn()
+} as unknown as any;
+
+// =====================
 // Mock HttpClient
 // =====================
 const mockHttp = {
@@ -41,8 +54,8 @@ describe('MapComponent', () => {
   let component: MapComponent;
 
   beforeEach(() => {
-    // Construct component with correct 3 args only
-    component = new MapComponent({} as any, {} as any, mockHttp);
+    // Inject the mocked PlatformLocation instead of Angular DI
+    component = new MapComponent({} as any, mockPlatformLocation, mockHttp);
 
     // Mock mapContainer to bypass DOM
     component.mapContainer = { nativeElement: {} } as any;
