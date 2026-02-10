@@ -17,18 +17,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-          # This ensures the cache is tied to frontend dependencies
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
-        run: cd frontend && npm install @angular/platform-server --legacy-peer-deps
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
 
-      - name: Run Unit Tests
-        run: cd frontend && npm test -- --run
+      - name: Run frontend unit tests
+        run: |
+          cd frontend
+          npm test

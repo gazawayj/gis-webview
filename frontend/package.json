@@ -45,7 +45,7 @@
     "supertest": "^7.2.2",
     "typescript": "~5.9.2",
     "typescript-eslint": "8.50.1",
-    "vitest": "^0.40.0"
+    "vitest": "^0.39.7"
   },
   "prettier": {
     "printWidth": 100,
