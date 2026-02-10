@@ -93,7 +93,7 @@ export class MapComponent implements OnInit {
 
   terminalLines: string[] = [];
 
-  private readonly BASEMAP_URLS: Record<Planet, string> = {
+  readonly BASEMAP_URLS: Record<Planet, string> = {
     earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     moon: 'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png',
     mars: 'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png'
@@ -115,7 +115,7 @@ export class MapComponent implements OnInit {
     }
   }
 
-  private initializeMap(): void {
+  initializeMap(): void {
     this.baseLayer = new TileLayer({
       visible: true,
       source: new XYZ({ url: this.BASEMAP_URLS[this.currentPlanet] })
@@ -207,7 +207,7 @@ export class MapComponent implements OnInit {
     }
   }
 
-  private normalizeLon(value: number): { west: number; east: number } {
+  normalizeLon(value: number): { west: number; east: number } {
     const abs = Math.abs(value);
     return {
       west: value < 0 ? abs : 360 - value,
