@@ -13,33 +13,29 @@
         No layers available for this planet.
       </div>
 
+      <!-- Layers list container (reversed) -->
+      <div class="layers-list">
+        <label *ngFor="let layer of layers; let i = index" class="overlay-item" cdkDrag>
+          <span class="drag-handle">⠿</span>
+          <span class="layer-number">{{ i + 1 }}</span>
+
+          <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)" />
+
+          <div class="layer-info">
+            <strong>{{ layer.name }}</strong>
+            <span class="hint">{{ layer.description }}</span>
+          </div>
+
+          <div class="drag-placeholder" *cdkDragPlaceholder></div>
+        </label>
+      </div>
+
+      <!-- Keep Add Layer button at bottom -->
       <div class="layer-actions">
         <button class="add-layer-btn" (click)="onAddLayer()">
           <span class="plus-icon">+</span> Add Layer
         </button>
       </div>
-
-      <label
-        *ngFor="let layer of layers; let i = index"
-        class="overlay-item"
-        cdkDrag
-      >
-        <span class="drag-handle">⠿</span>
-        <span class="layer-number">{{ i + 1 }}</span>
-
-        <input
-          type="checkbox"
-          [checked]="layer.visible"
-          (change)="toggleLayer(layer)"
-        />
-
-        <div class="layer-info">
-          <strong>{{ layer.name }}</strong>
-          <span class="hint">{{ layer.description }}</span>
-        </div>
-
-        <div class="drag-placeholder" *cdkDragPlaceholder></div>
-      </label>
     </div>
 
     <div class="stats-panel">
@@ -135,11 +131,7 @@
           <div *ngFor="let line of terminalLines">{{ line }}</div>
           <div class="terminal-input-row">
             <span class="terminal-prompt">></span>
-            <input
-              type="text"
-              class="manual-input"
-              (keydown.enter)="handleTerminalCommand($event)"
-            >
+            <input type="text" class="manual-input" (keydown.enter)="handleTerminalCommand($event)">
           </div>
         </div>
       </div>

@@ -11,6 +11,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { take } from 'rxjs';
 
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -19,6 +21,14 @@ import XYZ from 'ol/source/XYZ';
 import { toLonLat as olToLonLat } from 'ol/proj';
 import { defaults as defaultControls } from 'ol/control';
 import { MapBrowserEvent } from 'ol';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import GeoJSON from 'ol/format/GeoJSON';
+import Style from 'ol/style/Style';
+import CircleStyle from 'ol/style/Circle';
+import Fill from 'ol/style/Fill';
+import Stroke from 'ol/style/Stroke';
+import Papa from 'papaparse';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
@@ -40,7 +50,7 @@ interface PlanetStats {
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [CommonModule, FormsModule, DragDropModule, HttpClientModule],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
@@ -50,8 +60,12 @@ export class MapComponent implements OnInit {
   mapContainer!: ElementRef<HTMLDivElement>;
 
   map!: Map;
-
   baseLayer!: TileLayer<XYZ>;
+  firmsLayer!: VectorLayer<VectorSource>;
+
+  // track OL layers for FIRMS and manual layers
+  layerMap: Record<string, VectorLayer<VectorSource>> = {};
+
   layers: Layer[] = [];
 
   isLoading = true;
@@ -87,20 +101,24 @@ export class MapComponent implements OnInit {
 
   constructor(
     private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
+  ) { }
 
   ngOnInit(): void {
     this.initializeMap();
     this.isLoading = false;
+
+    // Add FIRMS fires layer to Earth by default
+    if (this.currentPlanet === 'earth') {
+      this.addFIRMSLayer();
+    }
   }
 
   private initializeMap(): void {
     this.baseLayer = new TileLayer({
       visible: true,
-      source: new XYZ({
-        url: this.BASEMAP_URLS[this.currentPlanet]
-      })
+      source: new XYZ({ url: this.BASEMAP_URLS[this.currentPlanet] })
     });
 
     this.layers = [
@@ -126,9 +144,9 @@ export class MapComponent implements OnInit {
       controls: defaultControls()
     });
 
+    // Update coordinates panel
     let lastUpdate = 0;
     const throttleMs = 50;
-
     const updateAll = (coord?: [number, number]) => {
       const now = performance.now();
       if (now - lastUpdate < throttleMs) return;
@@ -144,7 +162,6 @@ export class MapComponent implements OnInit {
         if (this.currentPlanet === 'earth') {
           lonLat = olToLonLat(center) as [number, number];
         } else {
-          // Approximation for Mars & Moon
           const OL_WORLD_HALF = 20037508.342789244;
           lonLat = [
             (center[0] / OL_WORLD_HALF) * 180,
@@ -211,14 +228,20 @@ export class MapComponent implements OnInit {
     const view = this.map.getView();
     view.setCenter([0, 0]);
     view.setZoom(2);
+
+    // Add FIRMS if switching back to Earth
+    if (planet === 'earth' && !this.firmsLayer) {
+      this.addFIRMSLayer();
+    }
   }
 
   toggleLayer(layer: Layer): void {
     layer.visible = !layer.visible;
 
-    if (layer.type === 'basemap') {
-      this.baseLayer.setVisible(layer.visible);
-    }
+    const olLayer = this.layerMap[layer.name];
+    if (olLayer) olLayer.setVisible(layer.visible);
+
+    this.reorderMapLayers();
   }
 
   onAddLayer(): void {
@@ -228,9 +251,27 @@ export class MapComponent implements OnInit {
 
   createManualLayer(): void {
     if (this.newLayer.name && this.newLayer.source) {
+      // Create dummy OL vector layer
+      const olLayer = new VectorLayer({
+        source: new VectorSource(),
+        visible: this.newLayer.visible,
+        style: new Style({
+          image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({ color: this.newLayer.color ?? 'blue' }),
+            stroke: new Stroke({ color: '#fff', width: 1 })
+          })
+        })
+      });
+
+      this.layerMap[this.newLayer.name] = olLayer;
+      this.map.addLayer(olLayer);
+
       this.layers.push({ ...this.newLayer });
       this.newLayer = { name: '', type: 'vector', source: '', visible: true };
       this.closeModal();
+
+      this.reorderMapLayers();
     }
   }
 
@@ -250,6 +291,33 @@ export class MapComponent implements OnInit {
   onLayerDropped(event: any): void {
     const moved = this.layers.splice(event.previousIndex, 1)[0];
     this.layers.splice(event.currentIndex, 0, moved);
+
+    this.reorderMapLayers();
+  }
+
+  private reorderMapLayers(): void {
+    if (!this.map) return;
+
+    // Iterate through layers array in panel order (top = last, bottom = first)
+    this.layers.forEach((layer, index) => {
+      let olLayer: TileLayer<XYZ> | VectorLayer<VectorSource> | undefined;
+
+      if (layer.type === 'basemap') {
+        olLayer = this.baseLayer;
+      } else if (layer.name === 'Current Fires (FIRMS)') {
+        olLayer = this.firmsLayer;
+      }
+      // TODO: add other manual vector layers here if implemented
+
+      if (olLayer) {
+        // Apply visibility
+        olLayer.setVisible(layer.visible);
+
+        // Assign zIndex = index in layers array
+        // Lower index → lower zIndex → rendered below higher ones
+        olLayer.setZIndex(index);
+      }
+    });
   }
 
   terminalLinesList(): string[] {
@@ -265,5 +333,73 @@ export class MapComponent implements OnInit {
       const dir = value >= 0 ? 'N' : 'S';
       return `${abs.toFixed(2)}° ${dir}`;
     }
+  }
+
+  // ========================= FIRMS LAYER =========================
+  private addFIRMSLayer() {
+    this.http.get('https://gis-webview.onrender.com/firms', { responseType: 'text' })
+      .pipe(take(1))
+      .subscribe({
+        next: (csvData: string) => {
+          const parsed = Papa.parse(csvData, { header: true });
+
+          const validRows = (parsed.data as any[])
+            .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
+
+          console.log(`FIRMS: Loaded ${validRows.length} valid fire points.`);
+
+          const features = validRows.map(row => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
+            },
+            properties: {
+              brightness: row.brightness,
+              date: row.acq_date,
+              time: row.acq_time,
+              confidence: row.confidence,
+              satellite: row.satellite
+            }
+          }));
+
+          const geojson = {
+            type: 'FeatureCollection',
+            features
+          };
+
+          this.firmsLayer = new VectorLayer({
+            source: new VectorSource({
+              features: new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
+            }),
+            style: new Style({
+              image: new CircleStyle({
+                radius: 8,
+                fill: new Fill({ color: 'red' }),
+                stroke: new Stroke({ color: '#fff', width: 1 })
+              })
+            }),
+            visible: false // start hidden
+          });
+
+          // Add FIRMS to the map
+          this.map.addLayer(this.firmsLayer);
+
+          // Add FIRMS to layers panel for toggle + reordering
+          this.layers.push({
+            name: 'Current Fires (FIRMS)',
+            type: 'vector',
+            source: 'https://gis-webview.onrender.com/firms',
+            visible: false, // match layer visibility
+            description: 'Active fires from FIRMS'
+          });
+
+          // Sync zIndex and visibility according to current panel order
+          this.reorderMapLayers();
+        },
+        error: (err) => {
+          console.error('Error loading FIRMS CSV:', err);
+        }
+      });
   }
 }
