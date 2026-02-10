@@ -1,15 +1,19 @@
 // map.component.spec.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MapComponent, Planet, Layer } from './map.component';
+import { TestBed, ComponentFixture, waitForAsync } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { MapComponent, Layer, Planet } from './map.component';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
+import Papa from 'papaparse';
 
 // =====================
-// Mock OL classes
+// Mock OpenLayers classes
 // =====================
 class MockTileLayer {
   visible = true;
   zIndex = 0;
-  setSource() {}
+  setSource(_: any) {}
   setVisible(v: boolean) { this.visible = v; }
   setZIndex(z: number) { this.zIndex = z; }
 }
@@ -24,36 +28,41 @@ class MockVectorLayer extends MockTileLayer {
 // =====================
 const mockHttp = {
   get: vi.fn()
-} as unknown as any;
+} as any;
 
 // =====================
 // Mock PapaParse
 // =====================
 vi.mock('papaparse', () => ({
-  parse: vi.fn((csv: string, options: any) => {
-    // Return one dummy row regardless of input CSV
-    return {
-      data: [
-        { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
-      ]
-    };
-  })
+  parse: vi.fn((csv: string, options: any) => ({
+    data: [
+      {
+        latitude: '10',
+        longitude: '20',
+        brightness: '300',
+        acq_date: '2026-02-10',
+        acq_time: '1200',
+        confidence: 'high',
+        satellite: 'T1'
+      }
+    ]
+  }))
 }));
 
-describe('MapComponent', () => {
+describe('MapComponent (Option 2)', () => {
   let component: MapComponent;
 
   beforeEach(() => {
     component = new MapComponent({} as any, {} as any, mockHttp);
 
-    // Mock mapContainer to bypass DOM
+    // Mock map container to avoid DOM dependency
     component.mapContainer = { nativeElement: {} } as any;
 
     // Prevent real map initialization
     component.initializeMap = vi.fn();
     component.reorderMapLayers = vi.fn();
 
-    // Mock OL layers
+    // Mock layers
     component.baseLayer = new MockTileLayer() as any;
     component.layerMap = {};
   });
@@ -105,7 +114,9 @@ describe('MapComponent', () => {
     component.map = { addLayer: vi.fn() } as any;
 
     component.createManualLayer();
-    expect(component.layers.find(l => l.name === 'MyLayer')).toBeDefined();
+
+    const layer = component.layers.find(l => l.name === 'MyLayer');
+    expect(layer).toBeDefined();
     expect(component.newLayer.name).toBe('');
     expect(component.isModalOpen).toBe(false);
   });
