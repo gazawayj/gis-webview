@@ -1,26 +1,15 @@
 // map.component.spec.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MapComponent, Planet, Layer } from './map.component';
 import { of } from 'rxjs';
+import { MapComponent, Layer } from './map.component';
 
 // =====================
-// ResizeObserver polyfill for Node
-// =====================
-if (!(globalThis as any).ResizeObserver) {
-  (globalThis as any).ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-}
-
-// =====================
-// Mock OpenLayers classes
+// Mock OL classes
 // =====================
 class MockTileLayer {
   visible = true;
   zIndex = 0;
-  setSource(_: any) {}
+  setSource() {}
   setVisible(v: boolean) { this.visible = v; }
   setZIndex(z: number) { this.zIndex = z; }
 }
@@ -35,7 +24,7 @@ class MockVectorLayer extends MockTileLayer {
 // =====================
 const mockHttp = {
   get: vi.fn()
-} as any;
+} as unknown as any;
 
 // =====================
 // Mock PapaParse
@@ -43,29 +32,19 @@ const mockHttp = {
 vi.mock('papaparse', () => ({
   parse: vi.fn((csv: string, options: any) => ({
     data: [
-      {
-        latitude: '10',
-        longitude: '20',
-        brightness: '300',
-        acq_date: '2026-02-10',
-        acq_time: '1200',
-        confidence: 'high',
-        satellite: 'T1'
-      }
+      { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
     ]
   }))
 }));
 
-// =====================
-// Tests
-// =====================
-describe('MapComponent (headless, option 2)', () => {
+describe('MapComponent', () => {
   let component: MapComponent;
 
   beforeEach(() => {
+    // Construct component with correct 3 args only
     component = new MapComponent({} as any, {} as any, mockHttp);
 
-    // Mock map container to bypass DOM
+    // Mock mapContainer to bypass DOM
     component.mapContainer = { nativeElement: {} } as any;
 
     // Prevent real map initialization
@@ -124,9 +103,7 @@ describe('MapComponent (headless, option 2)', () => {
     component.map = { addLayer: vi.fn() } as any;
 
     component.createManualLayer();
-
-    const layer = component.layers.find(l => l.name === 'MyLayer');
-    expect(layer).toBeDefined();
+    expect(component.layers.find(l => l.name === 'MyLayer')).toBeDefined();
     expect(component.newLayer.name).toBe('');
     expect(component.isModalOpen).toBe(false);
   });
