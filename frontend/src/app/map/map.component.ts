@@ -22,7 +22,7 @@ import { toLonLat as olToLonLat } from 'ol/proj';
 import { defaults as defaultControls } from 'ol/control';
 import { MapBrowserEvent } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
+import VectorSource from 'ol/source/Vector.js';
 import GeoJSON from 'ol/format/GeoJSON';
 import Style from 'ol/style/Style';
 import CircleStyle from 'ol/style/Circle';

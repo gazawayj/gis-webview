@@ -1,5 +1,61 @@
 {
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "ng serve --host 0.0.0.0 --port 4200",
+    "build": "ng build --configuration production --base-href /gis-webview/",
+    "watch": "ng build --watch --configuration development",
+    "preview": "ng serve --host 0.0.0.0 --port 4200",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "ng lint"
+  },
+  "packageManager": "npm@11.6.2",
   "dependencies": {
-    "dotenv": "^17.2.4"
+    "@analogjs/vite-plugin-angular": "^2.2.3",
+    "@angular/animations": "^21.1.3",
+    "@angular/cdk": "^21.1.3",
+    "@angular/common": "^21.1.3",
+    "@angular/core": "^21.1.3",
+    "@angular/forms": "^21.1.3",
+    "@angular/platform-browser": "^21.1.3",
+    "@angular/platform-browser-dynamic": "^21.1.3",
+    "@angular/router": "^21.1.3",
+    "express": "^5.1.0",
+    "ol": "^10.7.0",
+    "papaparse": "^5.5.3",
+    "proj4": "^2.20.2",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^21.1.3",
+    "@angular/cli": "^21.1.3",
+    "@angular/compiler-cli": "^21.1.3",
+    "@angular/ssr": "^21.1.3",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20.17.19",
+    "@types/papaparse": "^5.5.2",
+    "@types/supertest": "^6.0.3",
+    "angular-eslint": "21.2.0",
+    "eslint": "^9.39.2",
+    "jsdom": "^27.1.0",
+    "supertest": "^7.2.2",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "8.50.1"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
   }
 }
