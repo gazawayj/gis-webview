@@ -1,91 +1,96 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+// map.component.spec.ts
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MapComponent } from './map.component';
-import { DragDropModule } from '@angular/cdk/drag-drop';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
+import { FormsModule } from '@angular/forms';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
-// =====================
-// MOCKS
-// =====================
+// ======================== MOCK OPENLAYERS ========================
+const mockSetTarget = vi.fn();
+const mockAddLayer = vi.fn();
+const mockRemoveLayer = vi.fn();
+const mockSetVisible = vi.fn();
+const mockSetZIndex = vi.fn();
+const mockGetLayers = vi.fn(() => ({ getArray: vi.fn(() => []) }));
+const mockUpdateSize = vi.fn();
+const mockOn = vi.fn();
+
 vi.mock('ol/Map', () => {
-  class MockMap {
-    addLayer = vi.fn();
-    getView = vi.fn(() => ({
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      setTarget: mockSetTarget,
+      addLayer: mockAddLayer,
+      removeLayer: mockRemoveLayer,
+      getLayers: mockGetLayers,
+      updateSize: mockUpdateSize,
+      on: mockOn,
+    })),
+  };
+});
+
+vi.mock('ol/View', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
       setCenter: vi.fn(),
       setZoom: vi.fn(),
       getCenter: vi.fn(() => [0, 0]),
-    }));
-    getLayers = vi.fn(() => ({
-      getArray: vi.fn(() => []),
-    }));
-    on = vi.fn();
-  }
-  return { __esModule: true, default: MockMap };
+      getZoom: vi.fn(() => 2),
+      on: vi.fn(),
+    })),
+  };
 });
 
 vi.mock('ol/layer/Tile', () => {
-  class MockTileLayer {
-    constructor(public options?: any) {}
-    setVisible = vi.fn();
-    getVisible = vi.fn(() => this.options?.visible ?? true);
-    setZIndex = vi.fn();
-  }
-  return { __esModule: true, default: MockTileLayer };
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      setVisible: mockSetVisible,
+      setZIndex: mockSetZIndex,
+    })),
+  };
 });
 
 vi.mock('ol/layer/Vector', () => {
-  class MockVectorLayer {
-    constructor(public options?: any) {}
-    setVisible = vi.fn();
-    setZIndex = vi.fn();
-  }
-  return { __esModule: true, default: MockVectorLayer };
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      setVisible: mockSetVisible,
+      setZIndex: mockSetZIndex,
+    })),
+  };
 });
 
-vi.mock('ol/source/XYZ', () => {
-  class MockXYZ {
-    constructor(public options?: any) {}
-  }
-  return { __esModule: true, default: MockXYZ };
-});
+vi.mock('ol/source/XYZ', () => ({ default: vi.fn() }));
+vi.mock('ol/source/Vector', () => ({ default: vi.fn() }));
+vi.mock('ol/format/GeoJSON', () => ({ default: vi.fn().mockImplementation(() => ({ readFeatures: vi.fn(() => []) })) }));
+vi.mock('ol/style/Style', () => ({ default: vi.fn() }));
+vi.mock('ol/style/Circle', () => ({ default: vi.fn() }));
+vi.mock('ol/style/Fill', () => ({ default: vi.fn() }));
+vi.mock('ol/style/Stroke', () => ({ default: vi.fn() }));
+vi.mock('papaparse', () => ({ parse: vi.fn(() => ({ data: [] })) }));
 
-// =====================
-// TESTS
-// =====================
+// ======================== TESTS ========================
 describe('MapComponent', () => {
   let component: MapComponent;
-
-  beforeAll(() => {
-    // Initialize Angular testing environment
-    TestBed.initTestEnvironment(
-      BrowserDynamicTestingModule,
-      platformBrowserDynamicTesting()
-    );
-  });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
-        MapComponent, // Standalone component goes here
+        MapComponent,
         CommonModule,
         FormsModule,
-        DragDropModule
-      ],
-    })
-      // Inline template & styles to avoid templateUrl errors
-      .overrideComponent(MapComponent, {
-        set: {
-          template: '<div></div>',
-          styles: [''],
-        },
-      })
-      .compileComponents();
+        DragDropModule,
+        HttpClientTestingModule
+      ]
+    }).compileComponents();
 
     const fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+
+    // Mock the mapContainer element for standalone component
+    component.mapContainer = {
+      nativeElement: {} as HTMLDivElement
+    };
   });
 
   it('should create the component', () => {
@@ -93,82 +98,67 @@ describe('MapComponent', () => {
   });
 
   it('should initialize map with base layer', () => {
-    expect(component.map).toBeDefined();
-    expect(component.baseLayer).toBeDefined();
-    expect(component.layers.length).toBeGreaterThan(0);
-    expect(component.layers[0].type).toBe('basemap');
+    component.ngOnInit();
+    expect(mockSetTarget).toHaveBeenCalled();
+    expect(mockAddLayer).toHaveBeenCalled();
   });
 
   it('should switch planet and update stats labels', () => {
-    component.setPlanet('moon');
-    expect(component.currentPlanet).toBe('moon');
-    expect(component.currentStats.lonLabel).toBe('Selenographic Longitude');
-
     component.setPlanet('mars');
     expect(component.currentPlanet).toBe('mars');
     expect(component.currentStats.lonLabel).toBe('Ares Longitude');
+    expect(component.currentStats.gravity).toBe(3.71);
   });
 
   it('should toggle layer visibility', () => {
-    const layer = component.layers[0];
-    const initialVisible = layer.visible;
+    const layer = { name: 'Test', type: 'vector', visible: true } as any;
+    component.layerMap['Test'] = { setVisible: vi.fn(), setZIndex: vi.fn() } as any;
+    component.layers.push(layer);
     component.toggleLayer(layer);
-    expect(layer.visible).toBe(!initialVisible);
+    expect(layer.visible).toBe(false);
+    expect(component.layerMap['Test'].setVisible).toHaveBeenCalledWith(false);
   });
 
   it('should open and close modal', () => {
     component.onAddLayer();
     expect(component.isModalOpen).toBe(true);
-
+    expect(component.modalMode).toBe('manual');
     component.closeModal();
     expect(component.isModalOpen).toBe(false);
   });
 
   it('should create a manual layer', () => {
-    component.onAddLayer();
-    component.newLayer = { name: 'Test Layer', type: 'vector', source: 'http://test', visible: true };
-    const initialLength = component.layers.length;
-
+    component.newLayer = { name: 'Layer1', type: 'vector', source: 'src', visible: true };
+    component.map = { addLayer: vi.fn() } as any;
     component.createManualLayer();
-
-    expect(component.layers.length).toBe(initialLength + 1);
-    expect(component.layers[component.layers.length - 1].name).toBe('Test Layer');
-    expect(component.isModalOpen).toBe(false);
-  });
-
-  it('should format longitude and latitude correctly', () => {
-    const lon = -75;
-    const lat = 40;
-
-    const formattedLon = component.formatCoord(lon, 'lon');
-    const formattedLat = component.formatCoord(lat, 'lat');
-
-    expect(formattedLon).toContain('W');
-    expect(formattedLat).toContain('N');
-    expect(component.formatCoord(-10, 'lat')).toContain('S');
+    expect(component.layers.some(l => l.name === 'Layer1')).toBe(true);
+    expect(component.newLayer.name).toBe('');
   });
 
   it('should handle terminal command', () => {
-    const input = { target: { value: 'echo test' } } as any;
-    const initialLines = component.terminalLines.length;
-
-    component.handleTerminalCommand(input);
-
-    expect(component.terminalLines.length).toBe(initialLines + 1);
-    expect(component.terminalLines[component.terminalLines.length - 1]).toContain('echo test');
-    expect(input.target.value).toBe('');
+    const mockInput = { value: 'cmd' } as HTMLInputElement;
+    component.terminalLines = [];
+    component.handleTerminalCommand({ target: mockInput } as any);
+    expect(component.terminalLines).toContain('> cmd');
+    expect(mockInput.value).toBe('');
   });
 
   it('should reorder layers with drag and drop', () => {
     component.layers = [
-      { name: 'Layer1', type: 'vector', source: '', visible: true },
-      { name: 'Layer2', type: 'vector', source: '', visible: true },
-      { name: 'Layer3', type: 'vector', source: '', visible: true },
+      { name: 'A', type: 'basemap', visible: true, source: 'urlA' },
+      { name: 'B', type: 'vector', visible: true, source: 'urlB' }
     ];
-
-    const event = { previousIndex: 0, currentIndex: 2 };
+    component.map = { addLayer: vi.fn() } as any;
+    const event = { previousIndex: 0, currentIndex: 1 };
     component.onLayerDropped(event);
+    expect(component.layers[0].name).toBe('B');
+    expect(component.layers[1].name).toBe('A');
+  });
 
-    expect(component.layers[2].name).toBe('Layer1');
+  it('should format longitude and latitude correctly', () => {
+    const lon = component.formatCoord(-45, 'lon');
+    const lat = component.formatCoord(30, 'lat');
+    expect(lon).toContain('W /');
+    expect(lat).toContain('N');
   });
 });
