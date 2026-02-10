@@ -1,3 +1,4 @@
+// app.component.ts
 import { Component } from '@angular/core';
 import { MapComponent } from './map/map.component';
 
@@ -5,7 +6,7 @@ import { MapComponent } from './map/map.component';
   selector: 'app-root',
   standalone: true,
   imports: [MapComponent],
-  templateUrl: './app.html',
-  styleUrls: ['./app.css']
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent {}
