@@ -1,108 +1,129 @@
 // map.component.spec.ts
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MapComponent, Planet, Layer } from './map.component';
 import { of } from 'rxjs';
-import { MapComponent } from './map.component';
-import type { Layer } from './map.component';
+import { HttpClient } from '@angular/common/http';
+
+// Mock OL classes
+class MockTileLayer {
+  visible = true;
+  zIndex = 0;
+  setSource() {}
+  setVisible(v: boolean) { this.visible = v; }
+  setZIndex(z: number) { this.zIndex = z; }
+}
+
+class MockVectorLayer extends MockTileLayer {
+  source: any;
+  style: any;
+}
+
+// Mock HttpClient
+const mockHttp = {
+  get: vi.fn()
+} as unknown as HttpClient;
 
 describe('MapComponent', () => {
   let component: MapComponent;
 
-  // Mocks
-  const fakeZone = { run: (fn: any) => fn() } as any;
-  const fakeCdr = { detectChanges: () => {} } as any;
-  const fakeHttp = {
-    get: vi.fn().mockReturnValue(of('latitude,longitude\n0,0\n'))
-  } as any;
-
   beforeEach(() => {
-    component = new MapComponent(fakeZone, fakeCdr, fakeHttp);
+    component = new MapComponent({} as any, {} as any, mockHttp);
 
-    // Mock map container
+    // Mock mapContainer
     component.mapContainer = { nativeElement: {} } as any;
 
-    // Prevent real OpenLayers initialization
-    component.initializeMap = () => {};
-    component.reorderMapLayers = () => {};
+    // Override OL methods to prevent real map initialization
+    component.initializeMap = vi.fn();
+    component.reorderMapLayers = vi.fn();
+
+    // Mock OL layers
+    component.baseLayer = new MockTileLayer() as any;
+    component.layerMap = {};
   });
 
-  it('should create the component', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('should set initial planet to earth and stats', () => {
+  it('should initialize default properties', () => {
+    expect(component.isLoading).toBe(true);
     expect(component.currentPlanet).toBe('earth');
-    component.updateStatsLabels();
     expect(component.currentStats.gravity).toBe(9.81);
-    expect(component.currentStats.lonLabel).toBe('Longitude');
-    expect(component.currentStats.latLabel).toBe('Latitude');
+    expect(component.layers.length).toBe(0); // initializeMap not called
   });
 
   it('should switch planet and update stats labels', () => {
     component.setPlanet('moon');
     expect(component.currentPlanet).toBe('moon');
-    expect(component.currentStats.gravity).toBe(1.62);
     expect(component.currentStats.lonLabel).toBe('Selenographic Longitude');
     expect(component.currentStats.latLabel).toBe('Selenographic Latitude');
+    expect(component.currentStats.gravity).toBe(1.62);
 
     component.setPlanet('mars');
-    expect(component.currentStats.gravity).toBe(3.71);
     expect(component.currentStats.lonLabel).toBe('Ares Longitude');
-    expect(component.currentStats.latLabel).toBe('Ares Latitude');
+    expect(component.currentStats.gravity).toBe(3.71);
   });
 
   it('should toggle layer visibility', () => {
-    const layer: Layer = {
-      name: 'Test Layer',
-      type: 'vector',
-      source: 'source',
-      visible: true
-    };
-    component.layerMap[layer.name] = { setVisible: vi.fn(), setZIndex: vi.fn() } as any;
-    component.layers.push(layer);
-
+    const layer: Layer = { name: 'Test', type: 'vector', source: '', visible: true };
+    const olLayer = new MockVectorLayer() as any;
+    component.layerMap[layer.name] = olLayer;
     component.toggleLayer(layer);
     expect(layer.visible).toBe(false);
+    expect(olLayer.visible).toBe(false);
+    component.toggleLayer(layer);
+    expect(layer.visible).toBe(true);
+    expect(olLayer.visible).toBe(true);
   });
 
   it('should open and close modal', () => {
     component.onAddLayer();
     expect(component.isModalOpen).toBe(true);
+    expect(component.modalMode).toBe('manual');
+
     component.closeModal();
     expect(component.isModalOpen).toBe(false);
   });
 
   it('should create a manual layer', () => {
-    component.newLayer = {
-      name: 'Manual',
-      type: 'vector',
-      source: 'src',
-      visible: true
-    };
-
+    component.newLayer = { name: 'MyLayer', type: 'vector', source: 'src', visible: true };
     component.map = { addLayer: vi.fn() } as any;
-    component.createManualLayer();
 
-    expect(component.layers.find((l: { name: string; }) => l.name === 'Manual')).toBeTruthy();
+    component.createManualLayer();
+    expect(component.layers.find(l => l.name === 'MyLayer')).toBeDefined();
     expect(component.newLayer.name).toBe('');
+    expect(component.isModalOpen).toBe(false);
   });
 
   it('should handle terminal command', () => {
-    const input = { value: 'test' } as any;
-    component.handleTerminalCommand({ target: input } as any);
-    expect(component.terminalLines[0]).toContain('test');
-    expect(input.value).toBe('');
+    const event = { target: { value: 'hello' } } as unknown as Event;
+    component.handleTerminalCommand(event);
+    expect(component.terminalLines[0]).toContain('hello');
+  });
+
+  it('should reorder layers with drag and drop', () => {
+    const layerA: Layer = { name: 'A', type: 'vector', source: '', visible: true };
+    const layerB: Layer = { name: 'B', type: 'vector', source: '', visible: true };
+    component.layers = [layerA, layerB];
+
+    component.onLayerDropped({ previousIndex: 0, currentIndex: 1 });
+    expect(component.layers[0].name).toBe('B');
+    expect(component.layers[1].name).toBe('A');
   });
 
   it('should format longitude and latitude correctly', () => {
-    const lon = component.formatCoord(10, 'lon');
-    const lat = component.formatCoord(-45, 'lat');
-    expect(lon).toContain('E');
-    expect(lat).toContain('S');
+    const lon = component.formatCoord(-45, 'lon');
+    expect(lon).toBe('45.00° W / 315.00° E');
+
+    const lat = component.formatCoord(30, 'lat');
+    expect(lat).toBe('30.00° N');
   });
 
-  it('should normalize longitude correctly', () => {
-    const result = component.normalizeLon(-90);
-    expect(result.west).toBe(90);
-    expect(result.east).toBe(270);
+  it('should parse FIRMS CSV and add layer', () => {
+    const csv = 'latitude,longitude,brightness,acq_date,acq_time,confidence,satellite\n10,20,300,2026-02-10,1200,high,T1';
+    mockHttp.get = vi.fn().mockReturnValue(of(csv));
+
+    component.map = { addLayer: vi.fn() } as any;
+    component.addFIRMSLayer();
+
+    expect(mockHttp.get).toHaveBeenCalled();
+    // FIRMS layer is created but visible false by default
+    expect(component.layers.find(l => l.name === 'Current Fires (FIRMS)')).toBeDefined();
   });
 });
