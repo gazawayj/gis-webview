@@ -48,7 +48,7 @@ jobs:
 
       # 6. Upload production build artifacts
       - name: Upload production build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: angular-production-build
           path: ./dist
