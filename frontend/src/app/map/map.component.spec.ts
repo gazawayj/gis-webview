@@ -1,11 +1,18 @@
 // map.component.spec.ts
-import { TestBed, ComponentFixture, waitForAsync } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { MapComponent, Layer, Planet } from './map.component';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { By } from '@angular/platform-browser';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MapComponent, Planet, Layer } from './map.component';
 import { of } from 'rxjs';
-import Papa from 'papaparse';
+
+// =====================
+// ResizeObserver polyfill for Node
+// =====================
+if (!(globalThis as any).ResizeObserver) {
+  (globalThis as any).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
 
 // =====================
 // Mock OpenLayers classes
@@ -49,20 +56,23 @@ vi.mock('papaparse', () => ({
   }))
 }));
 
-describe('MapComponent (Option 2)', () => {
+// =====================
+// Tests
+// =====================
+describe('MapComponent (headless, option 2)', () => {
   let component: MapComponent;
 
   beforeEach(() => {
     component = new MapComponent({} as any, {} as any, mockHttp);
 
-    // Mock map container to avoid DOM dependency
+    // Mock map container to bypass DOM
     component.mapContainer = { nativeElement: {} } as any;
 
     // Prevent real map initialization
     component.initializeMap = vi.fn();
     component.reorderMapLayers = vi.fn();
 
-    // Mock layers
+    // Mock OL layers
     component.baseLayer = new MockTileLayer() as any;
     component.layerMap = {};
   });
