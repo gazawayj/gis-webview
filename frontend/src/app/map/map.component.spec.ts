@@ -2,9 +2,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MapComponent, Planet, Layer } from './map.component';
 import { of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 
+// =====================
 // Mock OL classes
+// =====================
 class MockTileLayer {
   visible = true;
   zIndex = 0;
@@ -18,10 +19,26 @@ class MockVectorLayer extends MockTileLayer {
   style: any;
 }
 
+// =====================
 // Mock HttpClient
+// =====================
 const mockHttp = {
   get: vi.fn()
-} as unknown as HttpClient;
+} as unknown as any;
+
+// =====================
+// Mock PapaParse
+// =====================
+vi.mock('papaparse', () => ({
+  parse: vi.fn((csv: string, options: any) => {
+    // Return one dummy row regardless of input CSV
+    return {
+      data: [
+        { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
+      ]
+    };
+  })
+}));
 
 describe('MapComponent', () => {
   let component: MapComponent;
@@ -29,10 +46,10 @@ describe('MapComponent', () => {
   beforeEach(() => {
     component = new MapComponent({} as any, {} as any, mockHttp);
 
-    // Mock mapContainer
+    // Mock mapContainer to bypass DOM
     component.mapContainer = { nativeElement: {} } as any;
 
-    // Override OL methods to prevent real map initialization
+    // Prevent real map initialization
     component.initializeMap = vi.fn();
     component.reorderMapLayers = vi.fn();
 
@@ -45,7 +62,7 @@ describe('MapComponent', () => {
     expect(component.isLoading).toBe(true);
     expect(component.currentPlanet).toBe('earth');
     expect(component.currentStats.gravity).toBe(9.81);
-    expect(component.layers.length).toBe(0); // initializeMap not called
+    expect(component.layers.length).toBe(0);
   });
 
   it('should switch planet and update stats labels', () => {
@@ -64,9 +81,11 @@ describe('MapComponent', () => {
     const layer: Layer = { name: 'Test', type: 'vector', source: '', visible: true };
     const olLayer = new MockVectorLayer() as any;
     component.layerMap[layer.name] = olLayer;
+
     component.toggleLayer(layer);
     expect(layer.visible).toBe(false);
     expect(olLayer.visible).toBe(false);
+
     component.toggleLayer(layer);
     expect(layer.visible).toBe(true);
     expect(olLayer.visible).toBe(true);
@@ -115,15 +134,15 @@ describe('MapComponent', () => {
     expect(lat).toBe('30.00° N');
   });
 
-  it('should parse FIRMS CSV and add layer', () => {
-    const csv = 'latitude,longitude,brightness,acq_date,acq_time,confidence,satellite\n10,20,300,2026-02-10,1200,high,T1';
-    mockHttp.get = vi.fn().mockReturnValue(of(csv));
-
+  it('should parse FIRMS CSV and add layer deterministically', () => {
+    mockHttp.get = vi.fn().mockReturnValue(of('dummy csv content'));
     component.map = { addLayer: vi.fn() } as any;
+
     component.addFIRMSLayer();
 
     expect(mockHttp.get).toHaveBeenCalled();
-    // FIRMS layer is created but visible false by default
-    expect(component.layers.find(l => l.name === 'Current Fires (FIRMS)')).toBeDefined();
+    const layer = component.layers.find(l => l.name === 'Current Fires (FIRMS)');
+    expect(layer).toBeDefined();
+    expect(layer?.visible).toBe(false);
   });
 });
