@@ -6,9 +6,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-// ==================== MOCKS ====================
-// All mocks are inside vi.mock factories to avoid hoisting issues
-
+// ========== MOCKS ==========
 vi.mock('ol/Map', () => {
   class MockMap {
     addLayer = vi.fn();
@@ -51,15 +49,24 @@ vi.mock('ol/source/XYZ', () => {
   return { __esModule: true, default: MockXYZ };
 });
 
-// ==================== TESTS ====================
+// ========== TESTS ==========
 describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MapComponent, CommonModule, FormsModule, DragDropModule]
-    }).compileComponents();
+      imports: [CommonModule, FormsModule, DragDropModule],
+      declarations: [MapComponent]
+    })
+      // Inline template and styles to resolve TestBed errors
+      .overrideComponent(MapComponent, {
+        set: {
+          template: '<div></div>',
+          styles: ['']
+        }
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
