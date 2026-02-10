@@ -336,7 +336,7 @@ export class MapComponent implements OnInit {
   }
 
   // ========================= FIRMS LAYER =========================
-  private addFIRMSLayer() {
+  addFIRMSLayer() {
     this.http.get('https://gis-webview.onrender.com/firms', { responseType: 'text' })
       .pipe(take(1))
       .subscribe({
