@@ -1,17 +1,21 @@
 // map.component.spec.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { of } from 'rxjs';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { MapComponent, Layer } from './map.component';
+import { HttpClient } from '@angular/common/http';
+import { of } from 'rxjs';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { By } from '@angular/platform-browser';
 
 // =====================
-// Mock OpenLayers Classes
+// Mock OpenLayers layers
 // =====================
 class MockTileLayer {
   visible = true;
   zIndex = 0;
   setSource() {}
   setVisible(v: boolean) { this.visible = v; }
-  setZIndex(z: number) { this.zIndex = z; }
+  setZIndex(z: number) { this.zIndex = v; }
 }
 
 class MockVectorLayer extends MockTileLayer {
@@ -23,36 +27,42 @@ class MockVectorLayer extends MockTileLayer {
 // Mock HttpClient
 // =====================
 const mockHttp = {
-  get: vi.fn()
-} as unknown as any;
+  get: vi.createSpy('get')
+} as unknown as HttpClient;
 
 // =====================
 // Mock PapaParse
 // =====================
-vi.mock('papaparse', () => ({
-  parse: vi.fn((_csv: string, _options: any) => ({
+jest.mock('papaparse', () => ({
+  parse: jest.fn((csv: string, options: any) => ({
     data: [
       { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
     ]
   }))
 }));
 
-// =====================
-// Tests
-// =====================
-describe('MapComponent (logic-only, Vitest)', () => {
+describe('MapComponent', () => {
+  let fixture: ComponentFixture<MapComponent>;
   let component: MapComponent;
 
-  beforeEach(() => {
-    // Construct component with fully mocked dependencies
-    component = new MapComponent({} as any, {} as any, mockHttp);
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [MapComponent],
+      providers: [
+        { provide: HttpClient, useValue: mockHttp }
+      ],
+      schemas: [NO_ERRORS_SCHEMA] // Ignore template errors for OL map container
+    }).compileComponents();
 
-    // Mock mapContainer to bypass DOM
+    fixture = TestBed.createComponent(MapComponent);
+    component = fixture.componentInstance;
+
+    // Mock map container
     component.mapContainer = { nativeElement: {} } as any;
 
     // Prevent real map initialization
-    component.initializeMap = vi.fn();
-    component.reorderMapLayers = vi.fn();
+    component.initializeMap = jasmine.createSpy('initializeMap');
+    component.reorderMapLayers = jasmine.createSpy('reorderMapLayers');
 
     // Mock OL layers
     component.baseLayer = new MockTileLayer() as any;
@@ -60,7 +70,7 @@ describe('MapComponent (logic-only, Vitest)', () => {
   });
 
   it('should initialize default properties', () => {
-    expect(component.isLoading).toBe(true);
+    expect(component.isLoading).toBeTrue();
     expect(component.currentPlanet).toBe('earth');
     expect(component.currentStats.gravity).toBe(9.81);
     expect(component.layers.length).toBe(0);
@@ -84,35 +94,36 @@ describe('MapComponent (logic-only, Vitest)', () => {
     component.layerMap[layer.name] = olLayer;
 
     component.toggleLayer(layer);
-    expect(layer.visible).toBe(false);
-    expect(olLayer.visible).toBe(false);
+    expect(layer.visible).toBeFalse();
+    expect(olLayer.visible).toBeFalse();
 
     component.toggleLayer(layer);
-    expect(layer.visible).toBe(true);
-    expect(olLayer.visible).toBe(true);
+    expect(layer.visible).toBeTrue();
+    expect(olLayer.visible).toBeTrue();
   });
 
   it('should open and close modal', () => {
     component.onAddLayer();
-    expect(component.isModalOpen).toBe(true);
+    expect(component.isModalOpen).toBeTrue();
     expect(component.modalMode).toBe('manual');
 
     component.closeModal();
-    expect(component.isModalOpen).toBe(false);
+    expect(component.isModalOpen).toBeFalse();
   });
 
   it('should create a manual layer', () => {
     component.newLayer = { name: 'MyLayer', type: 'vector', source: 'src', visible: true };
-    component.map = { addLayer: vi.fn() } as any;
+    component.map = { addLayer: jasmine.createSpy('addLayer') } as any;
 
     component.createManualLayer();
     expect(component.layers.find(l => l.name === 'MyLayer')).toBeDefined();
     expect(component.newLayer.name).toBe('');
-    expect(component.isModalOpen).toBe(false);
+    expect(component.isModalOpen).toBeFalse();
   });
 
   it('should handle terminal command', () => {
-    const event = { target: { value: 'hello' } } as unknown as Event;
+    component.terminalLines = [];
+    const event = { target: { value: 'hello' } } as any;
     component.handleTerminalCommand(event);
     expect(component.terminalLines[0]).toContain('hello');
   });
@@ -136,14 +147,14 @@ describe('MapComponent (logic-only, Vitest)', () => {
   });
 
   it('should parse FIRMS CSV and add layer deterministically', () => {
-    mockHttp.get = vi.fn().mockReturnValue(of('dummy csv content'));
-    component.map = { addLayer: vi.fn() } as any;
+    mockHttp.get = jasmine.createSpy('get').and.returnValue(of('dummy csv content'));
+    component.map = { addLayer: jasmine.createSpy('addLayer') } as any;
 
     component.addFIRMSLayer();
 
     expect(mockHttp.get).toHaveBeenCalled();
     const layer = component.layers.find(l => l.name === 'Current Fires (FIRMS)');
     expect(layer).toBeDefined();
-    expect(layer?.visible).toBe(false);
+    expect(layer?.visible).toBeFalse();
   });
 });
