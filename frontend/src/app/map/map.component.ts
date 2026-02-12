@@ -1,4 +1,3 @@
-// map.component.ts
 import {
   Component,
   ElementRef,
@@ -65,6 +64,11 @@ export class MapComponent implements OnInit {
 
   layerMap: Record<string, VectorLayer<VectorSource>> = {};
   layers: Layer[] = [];
+  layersByPlanet: Record<Planet, Layer[]> = {
+    earth: [],
+    moon: [],
+    mars: []
+  };
 
   isLoading = false;
   loadingMessage = '';
@@ -105,10 +109,31 @@ export class MapComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.initializePlanetLayers();
     this.initializeMap();
+
+    // Only add FIRMS layer to Earth
     if (this.currentPlanet === 'earth') {
       this.addFIRMSLayer();
     }
+  }
+
+  initializePlanetLayers(): void {
+    // Basemap layer for current planet (clone for other planets)
+    const basemapLayer: Layer = {
+      name: 'Basemap',
+      type: 'basemap',
+      source: this.BASEMAP_URLS[this.currentPlanet],
+      visible: true,
+      description: 'Planet surface imagery'
+    };
+
+    this.layersByPlanet.earth = [{ ...basemapLayer, source: this.BASEMAP_URLS.earth }];
+    this.layersByPlanet.moon = [{ ...basemapLayer, source: this.BASEMAP_URLS.moon }];
+    this.layersByPlanet.mars = [{ ...basemapLayer, source: this.BASEMAP_URLS.mars }];
+
+    // Initialize current planet's layers array
+    this.layers = [...this.layersByPlanet[this.currentPlanet]];
   }
 
   initializeMap(): void {
@@ -116,14 +141,6 @@ export class MapComponent implements OnInit {
       visible: true,
       source: new XYZ({ url: this.BASEMAP_URLS[this.currentPlanet] })
     });
-
-    this.layers = [{
-      name: 'Basemap',
-      type: 'basemap',
-      source: this.BASEMAP_URLS[this.currentPlanet],
-      visible: true,
-      description: 'Planet surface imagery'
-    }];
 
     const view = new View({
       center: [0, 0],
@@ -168,13 +185,36 @@ export class MapComponent implements OnInit {
 
   setPlanet(planet: Planet): void {
     if (planet === this.currentPlanet) return;
+
     this.currentPlanet = planet;
     this.updateStatsLabels();
 
+    // Update basemap source
     const url = this.BASEMAP_URLS[planet];
     this.baseLayer.setSource(new XYZ({ url }));
-    this.layers[0].source = url;
 
+    // Remove all vector layers
+    Object.values(this.layerMap).forEach(l => this.map.removeLayer(l));
+    this.layerMap = {};
+
+    // Load planet-specific layers
+    this.layers = this.layersByPlanet[planet].map(layer => ({ ...layer }));
+    this.layers.forEach(layer => {
+      if (layer.type === 'vector') {
+        const vector = new VectorLayer({
+          source: new VectorSource({ url: layer.source, format: new GeoJSON() }),
+          visible: layer.visible
+        });
+        this.map.addLayer(vector);
+        this.layerMap[layer.name] = vector;
+      } else if (layer.type === 'basemap') {
+        this.baseLayer.setVisible(layer.visible);
+      }
+    });
+
+    this.reorderMapLayers();
+
+    // Reset view
     const view = this.map.getView();
     view.setCenter([0, 0]);
     view.setZoom(2);
@@ -183,14 +223,12 @@ export class MapComponent implements OnInit {
   toggleLayer(layer: Layer): void {
     layer.visible = !layer.visible;
 
-    if (layer.type === 'basemap') {
-      this.baseLayer.setVisible(layer.visible);
-    }
-
+    if (layer.type === 'basemap') this.baseLayer.setVisible(layer.visible);
     const olLayer = this.layerMap[layer.name];
     if (olLayer) olLayer.setVisible(layer.visible);
 
     this.reorderMapLayers();
+    this.layersByPlanet[this.currentPlanet] = [...this.layers];
   }
 
   reorderMapLayers(): void {
@@ -209,11 +247,13 @@ export class MapComponent implements OnInit {
   onLayerDropped(event: CdkDragDrop<Layer[]>): void {
     moveItemInArray(this.layers, event.previousIndex, event.currentIndex);
     this.reorderMapLayers();
+    this.layersByPlanet[this.currentPlanet] = [...this.layers];
   }
 
   onAddLayer(): void {
     this.modalMode = 'manual';
     this.isModalOpen = true;
+    this.layersByPlanet[this.currentPlanet] = [...this.layers];
   }
 
   closeModal(): void {
@@ -230,23 +270,21 @@ export class MapComponent implements OnInit {
     if (!this.newLayer.name || !this.newLayer.source) return;
 
     const vector = new VectorLayer({
-      source: new VectorSource({
-        url: this.newLayer.source,
-        format: new GeoJSON()
-      }),
+      source: new VectorSource({ url: this.newLayer.source, format: new GeoJSON() }),
       visible: this.newLayer.visible
     });
 
     this.map.addLayer(vector);
     this.layerMap[this.newLayer.name] = vector;
+
     this.layers.push({ ...this.newLayer });
+    this.layersByPlanet[this.currentPlanet] = [...this.layers];
 
     this.reorderMapLayers();
     this.closeModal();
   }
 
   handleTerminalCommand(event: Event): void {
-    const evnt = event as KeyboardEvent;
     const input = event.target as HTMLInputElement;
     const command = input.value.trim().toLowerCase();
     if (!command) return;
@@ -271,10 +309,9 @@ export class MapComponent implements OnInit {
   }
 
   formatCoord(value: number, type: 'lon' | 'lat'): string {
-    const dir =
-      type === 'lon'
-        ? (value >= 0 ? 'E' : 'W')
-        : (value >= 0 ? 'N' : 'S');
+    const dir = type === 'lon'
+      ? (value >= 0 ? 'E' : 'W')
+      : (value >= 0 ? 'N' : 'S');
 
     return `${Math.abs(value).toFixed(4)}° ${dir}`;
   }
@@ -283,13 +320,22 @@ export class MapComponent implements OnInit {
     this.isLoading = true;
     this.loadingMessage = 'Loading FIRMS layer...';
 
-    this.http.get('https://gis-webview.onrender.com/firms', { responseType: 'text' })
+    // Add FIRMS layer only to Earth
+    const firLayer: Layer = {
+      name: 'Current Fires (FIRMS)',
+      type: 'vector',
+      source: 'https://gis-webview.onrender.com/firms',
+      visible: false,
+      description: 'Active fires from FIRMS'
+    };
+
+    this.layersByPlanet.earth.push(firLayer);
+
+    this.http.get(firLayer.source, { responseType: 'text' })
       .pipe(take(1))
       .subscribe({
         next: (csvData: string) => {
-
           const parsed = Papa.parse(csvData, { header: true });
-
           const validRows = (parsed.data as any[])
             .filter(row => !isNaN(parseFloat(row.latitude)) && !isNaN(parseFloat(row.longitude)));
 
@@ -302,10 +348,7 @@ export class MapComponent implements OnInit {
             properties: row
           }));
 
-          const geojson = {
-            type: 'FeatureCollection',
-            features
-          };
+          const geojson = { type: 'FeatureCollection', features };
 
           this.firmsLayer = new VectorLayer({
             source: new VectorSource({
@@ -322,15 +365,9 @@ export class MapComponent implements OnInit {
           });
 
           this.map.addLayer(this.firmsLayer);
-          this.layerMap['Current Fires (FIRMS)'] = this.firmsLayer;
+          this.layerMap[firLayer.name] = this.firmsLayer;
 
-          this.layers.push({
-            name: 'Current Fires (FIRMS)',
-            type: 'vector',
-            source: 'https://gis-webview.onrender.com/firms',
-            visible: false,
-            description: 'Active fires from FIRMS'
-          });
+          this.layers.push(firLayer);
 
           this.reorderMapLayers();
           this.isLoading = false;
