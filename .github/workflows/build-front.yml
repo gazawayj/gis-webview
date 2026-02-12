@@ -30,7 +30,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Build Angular project
-        run: ng build --prod --base-href /gis-webview/
+        run: npm run build -- --base-href /gis-webview/
 
       - name: List build output
         run: ls -R dist/
