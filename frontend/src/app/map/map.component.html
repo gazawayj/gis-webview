@@ -2,23 +2,22 @@
   <aside class="sidebar">
     <h1>GIS Web Viewer</h1>
 
+    <!-- Planet Buttons -->
     <div class="planet-buttons">
       <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
       <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
       <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
     </div>
 
+    <!-- Layer List -->
     <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($event)">
-      <div *ngIf="layers.length === 0" class="empty-hint">
-        No layers available for this planet.
-      </div>
+      <div *ngIf="layers.length === 0" class="empty-hint">No layers available for this planet.</div>
 
       <div class="layers-list">
         <label *ngFor="let layer of layers; let i = index" class="overlay-item" cdkDrag>
           <span class="drag-handle">⠿</span>
           <span class="layer-number">{{ i + 1 }}</span>
 
-          <!-- Visible Checkbox -->
           <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)" />
 
           <div class="layer-info">
@@ -26,20 +25,41 @@
             <span class="hint">{{ layer.description }}</span>
           </div>
 
-          <!-- Controls container -->
           <div class="layer-controls">
-            <!-- Color Picker -->
             <input type="color" [(ngModel)]="layer.color" (change)="updateLayerStyle(layer)" title="Layer Color" />
+            <div class="shape-dropdown-wrapper">
+              <div class="shape-selected" (click)="toggleShapeDropdown(layer)">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <ng-container [ngSwitch]="layer.shape">
+                    <circle *ngSwitchCase="'circle'" cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
+                    <rect *ngSwitchCase="'square'" x="3" y="3" width="14" height="14" [attr.fill]="layer.color"></rect>
+                    <polygon *ngSwitchCase="'triangle'" points="10,2 18,18 2,18" [attr.fill]="layer.color"></polygon>
+                    <polygon *ngSwitchCase="'diamond'" points="10,2 18,10 10,18 2,10" [attr.fill]="layer.color"></polygon>
+                    <polygon *ngSwitchCase="'pentagon'" points="10,2 18,8 15,18 5,18 2,8" [attr.fill]="layer.color"></polygon>
+                    <polygon *ngSwitchCase="'hexagon'" points="5,2 15,2 18,10 15,18 5,18 2,10" [attr.fill]="layer.color"></polygon>
+                    <polygon *ngSwitchCase="'star'" points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" [attr.fill]="layer.color"></polygon>
+                    <circle *ngSwitchDefault cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
+                  </ng-container>
+                </svg>
+              </div>
 
-            <!-- Shape Selector -->
-            <select [(ngModel)]="layer.shape" (change)="updateLayerStyle(layer)" class="shape-selector"
-              title="Layer Shape">
-              <option value="circle">● Circle</option>
-              <option value="square">■ Square</option>
-              <option value="triangle">▲ Triangle</option>
-            </select>
+              <ul class="shape-options" *ngIf="layer.isDropdownOpen">
+                <li *ngFor="let s of availableShapes" (click)="selectShape(layer, s)">
+                  <svg width="20" height="20" viewBox="0 0 20 20">
+                    <ng-container [ngSwitch]="s">
+                      <circle *ngSwitchCase="'circle'" cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
+                      <rect *ngSwitchCase="'square'" x="3" y="3" width="14" height="14" [attr.fill]="layer.color"></rect>
+                      <polygon *ngSwitchCase="'triangle'" points="10,2 18,18 2,18" [attr.fill]="layer.color"></polygon>
+                      <polygon *ngSwitchCase="'diamond'" points="10,2 18,10 10,18 2,10" [attr.fill]="layer.color"></polygon>
+                      <polygon *ngSwitchCase="'pentagon'" points="10,2 18,8 15,18 5,18 2,8" [attr.fill]="layer.color"></polygon>
+                      <polygon *ngSwitchCase="'hexagon'" points="5,2 15,2 18,10 15,18 5,18 2,10" [attr.fill]="layer.color"></polygon>
+                      <polygon *ngSwitchCase="'star'" points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" [attr.fill]="layer.color"></polygon>
+                    </ng-container>
+                  </svg>
+                </li>
+              </ul>
+            </div>
 
-            <!-- Remove Layer Button -->
             <button class="remove-layer-btn" (click)="removeLayer(layer)" title="Remove Layer">×</button>
           </div>
 
@@ -54,106 +74,21 @@
       </div>
     </div>
 
-    <div class="stats-panel">
-      <div class="stat-item">
-        <span>Zoom Level</span>
-        <strong>{{ zoomDisplay }}</strong>
-      </div>
-      <div class="coords-display-lon">
-        <span>{{ currentStats.lonLabel }}</span>
-        <strong>{{ formatCoord(currentLon, 'lon') }}</strong>
-      </div>
-      <div class="coords-display-lat">
-        <span>{{ currentStats.latLabel }}</span>
-        <strong>{{ formatCoord(currentLat, 'lat') }}</strong>
-      </div>
-      <div class="stat-item">
-        <span>Surface Gravity</span>
-        <strong>{{ currentStats.gravity }}</strong>
-      </div>
+    <!-- Stats Panel -->
+    <div class="stats-panel" *ngIf="map">
+      <div class="stat-item"><strong>Zoom:</strong> {{ zoomDisplay | number:'1.1-2' }}</div>
+      <div class="stat-item"><strong>Lon:</strong> {{ currentLon | number:'1.4-4' }}</div>
+      <div class="stat-item"><strong>Lat:</strong> {{ currentLat | number:'1.4-4' }}</div>
     </div>
   </aside>
 
+  <!-- Map -->
   <div class="map-wrapper">
     <div #mapContainer class="map-container"></div>
+
     <div class="spinner-overlay" *ngIf="isLoading">
       <div class="spinner"></div>
       <div class="spinner-message">{{ loadingMessage }}</div>
-    </div>
-  </div>
-</div>
-
-<div *ngIf="isModalOpen" class="modal-backdrop">
-  <div class="modal fade-in">
-    <div class="modal-header toolbar">
-      <h2>Input Options</h2>
-      <button class="close-btn" (click)="closeModal()">×</button>
-    </div>
-
-    <div class="modal-tabs">
-      <button [class.active]="modalMode==='manual'" (click)="modalMode='manual'">Manual</button>
-      <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
-    </div>
-
-    <div class="modal-content">
-      <div class="manual-wrapper" [class.active]="modalMode==='manual'">
-        <form class="manual-form">
-          <div class="form-row">
-            <label>
-              Layer Name:
-              <input [(ngModel)]="newLayer.name" name="layerName">
-            </label>
-            <label>
-              Layer Type:
-              <select [(ngModel)]="newLayer.type" name="layerType">
-                <option value="vector">Vector</option>
-                <option value="raster">Raster</option>
-              </select>
-            </label>
-          </div>
-          <div class="form-row">
-            <label>
-              URL:
-              <input [(ngModel)]="newLayer.source" name="layerSource">
-            </label>
-          </div>
-          <div class="form-row">
-            <label>
-              Latitude Field:
-              <input [(ngModel)]="newLayer.latField" name="layerLatField">
-            </label>
-            <label>
-              Longitude Field:
-              <input [(ngModel)]="newLayer.lonField" name="layerLonField">
-            </label>
-          </div>
-          <div class="form-row">
-            <label>
-              Color:
-              <input type="color" [(ngModel)]="newLayer.color" name="layerColor">
-            </label>
-            <label>
-              Visible:
-              <input type="checkbox" [(ngModel)]="newLayer.visible" name="layerVisible">
-            </label>
-          </div>
-        </form>
-      </div>
-
-      <div class="console-wrapper" [class.active]="modalMode==='console'">
-        <div class="console-input">
-          <div *ngFor="let line of terminalLines">{{ line }}</div>
-          <div class="terminal-input-row">
-            <span class="terminal-prompt">></span>
-            <input type="text" class="manual-input" (keydown.enter)="handleTerminalCommand($event)">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="cancel-btn" (click)="closeModal()">Cancel</button>
-      <button class="ok-btn" (click)="modalMode==='manual' ? createManualLayer() : null">OK</button>
     </div>
   </div>
 </div>

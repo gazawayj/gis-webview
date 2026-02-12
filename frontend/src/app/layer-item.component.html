@@ -1,0 +1,19 @@
+<div class="layer-item">
+  <!-- Checkbox-only visibility -->
+  <input type="checkbox" [checked]="layer['visible']" (click)="onLayerCheckboxClick(layer, $event)" />
+  <span>{{ layer['name'] }}</span>
+
+  <!-- Button to open shape dropdown -->
+  <button class="shape-selected-button" (click)="openShapeDropdown()">
+    {{ selectedShape }}
+  </button>
+
+  <!-- Template for floating dropdown -->
+  <ng-template #shapeDropdown>
+    <div class="shape-dropdown">
+      <button *ngFor="let shape of shapes" (click)="selectShape(shape)">
+        {{ shape }}
+      </button>
+    </div>
+  </ng-template>
+</div>
