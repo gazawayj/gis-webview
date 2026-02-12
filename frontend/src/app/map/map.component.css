@@ -133,13 +133,13 @@
   border-color: #d1d1d1;
 }
 
-.overlay-item input[type="checkbox"] {
+/* .overlay-item input[type="checkbox"] {
   cursor: pointer !important;
   transform: scale(1.4);
   margin: 0 12px;
   accent-color: var(--primary-color);
   z-index: 2;
-}
+} */
 
 .layers-list {
   display: flex;
