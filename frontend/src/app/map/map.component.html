@@ -13,7 +13,6 @@
         No layers available for this planet.
       </div>
 
-      <!-- Layers list container (reversed) -->
       <div class="layers-list">
         <label *ngFor="let layer of layers; let i = index" class="overlay-item" cdkDrag>
           <span class="drag-handle">⠿</span>
@@ -30,7 +29,6 @@
         </label>
       </div>
 
-      <!-- Keep Add Layer button at bottom -->
       <div class="layer-actions">
         <button class="add-layer-btn" (click)="onAddLayer()">
           <span class="plus-icon">+</span> Add Layer
@@ -61,18 +59,19 @@
     </div>
   </aside>
 
-  <main class="map-wrapper">
+  <!-- Map Container -->
+  <div class="map-wrapper">
     <div #mapContainer class="map-container"></div>
 
-    <div *ngIf="isLoading" class="loading-overlay">
-      <div class="loading-card">
-        <div class="spinner"></div>
-        <span>Loading Map Data...</span>
-      </div>
+    <!-- Loading Spinner Overlay -->
+    <div class="spinner-overlay" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <div class="spinner-message">{{ loadingMessage }}</div>
     </div>
-  </main>
+  </div>
 </div>
 
+<!-- Modal -->
 <div *ngIf="isModalOpen" class="modal-backdrop">
   <div class="modal fade-in">
 
@@ -87,7 +86,7 @@
     </div>
 
     <div class="modal-content">
-
+      <!-- Manual Layer Input -->
       <div class="manual-wrapper" [class.active]="modalMode==='manual'">
         <form class="manual-form">
           <div class="form-row">
@@ -95,7 +94,6 @@
               Layer Name:
               <input [(ngModel)]="newLayer.name" name="layerName">
             </label>
-
             <label>
               Layer Type:
               <select [(ngModel)]="newLayer.type" name="layerType">
@@ -104,20 +102,17 @@
               </select>
             </label>
           </div>
-
           <div class="form-row">
             <label>
               URL:
               <input [(ngModel)]="newLayer.source" name="layerSource">
             </label>
           </div>
-
           <div class="form-row">
             <label>
               Color:
               <input type="color" [(ngModel)]="newLayer.color" name="layerColor">
             </label>
-
             <label>
               Visible:
               <input type="checkbox" [(ngModel)]="newLayer.visible" name="layerVisible">
@@ -126,21 +121,24 @@
         </form>
       </div>
 
+      <!-- Console Input -->
       <div class="console-wrapper" [class.active]="modalMode==='console'">
         <div class="console-input">
           <div *ngFor="let line of terminalLines">{{ line }}</div>
           <div class="terminal-input-row">
             <span class="terminal-prompt">></span>
-            <input type="text" class="manual-input" (keydown.enter)="handleTerminalCommand($event)">
+            <input
+              type="text"
+              class="manual-input"
+              (keydown.enter)="handleTerminalCommand($event)">
           </div>
         </div>
       </div>
-
     </div>
 
     <div class="modal-footer">
       <button class="cancel-btn" (click)="closeModal()">Cancel</button>
-      <button class="ok-btn" (click)="modalMode==='manual'?createManualLayer():null">OK</button>
+      <button class="ok-btn" (click)="modalMode==='manual' ? createManualLayer() : null">OK</button>
     </div>
 
   </div>

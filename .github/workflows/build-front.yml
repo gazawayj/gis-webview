@@ -1,4 +1,4 @@
-name: Build and Deploy Front
+name: Build and Deploy Frontend
 
 on:
   push:
@@ -9,7 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,27 +16,29 @@ jobs:
       run:
         working-directory: ./frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: './frontend/package-lock.json'
-      
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Build project
+      - name: Build Angular project
         run: npm run build
 
       - name: List build output
         run: ls -R dist/
 
-      - name: Upload artifact
+      - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Verify this path matches your 'dist' folder structure
-          path: 'frontend/dist/frontend' 
+          path: 'dist/frontend'
 
   deploy:
     needs: build
