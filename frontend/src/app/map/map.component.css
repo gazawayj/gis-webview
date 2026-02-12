@@ -25,7 +25,7 @@
 
 /* ===================== SIDEBAR ===================== */
 .sidebar {
-  width: 400px;
+  width: 440px;
   height: 100vh;
   flex-shrink: 0;
   padding: 1rem;
@@ -490,6 +490,73 @@
 
 .cancel-btn:hover {
   background: #bbb;
+}
+
+.layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto; /* push to right edge */
+}
+
+/* Color Picker */
+.layer-controls input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: none;
+}
+
+/* Shape Selector */
+.shape-selector {
+  width: 90px;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+/* Remove Layer Button (small close) */
+.remove-layer-btn {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #a00;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: all 0.2s;
+  padding: 0 4px;
+}
+
+.remove-layer-btn:hover {
+  background: #fdd;
+  transform: rotate(90deg);
+}
+
+/* Adjust overlay item for new controls */
+.overlay-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fbfbfb;
+  cursor: grab !important;
+}
+
+/* Layer info flex so name/hint take remaining space */
+.layer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  pointer-events: none;
+  flex: 1;
 }
 
 /* ===================== DRAG & DROP ===================== */

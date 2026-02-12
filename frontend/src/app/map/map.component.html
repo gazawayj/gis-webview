@@ -18,11 +18,29 @@
           <span class="drag-handle">⠿</span>
           <span class="layer-number">{{ i + 1 }}</span>
 
+          <!-- Visible Checkbox -->
           <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)" />
 
           <div class="layer-info">
             <strong>{{ layer.name }}</strong>
             <span class="hint">{{ layer.description }}</span>
+          </div>
+
+          <!-- Controls container -->
+          <div class="layer-controls">
+            <!-- Color Picker -->
+            <input type="color" [(ngModel)]="layer.color" (change)="updateLayerStyle(layer)" title="Layer Color" />
+
+            <!-- Shape Selector -->
+            <select [(ngModel)]="layer.shape" (change)="updateLayerStyle(layer)" class="shape-selector"
+              title="Layer Shape">
+              <option value="circle">● Circle</option>
+              <option value="square">■ Square</option>
+              <option value="triangle">▲ Triangle</option>
+            </select>
+
+            <!-- Remove Layer Button -->
+            <button class="remove-layer-btn" (click)="removeLayer(layer)" title="Remove Layer">×</button>
           </div>
 
           <div class="drag-placeholder" *cdkDragPlaceholder></div>
@@ -41,17 +59,14 @@
         <span>Zoom Level</span>
         <strong>{{ zoomDisplay }}</strong>
       </div>
-
       <div class="coords-display-lon">
         <span>{{ currentStats.lonLabel }}</span>
         <strong>{{ formatCoord(currentLon, 'lon') }}</strong>
       </div>
-
       <div class="coords-display-lat">
         <span>{{ currentStats.latLabel }}</span>
         <strong>{{ formatCoord(currentLat, 'lat') }}</strong>
       </div>
-
       <div class="stat-item">
         <span>Surface Gravity</span>
         <strong>{{ currentStats.gravity }}</strong>
@@ -59,11 +74,8 @@
     </div>
   </aside>
 
-  <!-- Map Container -->
   <div class="map-wrapper">
     <div #mapContainer class="map-container"></div>
-
-    <!-- Loading Spinner Overlay -->
     <div class="spinner-overlay" *ngIf="isLoading">
       <div class="spinner"></div>
       <div class="spinner-message">{{ loadingMessage }}</div>
@@ -71,10 +83,8 @@
   </div>
 </div>
 
-<!-- Modal -->
 <div *ngIf="isModalOpen" class="modal-backdrop">
   <div class="modal fade-in">
-
     <div class="modal-header toolbar">
       <h2>Input Options</h2>
       <button class="close-btn" (click)="closeModal()">×</button>
@@ -86,7 +96,6 @@
     </div>
 
     <div class="modal-content">
-      <!-- Manual Layer Input -->
       <div class="manual-wrapper" [class.active]="modalMode==='manual'">
         <form class="manual-form">
           <div class="form-row">
@@ -110,6 +119,16 @@
           </div>
           <div class="form-row">
             <label>
+              Latitude Field:
+              <input [(ngModel)]="newLayer.latField" name="layerLatField">
+            </label>
+            <label>
+              Longitude Field:
+              <input [(ngModel)]="newLayer.lonField" name="layerLonField">
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
               Color:
               <input type="color" [(ngModel)]="newLayer.color" name="layerColor">
             </label>
@@ -121,16 +140,12 @@
         </form>
       </div>
 
-      <!-- Console Input -->
       <div class="console-wrapper" [class.active]="modalMode==='console'">
         <div class="console-input">
           <div *ngFor="let line of terminalLines">{{ line }}</div>
           <div class="terminal-input-row">
             <span class="terminal-prompt">></span>
-            <input
-              type="text"
-              class="manual-input"
-              (keydown.enter)="handleTerminalCommand($event)">
+            <input type="text" class="manual-input" (keydown.enter)="handleTerminalCommand($event)">
           </div>
         </div>
       </div>
@@ -140,6 +155,5 @@
       <button class="cancel-btn" (click)="closeModal()">Cancel</button>
       <button class="ok-btn" (click)="modalMode==='manual' ? createManualLayer() : null">OK</button>
     </div>
-
   </div>
 </div>
