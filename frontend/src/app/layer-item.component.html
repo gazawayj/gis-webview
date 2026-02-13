@@ -1,19 +1,33 @@
 <div class="layer-item">
-  <!-- Checkbox-only visibility -->
-  <input type="checkbox" [checked]="layer['visible']" (click)="onLayerCheckboxClick(layer, $event)" />
-  <span>{{ layer['name'] }}</span>
 
-  <!-- Button to open shape dropdown -->
+  <!-- Visibility checkbox -->
+  <input type="checkbox" [checked]="layer.visible" (click)="toggleVisibility($event)" />
+
+  <!-- Layer name -->
+  <span class="layer-name">{{ layer.name }}</span>
+
+  <!-- Color picker -->
+  <input type="color" [value]="layer.color" (input)="onColorPicked($event)" />
+
+  <!-- Shape selector button -->
   <button class="shape-selected-button" (click)="openShapeDropdown()">
-    {{ selectedShape }}
+    <span class="shape-preview">{{ shapeIcons[layer.shape] }}</span>
+    {{ layer.shape | titlecase }}
   </button>
 
-  <!-- Template for floating dropdown -->
+  <!-- Remove button -->
+  <button class="remove-btn" (click)="remove.emit()">✕</button>
+
+  <!-- Floating dropdown template -->
   <ng-template #shapeDropdown>
     <div class="shape-dropdown">
       <button *ngFor="let shape of shapes" (click)="selectShape(shape)">
-        {{ shape }}
+        <span class="shape-preview">{{ shapeIcons[shape] }}</span>
+        {{ shape | titlecase }}
       </button>
     </div>
   </ng-template>
+
+  
+
 </div>

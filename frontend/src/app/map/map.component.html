@@ -1,94 +1,78 @@
 <div class="page">
+  <!-- Sidebar -->
   <aside class="sidebar">
-    <h1>GIS Web Viewer</h1>
 
-    <!-- Planet Buttons -->
-    <div class="planet-buttons">
-      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
-      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
-      <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
-    </div>
+    <!-- Top section: header + planet buttons + add-layer -->
+    <div class="sidebar-top">
+      <h1>GIS Web Viewer</h1>
 
-    <!-- Layer List -->
-    <div class="overlay-panel" cdkDropList (cdkDropListDropped)="onLayerDropped($event)">
-      <div *ngIf="layers.length === 0" class="empty-hint">No layers available for this planet.</div>
-
-      <div class="layers-list">
-        <label *ngFor="let layer of layers; let i = index" class="overlay-item" cdkDrag>
-          <span class="drag-handle">⠿</span>
-          <span class="layer-number">{{ i + 1 }}</span>
-
-          <input type="checkbox" [checked]="layer.visible" (change)="toggleLayer(layer)" />
-
-          <div class="layer-info">
-            <strong>{{ layer.name }}</strong>
-            <span class="hint">{{ layer.description }}</span>
-          </div>
-
-          <div class="layer-controls">
-            <input type="color" [(ngModel)]="layer.color" (change)="updateLayerStyle(layer)" title="Layer Color" />
-            <div class="shape-dropdown-wrapper">
-              <div class="shape-selected" (click)="toggleShapeDropdown(layer)">
-                <svg width="20" height="20" viewBox="0 0 20 20">
-                  <ng-container [ngSwitch]="layer.shape">
-                    <circle *ngSwitchCase="'circle'" cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
-                    <rect *ngSwitchCase="'square'" x="3" y="3" width="14" height="14" [attr.fill]="layer.color"></rect>
-                    <polygon *ngSwitchCase="'triangle'" points="10,2 18,18 2,18" [attr.fill]="layer.color"></polygon>
-                    <polygon *ngSwitchCase="'diamond'" points="10,2 18,10 10,18 2,10" [attr.fill]="layer.color"></polygon>
-                    <polygon *ngSwitchCase="'pentagon'" points="10,2 18,8 15,18 5,18 2,8" [attr.fill]="layer.color"></polygon>
-                    <polygon *ngSwitchCase="'hexagon'" points="5,2 15,2 18,10 15,18 5,18 2,10" [attr.fill]="layer.color"></polygon>
-                    <polygon *ngSwitchCase="'star'" points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" [attr.fill]="layer.color"></polygon>
-                    <circle *ngSwitchDefault cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
-                  </ng-container>
-                </svg>
-              </div>
-
-              <ul class="shape-options" *ngIf="layer.isDropdownOpen">
-                <li *ngFor="let s of availableShapes" (click)="selectShape(layer, s)">
-                  <svg width="20" height="20" viewBox="0 0 20 20">
-                    <ng-container [ngSwitch]="s">
-                      <circle *ngSwitchCase="'circle'" cx="10" cy="10" r="8" [attr.fill]="layer.color"></circle>
-                      <rect *ngSwitchCase="'square'" x="3" y="3" width="14" height="14" [attr.fill]="layer.color"></rect>
-                      <polygon *ngSwitchCase="'triangle'" points="10,2 18,18 2,18" [attr.fill]="layer.color"></polygon>
-                      <polygon *ngSwitchCase="'diamond'" points="10,2 18,10 10,18 2,10" [attr.fill]="layer.color"></polygon>
-                      <polygon *ngSwitchCase="'pentagon'" points="10,2 18,8 15,18 5,18 2,8" [attr.fill]="layer.color"></polygon>
-                      <polygon *ngSwitchCase="'hexagon'" points="5,2 15,2 18,10 15,18 5,18 2,10" [attr.fill]="layer.color"></polygon>
-                      <polygon *ngSwitchCase="'star'" points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" [attr.fill]="layer.color"></polygon>
-                    </ng-container>
-                  </svg>
-                </li>
-              </ul>
-            </div>
-
-            <button class="remove-layer-btn" (click)="removeLayer(layer)" title="Remove Layer">×</button>
-          </div>
-
-          <div class="drag-placeholder" *cdkDragPlaceholder></div>
-        </label>
+      <div class="planet-buttons">
+        <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
+        <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
+        <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
       </div>
 
-      <div class="layer-actions">
-        <button class="add-layer-btn" (click)="onAddLayer()">
-          <span class="plus-icon">+</span> Add Layer
-        </button>
+      <div class="add-layer">
+        <button (click)="onAddLayer()">+ Add Layer</button>
       </div>
     </div>
 
-    <!-- Stats Panel -->
-    <div class="stats-panel" *ngIf="map">
-      <div class="stat-item"><strong>Zoom:</strong> {{ zoomDisplay | number:'1.1-2' }}</div>
-      <div class="stat-item"><strong>Lon:</strong> {{ currentLon | number:'1.4-4' }}</div>
-      <div class="stat-item"><strong>Lat:</strong> {{ currentLat | number:'1.4-4' }}</div>
+    <!-- Layer list: scrollable -->
+    <div class="layer-list" cdkDropList [cdkDropListData]="layers" (cdkDropListDropped)="onLayerDropped($event)">
+  <app-layer-item *ngFor="let layer of layers; let i = index"
+                  [layer]="layer"
+                  (visibilityChange)="toggleLayer(layer)"
+                  (colorChange)="onColorPicked(layer, $event)"
+                  (shapeChange)="selectShape(layer, $event)"
+                  (remove)="removeLayer(layer)"
+                  cdkDrag>
+  </app-layer-item>
+</div>
+
+    <!-- Stats panel: fixed at bottom -->
+    <div class="map-stats">
+      <div class="stat-item">
+        <span class="stat-label">Zoom:</span>
+        <span class="stat-value">{{ zoomDisplay }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ lonLabel }}:</span>
+        <span class="stat-value">{{ formattedLon }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ latLabel }}:</span>
+        <span class="stat-value">{{ formattedLat }}</span>
+      </div>
     </div>
   </aside>
 
-  <!-- Map -->
-  <div class="map-wrapper">
+  <!-- Main map area -->
+  <main class="map-main">
+    <!-- Map container -->
     <div #mapContainer class="map-container"></div>
 
+    <!-- App-wide loading spinner -->
     <div class="spinner-overlay" *ngIf="isLoading">
-      <div class="spinner"></div>
-      <div class="spinner-message">{{ loadingMessage }}</div>
+      <div class="spinner">{{ loadingMessage }}</div>
+    </div>
+  </main>
+
+  <!-- Add Layer Modal -->
+  <div class="modal" *ngIf="showAddLayerModal">
+    <div class="modal-content">
+      <h2>Add New Layer</h2>
+      <label>
+        Name:
+        <input type="text" [(ngModel)]="newLayerName" />
+      </label>
+      <label>
+        Description:
+        <input type="text" [(ngModel)]="newLayerDescription" />
+      </label>
+      <div class="modal-actions">
+        <button (click)="confirmAddLayer()">Add</button>
+        <button (click)="cancelAddLayer()">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
