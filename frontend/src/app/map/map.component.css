@@ -242,7 +242,7 @@ body {
 }
 
 .remove-btn:hover {
-  background: #a7a5a5;
+  background: var(--background-color-medium-light);
   transform: spin(25%);
 }
 
@@ -347,6 +347,7 @@ body {
 
 .stat-value {
   font-weight: 400;
+  color: var(--text-color-dark);
   text-align: right;
 }
 

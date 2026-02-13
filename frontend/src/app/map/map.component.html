@@ -20,7 +20,7 @@
 
     <!-- Layer list: scrollable -->
     <div class="layer-list" cdkDropList [cdkDropListData]="layers" (cdkDropListDropped)="onLayerDropped($event)">
-      <app-layer-item *ngFor="let layer of layers; let i = index" [layer]="layer"
+      <app-layer-item *ngFor="let layer of layers; let i = index; trackBy: trackLayer" [layer]="layer"
         (visibilityChange)="toggleLayer(layer)" (colorChange)="onColorPicked(layer, $event)"
         (shapeChange)="selectShape(layer, $event)" (remove)="removeLayer(layer)" cdkDrag>
       </app-layer-item>

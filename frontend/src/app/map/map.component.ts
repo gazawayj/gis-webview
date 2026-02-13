@@ -1,24 +1,29 @@
-import { Component, ElementRef, NgZone, OnInit, AfterViewInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, NgZone, OnInit, AfterViewInit, ViewChild, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { take } from 'rxjs';
+
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { defaults as defaultControls } from 'ol/control';
+
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import Feature from 'ol/Feature';
+import Feature, { FeatureLike } from 'ol/Feature';
 import Point from 'ol/geom/Point';
+
 import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon } from 'ol/style';
+
 import Papa, { ParseResult } from 'papaparse';
 import { LayerItemComponent } from '../layer-item.component';
 
 export interface LayerConfig {
+  id: string;
   name: string;
   description: string;
   visible: boolean;
@@ -33,23 +38,26 @@ export interface LayerConfig {
 
 @Component({
   selector: 'app-map',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule, HttpClientModule, LayerItemComponent],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
 export class MapComponent implements OnInit, AfterViewInit {
+
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
   map!: Map;
   baseLayer!: TileLayer<XYZ>;
   layers: LayerConfig[] = [];
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
+  planetState: Record<string, LayerConfig[]> = {};
+
   zoomDisplay = 2;
   currentLon = 0;
   currentLat = 0;
 
-  // GLOBAL SPINNER
   isLoading = false;
   loadingMessage = '';
 
@@ -57,31 +65,10 @@ export class MapComponent implements OnInit, AfterViewInit {
   newLayerName = '';
   newLayerDescription = '';
 
-  COLOR_PALETTE = [
-    '#3498db', '#e74c3c', '#f1c40f', '#2ecc71',
-    '#9b59b6', '#1abc9c', '#e67e22', '#34495e',
-  ];
-
-  availableShapes: string[] = ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'arrow'];
-
-  planetLayers: Record<string, Omit<LayerConfig, 'color' | 'shape' | 'visible'>[]> = {
-    earth: [
-      { name: 'Basemap', description: 'Earth basemap from ArcGIS Online' },
-      { name: 'NASA FIRMS Fires (24h)', description: 'Fire alerts for the last 24 hours.', isCSV: true, source: 'https://gis-webview.onrender.com/firms', latField: 'latitude', lonField: 'longitude' },
-      { name: 'USGS Earthquakes (24h)', description: 'Earthquakes past 24h', isCSV: true, source: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv', latField: 'latitude', lonField: 'longitude' },
-    ],
-    moon: [
-      { name: 'Basemap', description: 'Moon surface' },
-    ],
-    mars: [
-      { name: 'Basemap', description: 'Mars surface' },
-    ]
-  };
-
-  layerMap: Record<string, VectorLayer<VectorSource>> = {};
-  planetState: Record<string, LayerConfig[]> = {};
-
   private shapeCache: Record<string, Style> = {};
+  private styleFnCache: Record<string, (feature: FeatureLike, resolution: number) => Style> = {};
+  private loadedCSV: Record<string, boolean> = {};
+
 
   readonly BASEMAP_URLS: Record<'earth' | 'moon' | 'mars', string> = {
     earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -89,21 +76,79 @@ export class MapComponent implements OnInit, AfterViewInit {
     mars: 'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png'
   };
 
+  planetLayers: Record<string, LayerConfig[]> = {
+    earth: [
+      {
+        id: 'basemap',
+        name: 'Basemap',
+        description: 'Earth basemap from ArcGIS Online',
+        visible: true,
+        color: '#3498db',
+        shape: 'circle'
+      },
+      {
+        id: 'firms',
+        name: 'NASA FIRMS Fires (24h)',
+        description: 'Fire alerts for the last 24 hours.',
+        visible: true,
+        color: '#e74c3c',
+        shape: 'circle',
+        isCSV: true,
+        source: 'https://gis-webview.onrender.com/firms',
+        latField: 'latitude',
+        lonField: 'longitude'
+      },
+      {
+        id: 'usgs',
+        name: 'USGS Earthquakes (24h)',
+        description: 'Earthquakes past 24h',
+        visible: true,
+        color: '#f1c40f',
+        shape: 'triangle',
+        isCSV: true,
+        source: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv',
+        latField: 'latitude',
+        lonField: 'longitude'
+      }
+    ],
+    moon: [
+      {
+        id: 'moon-basemap',
+        name: 'Basemap',
+        description: 'Moon surface',
+        visible: true,
+        color: '#3498db',
+        shape: 'circle'
+      }
+    ],
+    mars: [
+      {
+        id: 'mars-basemap',
+        name: 'Basemap',
+        description: 'Mars surface',
+        visible: true,
+        color: '#3498db',
+        shape: 'circle'
+      }
+    ]
+  };
+  COLOR_PALETTE = ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+  availableShapes = ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'arrow'];
+
+  layerMap: Record<string, VectorLayer<VectorSource>> = {};
+
   constructor(private ngZone: NgZone, private cdr: ChangeDetectorRef, private http: HttpClient) { }
 
   ngOnInit(): void {
     Object.keys(this.planetLayers).forEach(planet => {
-      this.planetState[planet] = this.planetLayers[planet].map(l => {
-        const isBasemap = l.name === 'Basemap';
-        const color = isBasemap ? '#3498db' : this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
-        const shape = isBasemap ? 'circle' : this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
-        const visible = true;
-        return { ...l, color, shape, visible };
+      this.planetState[planet] = this.planetLayers[planet].map(layer => {
+        const color = this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
+        const shape = this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
+        return { ...layer, color, shape, visible: true };
       });
     });
-
-    this.layers = this.planetState[this.currentPlanet].filter(l => l.name !== 'Basemap');
   }
+
 
   ngAfterViewInit(): void {
     this.baseLayer = new TileLayer({
@@ -122,148 +167,353 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.map.on('pointermove', (evt: any) => {
       const coord = evt.coordinate;
       if (!coord) return;
+
       this.ngZone.run(() => {
         const [lon, lat] = toLonLat(coord);
-        this.currentLon = parseFloat(lon.toFixed(6));
-        this.currentLat = parseFloat(lat.toFixed(6));
-        this.zoomDisplay = parseFloat((view.getZoom() ?? 2).toFixed(2));
+        this.currentLon = +lon.toFixed(6);
+        this.currentLat = +lat.toFixed(6);
+        this.zoomDisplay = +(view.getZoom() ?? 2).toFixed(2);
         this.cdr.detectChanges();
       });
     });
 
-    // Load all CSV layers on startup
-    this.layers.forEach(layer => {
-      if (layer.isCSV) this.loadCSVLayer(layer);
-      else this.addVectorLayer(layer);
-    });
+    // Load layers for the current planet
+    this.loadPlanetLayers(this.currentPlanet);
   }
+
+  /* ================= PLANET ================= */
 
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
-
-    this.showSpinner(`Switching to ${planet}...`);
     this.baseLayer.setSource(new XYZ({ url: this.BASEMAP_URLS[planet] }));
-    Object.values(this.layerMap).forEach(l => this.map.removeLayer(l));
-    this.layerMap = {};
-
-    this.layers = this.planetState[planet].filter(l => l.name !== 'Basemap');
-    this.layers.forEach(layer => {
-      if (layer.isCSV) this.loadCSVLayer(layer);
-      else this.addVectorLayer(layer);
-    });
+    this.loadPlanetLayers(planet);
 
     this.map.getView().setCenter(fromLonLat([0, 0]));
     this.map.getView().setZoom(2);
-    this.hideSpinner();
   }
+
+  /* ================= LAYERS ================= */
 
   toggleLayer(layer: LayerConfig) {
     layer.visible = !layer.visible;
-    const olLayer = this.layerMap[layer.name];
-    if (olLayer) olLayer.setVisible(layer.visible);
-    this.persistLayerState(layer);
+    this.layerMap[layer.id]?.setVisible(layer.visible);
   }
 
-  getStyle(color: string, shape: string): Style {
-    const key = `${shape}-${color}`;
-    if (!this.shapeCache[key]) {
-      let imageStyle;
-      switch (shape.toLowerCase()) {
-        case 'square':
-          imageStyle = new RegularShape({ points: 4, radius: 5, angle: Math.PI / 4, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'triangle':
-          imageStyle = new RegularShape({ points: 3, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'diamond':
-          imageStyle = new RegularShape({ points: 4, radius: 5, angle: 0, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'pentagon':
-          imageStyle = new RegularShape({ points: 5, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'hexagon':
-          imageStyle = new RegularShape({ points: 6, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'star':
-          imageStyle = new RegularShape({ points: 5, radius: 6, radius2: 3, angle: 0, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'cross':
-          imageStyle = new RegularShape({ points: 4, radius: 6, radius2: 0, angle: 0, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-          break;
-        case 'arrow':
-          imageStyle = new Icon({
-            src: 'data:image/svg+xml;utf8,' + encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-                <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
-              </svg>
-            `),
-            scale: 1,
-            anchor: [0.5, 0.5]
-          });
-          break;
-        default:
-          imageStyle = new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-      }
-      this.shapeCache[key] = new Style({ image: imageStyle });
+  removeLayer(layer: LayerConfig) {
+    // Remove from sidebar UI
+    this.layers = this.layers.filter(l => l !== layer);
+
+    // Remove OL layer from map
+    const olLayer = this.layerMap[layer.id];
+    if (olLayer) this.map.removeLayer(olLayer);
+    delete this.layerMap[layer.id];
+
+    // Mark removed in planetState so it never reappears
+    const planetLayers = this.planetState[this.currentPlanet];
+    const idx = planetLayers.findIndex(l => l.id === layer.id);
+    if (idx !== -1) {
+      planetLayers[idx].visible = false; // CSV or non-CSV layer removed permanently
     }
-    return this.shapeCache[key];
   }
 
-  updateLayerStyle(layer: LayerConfig) {
-    const olLayer = this.layerMap[layer.name];
-    if (!olLayer) return;
-    olLayer.setStyle(f => this.getStyle(layer.color, layer.shape));
+
+
+  onAddLayer() {
+    this.showAddLayerModal = true;
   }
 
-  addVectorLayer(layer: LayerConfig) {
-    const vectorLayer = new VectorLayer({
-      source: new VectorSource(),
-      visible: layer.visible,
-      style: f => this.getStyle(layer.color, layer.shape)
+  confirmAddLayer() {
+    const id = crypto.randomUUID();
+
+    const newLayer: LayerConfig = {
+      id,
+      name: this.newLayerName || 'New Layer',
+      description: this.newLayerDescription || '',
+      visible: true,
+      color: this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)],
+      shape: this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)]
+    };
+
+    this.layers.push(newLayer);
+    this.addVectorLayer(newLayer);
+    this.showAddLayerModal = false;
+  }
+
+
+
+  cancelAddLayer() {
+    this.showAddLayerModal = false;
+  }
+
+  /* ================= PLANET LAYER LOADER ================= */
+  private loadPlanetLayers(planet: 'earth' | 'moon' | 'mars') {
+    this.layers = []; // sidebar list
+    Object.values(this.layerMap).forEach(l => this.map.removeLayer(l));
+    this.layerMap = {};
+
+    const planetLayerList = this.planetState[planet];
+
+    planetLayerList.forEach(layer => {
+      // Skip layers explicitly removed
+      if (layer.visible === false && layer.isCSV) return;
+
+      if (layer.isCSV) {
+        if (!this.loadedCSV[layer.id]) {
+          this.loadCSVLayer(layer);       // load CSV once
+          this.loadedCSV[layer.id] = true;
+        }
+      } else {
+        this.addVectorLayer(layer);       // add non-CSV vector layers
+      }
+
+      // Add to sidebar only if not basemap and not removed
+      if (layer.name !== 'Basemap' && layer.visible !== false) {
+        this.layers.push(layer);
+      }
     });
-    this.layerMap[layer.name] = vectorLayer;
-    this.map.addLayer(vectorLayer);
   }
+
+  /* ================= CSV LOADING ================= */
 
   loadCSVLayer(layer: LayerConfig) {
+    if (!layer.source) return;
+
     const vectorSource = new VectorSource();
     const vectorLayer = new VectorLayer({
       source: vectorSource,
       visible: layer.visible,
-      style: f => this.getStyle(layer.color, layer.shape)
+      // Use the cached style function so updates propagate automatically
+      style: this.getStyleFunction(layer)
     });
 
-    this.layerMap[layer.name] = vectorLayer;
+    this.layerMap[layer.id] = vectorLayer;
     this.map.addLayer(vectorLayer);
 
-    if (!layer.source) return;
-
-    this.showSpinner(`Loading ${layer.name}...`);
+    this.isLoading = true;
+    this.loadingMessage = `Loading ${layer.name}...`;
+    this.cdr.detectChanges();
 
     this.http.get(layer.source, { responseType: 'text' }).pipe(take(1)).subscribe({
       next: (csvData: string) => {
         const parsed: ParseResult<any> = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+
         parsed.data.forEach(row => {
-          const lat = parseFloat(row[layer.latField || 'latitude']);
-          const lon = parseFloat(row[layer.lonField || 'longitude']);
+          const lat = parseFloat(row[layer.latField || 'latitude'] || row['Latitude'] || row['LAT']);
+          const lon = parseFloat(row[layer.lonField || 'longitude'] || row['Longitude'] || row['LON']);
           if (!isNaN(lat) && !isNaN(lon)) {
-            vectorSource.addFeature(new Feature({ geometry: new Point(fromLonLat([lon, lat])) }));
+            const feature = new Feature({ geometry: new Point(fromLonLat([lon, lat])) });
+            // Do NOT set static style here — it will use getStyleFunction dynamically
+            vectorSource.addFeature(feature);
           }
         });
-        this.hideSpinner();
+
+        this.isLoading = false;
+        this.loadingMessage = '';
+        this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error(`Error loading ${layer.name}:`, err);
-        this.hideSpinner();
+        this.isLoading = false;
+        this.loadingMessage = '';
+        this.cdr.detectChanges();
       }
     });
   }
 
-  selectShape(layer: LayerConfig, shape: string) {
-    layer.shape = shape;
-    this.updateLayerStyle(layer);
-    this.persistLayerState(layer);
+
+  /* ================= STYLES ================= */
+
+  private getStyleFunction(layer: LayerConfig) {
+    // Return a dynamic style function
+    return (feature: FeatureLike, resolution: number) => {
+      const key = `${layer.shape}-${layer.color}`;
+
+      // Only create a new OL Style if we haven't cached this shape/color combo
+      if (!this.shapeCache[key]) {
+        let imageStyle;
+
+        switch (layer.shape.toLowerCase()) {
+          case 'square':
+            imageStyle = new RegularShape({
+              points: 4,
+              radius: 5,
+              angle: Math.PI / 4,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'triangle':
+            imageStyle = new RegularShape({
+              points: 3,
+              radius: 6,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'diamond':
+            imageStyle = new RegularShape({
+              points: 4,
+              radius: 5,
+              angle: 0,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'pentagon':
+            imageStyle = new RegularShape({
+              points: 5,
+              radius: 6,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'hexagon':
+            imageStyle = new RegularShape({
+              points: 6,
+              radius: 6,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'star':
+            imageStyle = new RegularShape({
+              points: 5,
+              radius: 6,
+              radius2: 3,
+              angle: 0,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+            break;
+
+          case 'arrow':
+            imageStyle = new Icon({
+              src: 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+                <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${layer.color}" stroke="black"/>
+              </svg>
+            `),
+              scale: 1,
+              anchor: [0.5, 0.5]
+            });
+            break;
+
+          default: // circle
+            imageStyle = new CircleStyle({
+              radius: 5,
+              fill: new Fill({ color: layer.color }),
+              stroke: new Stroke({ color: '#000', width: 1 })
+            });
+        }
+
+        this.shapeCache[key] = new Style({ image: imageStyle });
+      }
+
+      return this.shapeCache[key];
+    };
+  }
+
+
+  getStyle(color: string, shape: string): Style {
+    const key = `${shape}-${color}`;
+
+    if (!this.shapeCache[key]) {
+      let imageStyle;
+
+      switch (shape.toLowerCase()) {
+        case 'square':
+          imageStyle = new RegularShape({
+            points: 4,
+            radius: 5,
+            angle: Math.PI / 4,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'triangle':
+          imageStyle = new RegularShape({
+            points: 3,
+            radius: 6,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'diamond':
+          imageStyle = new RegularShape({
+            points: 4,
+            radius: 5,
+            angle: 0,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'pentagon':
+          imageStyle = new RegularShape({
+            points: 5,
+            radius: 6,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'hexagon':
+          imageStyle = new RegularShape({
+            points: 6,
+            radius: 6,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'star':
+          imageStyle = new RegularShape({
+            points: 5,
+            radius: 6,
+            radius2: 3,
+            angle: 0,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+          break;
+
+        case 'arrow':
+          imageStyle = new Icon({
+            src: 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+              <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
+            </svg>
+          `),
+            scale: 1,
+            anchor: [0.5, 0.5]
+          });
+          break;
+
+        default: // circle
+          imageStyle = new CircleStyle({
+            radius: 5,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          });
+      }
+
+      this.shapeCache[key] = new Style({ image: imageStyle });
+    }
+
+    return this.shapeCache[key];
+  }
+
+
+  updateLayerStyle(layer: LayerConfig) {
+    this.layerMap[layer.id]?.setStyle(this.getStyleFunction(layer));
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
@@ -272,112 +522,73 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.persistLayerState(layer);
   }
 
-  removeLayer(layer: LayerConfig) {
-    this.layers = this.layers.filter(l => l !== layer);
-    const olLayer = this.layerMap[layer.name];
-    if (olLayer) this.map.removeLayer(olLayer);
-    delete this.layerMap[layer.name];
-    this.persistPlanetLayers();
-  }
-
-  onAddLayer() {
-    this.newLayerName = '';
-    this.newLayerDescription = '';
-    this.showAddLayerModal = true;
-  }
-
-  confirmAddLayer() {
-    const name = this.newLayerName.trim() || 'New Layer';
-    const randomColor = this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
-    const randomShape = this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
-
-    const newLayer: LayerConfig = {
-      name,
-      description: this.newLayerDescription || 'Custom layer',
-      visible: true,
-      color: randomColor,
-      shape: randomShape
-    };
-
-    this.layers.push(newLayer);
-    this.addVectorLayer(newLayer);
-    this.persistPlanetLayers();
-    this.showAddLayerModal = false;
-  }
-
-  cancelAddLayer() {
-    this.showAddLayerModal = false;
+  selectShape(layer: LayerConfig, shape: string) {
+    layer.shape = shape;
+    this.updateLayerStyle(layer);
+    this.persistLayerState(layer);
   }
 
   persistLayerState(layer: LayerConfig) {
     const planetLayers = this.planetState[this.currentPlanet];
-    const idx = planetLayers.findIndex(l => l.name === layer.name);
-    if (idx !== -1) planetLayers[idx] = { ...layer };
-  }
-
-  persistPlanetLayers() {
-    this.planetState[this.currentPlanet] = [
-      ...this.layers,
-      ...this.planetState[this.currentPlanet].filter(l => l.name === 'Basemap')
-    ];
-  }
-
-  get lonLabel(): string {
-    switch (this.currentPlanet) {
-      case 'moon': return 'Selenographic Longitude';
-      case 'mars': return 'Areographic Longitude';
-      default: return 'Longitude';
+    const idx = planetLayers.findIndex(l => l.id === layer.id);
+    if (idx !== -1) {
+      planetLayers[idx] = { ...layer }; // overwrite with updated color/shape
     }
   }
 
-  get latLabel(): string {
-    switch (this.currentPlanet) {
-      case 'moon': return 'Selenographic Latitude';
-      case 'mars': return 'Areographic Latitude';
-      default: return 'Latitude';
-    }
+  addVectorLayer(layer: LayerConfig) {
+    const vectorLayer = new VectorLayer({
+      source: new VectorSource(),
+      visible: layer.visible,
+      style: this.getStyleFunction(layer)
+    });
+
+    this.layerMap[layer.id] = vectorLayer;
+    this.map.addLayer(vectorLayer);
   }
+
+  /* ================= STATS ================= */
+
+  get lonLabel(): string { return 'Longitude'; }
+  get latLabel(): string { return 'Latitude'; }
 
   get formattedLon(): string {
     const abs = Math.abs(this.currentLon).toFixed(4);
     const dir = this.currentLon >= 0 ? 'E' : 'W';
-    const alt = this.currentLon.toFixed(4);
-    return `${abs}° ${dir} (${alt}°)`;
+    return `${abs}° ${dir}`;
   }
 
   get formattedLat(): string {
     const abs = Math.abs(this.currentLat).toFixed(4);
     const dir = this.currentLat >= 0 ? 'N' : 'S';
-    const alt = this.currentLat.toFixed(4);
-    return `${abs}° ${dir} (${alt}°)`;
+    return `${abs}° ${dir}`;
+  }
+
+  /* ================= DRAG DROP ================= */
+
+  trackLayer(index: number, layer: LayerConfig) {
+    return layer.id;
   }
 
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
+    // Update UI array
     moveItemInArray(this.layers, event.previousIndex, event.currentIndex);
 
-    const allLayers = [
-      ...this.planetState[this.currentPlanet].filter(l => l.name === 'Basemap'),
-      ...this.layers
-    ];
-
-    allLayers.forEach((layer, index) => {
-      const olLayer = this.layerMap[layer.name];
-      if (olLayer) olLayer.setZIndex(index);
+    // Reorder OL layers and update planetState
+    this.layers.forEach((layer, index) => {
+      const olLayer = this.layerMap[layer.id];
+      if (olLayer) {
+        olLayer.setZIndex(index + 1); // keep basemap at 0
+      }
     });
 
-    this.persistPlanetLayers();
-  }
-
-  /** GLOBAL SPINNER HELPERS */
-  showSpinner(message: string) {
-    this.loadingMessage = message;
-    this.isLoading = true;
-    this.cdr.detectChanges();
-  }
-
-  hideSpinner() {
-    this.isLoading = false;
-    this.loadingMessage = '';
-    this.cdr.detectChanges();
+    // Persist the new order for the current planet
+    const planetLayers = this.planetState[this.currentPlanet];
+    // Preserve basemap at index 0
+    const basemap = planetLayers.find(l => l.name === 'Basemap');
+    const nonBasemapLayers = this.layers;
+    this.planetState[this.currentPlanet] = basemap
+      ? [basemap, ...nonBasemapLayers]
+      : [...nonBasemapLayers];
   }
 }
