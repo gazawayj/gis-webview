@@ -64,18 +64,20 @@
   <div class="modal" *ngIf="showAddLayerModal">
     <div class="modal-content">
       <h2>Add New Layer</h2>
+
       <label>
         Name:
-        <input type="text" [(ngModel)]="newLayerName" />
+        <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" autofocus />
       </label>
+
       <label>
         Description:
-        <input type="text" [(ngModel)]="newLayerDescription" />
+        <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
       </label>
+
       <div class="modal-actions">
-        <button (click)="confirmAddLayer()">Add</button>
+        <button (click)="confirmAddLayer()" [disabled]="!newLayerName.trim()">Add</button>
         <button (click)="cancelAddLayer()">Cancel</button>
       </div>
     </div>
   </div>
-</div>
