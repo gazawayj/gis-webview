@@ -139,16 +139,41 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   constructor(private ngZone: NgZone, private cdr: ChangeDetectorRef, private http: HttpClient) { }
 
+  // Helper to pick a unique color+shape combo
+  private pickUniqueColorShape(existingLayers: LayerConfig[]): { color: string; shape: string } {
+    const usedCombos = new Set(existingLayers.map(l => `${l.shape}-${l.color}`));
+
+    // Iterate over all combos to find first unused
+    for (const shape of this.availableShapes) {
+      for (const color of this.COLOR_PALETTE) {
+        const key = `${shape}-${color}`;
+        if (!usedCombos.has(key)) {
+          return { color, shape };
+        }
+      }
+    }
+
+    // If all combos used, fall back to random
+    const color = this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
+    const shape = this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
+    return { color, shape };
+  }
+
+  // =========================
+  // ngOnInit()
+  // =========================
   ngOnInit(): void {
     Object.keys(this.planetLayers).forEach(planet => {
+      const existingLayers: LayerConfig[] = [];
+
       this.planetState[planet] = this.planetLayers[planet].map(layer => {
-        const color = this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
-        const shape = this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
-        return { ...layer, color, shape, visible: true };
+        const { color, shape } = this.pickUniqueColorShape(existingLayers);
+        const newLayer = { ...layer, color, shape, visible: true };
+        existingLayers.push(newLayer); // track assigned combos
+        return newLayer;
       });
     });
   }
-
 
   ngAfterViewInit(): void {
     this.baseLayer = new TileLayer({
@@ -217,8 +242,6 @@ export class MapComponent implements OnInit, AfterViewInit {
     }
   }
 
-
-
   onAddLayer() {
     this.showAddLayerModal = true;
   }
@@ -226,21 +249,22 @@ export class MapComponent implements OnInit, AfterViewInit {
   confirmAddLayer() {
     const id = crypto.randomUUID();
 
+    // Pick unique color+shape for current planet
+    const { color, shape } = this.pickUniqueColorShape(this.layers);
+
     const newLayer: LayerConfig = {
       id,
       name: this.newLayerName || 'New Layer',
       description: this.newLayerDescription || '',
       visible: true,
-      color: this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)],
-      shape: this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)]
+      color,
+      shape
     };
 
     this.layers.push(newLayer);
     this.addVectorLayer(newLayer);
     this.showAddLayerModal = false;
   }
-
-
 
   cancelAddLayer() {
     this.showAddLayerModal = false;
