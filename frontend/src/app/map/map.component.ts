@@ -143,20 +143,21 @@ export class MapComponent implements OnInit, AfterViewInit {
   private pickUniqueColorShape(existingLayers: LayerConfig[]): { color: string; shape: string } {
     const usedCombos = new Set(existingLayers.map(l => `${l.shape}-${l.color}`));
 
-    // Iterate over all combos to find first unused
-    for (const shape of this.availableShapes) {
-      for (const color of this.COLOR_PALETTE) {
-        const key = `${shape}-${color}`;
-        if (!usedCombos.has(key)) {
-          return { color, shape };
-        }
+    // Generate all possible combos
+    const allCombos: { color: string; shape: string }[] = [];
+    for (const color of this.COLOR_PALETTE) {
+      for (const shape of this.availableShapes) {
+        allCombos.push({ color, shape });
       }
     }
 
-    // If all combos used, fall back to random
-    const color = this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
-    const shape = this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
-    return { color, shape };
+    // Find first combo not yet used
+    const availableCombo = allCombos.find(c => !usedCombos.has(`${c.shape}-${c.color}`));
+
+    if (availableCombo) return availableCombo;
+
+    // If all combos used, pick a random one
+    return allCombos[Math.floor(Math.random() * allCombos.length)];
   }
 
   // =========================
@@ -169,11 +170,12 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.planetState[planet] = this.planetLayers[planet].map(layer => {
         const { color, shape } = this.pickUniqueColorShape(existingLayers);
         const newLayer = { ...layer, color, shape, visible: true };
-        existingLayers.push(newLayer); // track assigned combos
+        existingLayers.push(newLayer); // track assigned combos for planet
         return newLayer;
       });
     });
   }
+
 
 
   ngAfterViewInit(): void {
@@ -250,8 +252,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   confirmAddLayer() {
     const id = crypto.randomUUID();
 
-    // Pick unique color+shape for current planet
-    const { color, shape } = this.pickUniqueColorShape(this.layers);
+    const { color, shape } = this.pickUniqueColorShape(this.layers.concat(this.planetState[this.currentPlanet]));
 
     const newLayer: LayerConfig = {
       id,
@@ -263,9 +264,11 @@ export class MapComponent implements OnInit, AfterViewInit {
     };
 
     this.layers.push(newLayer);
+    this.planetState[this.currentPlanet].push(newLayer); // persist in planet
     this.addVectorLayer(newLayer);
     this.showAddLayerModal = false;
   }
+
 
   cancelAddLayer() {
     this.showAddLayerModal = false;
@@ -278,15 +281,20 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.layerMap = {};
 
     const planetLayerList = this.planetState[planet];
+
+    // Track combos used for this planet
     const assignedCombos = new Set<string>();
 
     planetLayerList.forEach(layer => {
-      // Ensure unique shape+color combo per planet
-      if (!layer.color || !layer.shape || assignedCombos.has(`${layer.shape}-${layer.color}`)) {
-        const { color, shape } = this.pickUniqueColorShape(this.layers.concat(planetLayerList));
+      const comboKey = `${layer.shape}-${layer.color}`;
+
+      // Ensure unique combo per planet
+      if (!layer.color || !layer.shape || assignedCombos.has(comboKey)) {
+        const { color, shape } = this.pickUniqueColorShape(planetLayerList.concat(this.layers));
         layer.color = color;
         layer.shape = shape;
       }
+
       assignedCombos.add(`${layer.shape}-${layer.color}`);
 
       // Skip layers explicitly removed (CSV)
@@ -294,19 +302,19 @@ export class MapComponent implements OnInit, AfterViewInit {
 
       if (layer.isCSV) {
         if (!this.loadedCSV[layer.id]) {
-          this.loadCSVLayer(layer);       // load CSV once
+          this.loadCSVLayer(layer);
           this.loadedCSV[layer.id] = true;
         }
       } else {
-        this.addVectorLayer(layer);       // add non-CSV vector layers
+        this.addVectorLayer(layer);
       }
 
-      // Add to sidebar only if not basemap and not removed
       if (layer.name !== 'Basemap' && layer.visible !== false) {
         this.layers.push(layer);
       }
     });
   }
+
 
   /* ================= CSV LOADING ================= */
 
