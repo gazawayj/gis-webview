@@ -48,8 +48,11 @@ export class MapComponent implements OnInit, AfterViewInit {
   zoomDisplay = 2;
   currentLon = 0;
   currentLat = 0;
+
+  // GLOBAL SPINNER
   isLoading = false;
   loadingMessage = '';
+
   showAddLayerModal = false;
   newLayerName = '';
   newLayerDescription = '';
@@ -64,7 +67,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   planetLayers: Record<string, Omit<LayerConfig, 'color' | 'shape' | 'visible'>[]> = {
     earth: [
       { name: 'Basemap', description: 'Earth basemap from ArcGIS Online' },
-      { name: 'FIRMS', description: 'Fire alerts', isCSV: true, source: 'https://gis-webview.onrender.com/firms', latField: 'latitude', lonField: 'longitude' },
+      { name: 'NASA FIRMS Fires (24h)', description: 'Fire alerts for the last 24 hours.', isCSV: true, source: 'https://gis-webview.onrender.com/firms', latField: 'latitude', lonField: 'longitude' },
       { name: 'USGS Earthquakes (24h)', description: 'Earthquakes past 24h', isCSV: true, source: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv', latField: 'latitude', lonField: 'longitude' },
     ],
     moon: [
@@ -94,12 +97,11 @@ export class MapComponent implements OnInit, AfterViewInit {
         const isBasemap = l.name === 'Basemap';
         const color = isBasemap ? '#3498db' : this.COLOR_PALETTE[Math.floor(Math.random() * this.COLOR_PALETTE.length)];
         const shape = isBasemap ? 'circle' : this.availableShapes[Math.floor(Math.random() * this.availableShapes.length)];
-        const visible = isBasemap ? true : true;
+        const visible = true;
         return { ...l, color, shape, visible };
       });
     });
 
-    // Sidebar layers (exclude basemap)
     this.layers = this.planetState[this.currentPlanet].filter(l => l.name !== 'Basemap');
   }
 
@@ -140,6 +142,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
 
+    this.showSpinner(`Switching to ${planet}...`);
     this.baseLayer.setSource(new XYZ({ url: this.BASEMAP_URLS[planet] }));
     Object.values(this.layerMap).forEach(l => this.map.removeLayer(l));
     this.layerMap = {};
@@ -152,6 +155,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     this.map.getView().setCenter(fromLonLat([0, 0]));
     this.map.getView().setZoom(2);
+    this.hideSpinner();
   }
 
   toggleLayer(layer: LayerConfig) {
@@ -235,8 +239,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     if (!layer.source) return;
 
-    this.isLoading = true;
-    this.loadingMessage = `Loading ${layer.name}...`;
+    this.showSpinner(`Loading ${layer.name}...`);
 
     this.http.get(layer.source, { responseType: 'text' }).pipe(take(1)).subscribe({
       next: (csvData: string) => {
@@ -248,15 +251,11 @@ export class MapComponent implements OnInit, AfterViewInit {
             vectorSource.addFeature(new Feature({ geometry: new Point(fromLonLat([lon, lat])) }));
           }
         });
-        this.isLoading = false;
-        this.loadingMessage = '';
-        this.cdr.detectChanges();
+        this.hideSpinner();
       },
       error: (err: any) => {
         console.error(`Error loading ${layer.name}:`, err);
-        this.isLoading = false;
-        this.loadingMessage = '';
-        this.cdr.detectChanges();
+        this.hideSpinner();
       }
     });
   }
@@ -367,5 +366,18 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
 
     this.persistPlanetLayers();
+  }
+
+  /** GLOBAL SPINNER HELPERS */
+  showSpinner(message: string) {
+    this.loadingMessage = message;
+    this.isLoading = true;
+    this.cdr.detectChanges();
+  }
+
+  hideSpinner() {
+    this.isLoading = false;
+    this.loadingMessage = '';
+    this.cdr.detectChanges();
   }
 }
