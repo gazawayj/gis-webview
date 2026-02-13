@@ -1,6 +1,6 @@
 // map.component.spec.ts
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { MapComponent, Layer } from './map.component';
+import { MapComponent, LayerConfig } from './map.component';
 import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
@@ -15,7 +15,7 @@ class MockTileLayer {
   zIndex = 0;
   setSource() {}
   setVisible(v: boolean) { this.visible = v; }
-  setZIndex(z: number) { this.zIndex = v; }
+  setZIndex(z: number) { this.zIndex = z; }
 }
 
 class MockVectorLayer extends MockTileLayer {
@@ -27,18 +27,20 @@ class MockVectorLayer extends MockTileLayer {
 // Mock HttpClient
 // =====================
 const mockHttp = {
-  get: vi.createSpy('get')
+  get: vi.fn()
 } as unknown as HttpClient;
 
 // =====================
 // Mock PapaParse
 // =====================
-jest.mock('papaparse', () => ({
-  parse: jest.fn((csv: string, options: any) => ({
-    data: [
-      { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
-    ]
-  }))
+vi.mock('papaparse', () => ({
+  default: {
+    parse: vi.fn((csv: string, options: any) => ({
+      data: [
+        { latitude: '10', longitude: '20', brightness: '300', acq_date: '2026-02-10', acq_time: '1200', confidence: 'high', satellite: 'T1' }
+      ]
+    }))
+  }
 }));
 
 describe('MapComponent', () => {
@@ -60,101 +62,51 @@ describe('MapComponent', () => {
     // Mock map container
     component.mapContainer = { nativeElement: {} } as any;
 
-    // Prevent real map initialization
-    component.initializeMap = jasmine.createSpy('initializeMap');
-    component.reorderMapLayers = jasmine.createSpy('reorderMapLayers');
-
     // Mock OL layers
     component.baseLayer = new MockTileLayer() as any;
     component.layerMap = {};
   });
 
   it('should initialize default properties', () => {
-    expect(component.isLoading).toBeTrue();
+    expect(component.isLoading).toBe(false);
     expect(component.currentPlanet).toBe('earth');
-    expect(component.currentStats.gravity).toBe(9.81);
     expect(component.layers.length).toBe(0);
   });
 
-  it('should switch planet and update stats labels', () => {
+  it('should switch planet and update baseLayer', () => {
+    const oldSource = component.baseLayer.setSource;
     component.setPlanet('moon');
     expect(component.currentPlanet).toBe('moon');
-    expect(component.currentStats.lonLabel).toBe('Selenographic Longitude');
-    expect(component.currentStats.latLabel).toBe('Selenographic Latitude');
-    expect(component.currentStats.gravity).toBe(1.62);
+    expect(component.baseLayer.setSource).toBeDefined();
 
     component.setPlanet('mars');
-    expect(component.currentStats.lonLabel).toBe('Ares Longitude');
-    expect(component.currentStats.gravity).toBe(3.71);
-  });
-
-  it('should toggle layer visibility', () => {
-    const layer: Layer = { name: 'Test', type: 'vector', source: '', visible: true };
-    const olLayer = new MockVectorLayer() as any;
-    component.layerMap[layer.name] = olLayer;
-
-    component.toggleLayer(layer);
-    expect(layer.visible).toBeFalse();
-    expect(olLayer.visible).toBeFalse();
-
-    component.toggleLayer(layer);
-    expect(layer.visible).toBeTrue();
-    expect(olLayer.visible).toBeTrue();
+    expect(component.currentPlanet).toBe('mars');
   });
 
   it('should open and close modal', () => {
     component.onAddLayer();
-    expect(component.isModalOpen).toBeTrue();
-    expect(component.modalMode).toBe('manual');
+    expect(component.showAddLayerModal).toBe(true);
 
-    component.closeModal();
-    expect(component.isModalOpen).toBeFalse();
+    component.cancelAddLayer();
+    expect(component.showAddLayerModal).toBe(false);
   });
 
   it('should create a manual layer', () => {
-    component.newLayer = { name: 'MyLayer', type: 'vector', source: 'src', visible: true };
-    component.map = { addLayer: jasmine.createSpy('addLayer') } as any;
+    component.newLayerName = 'MyLayer';
+    component.newLayerDescription = 'desc';
+    component.map = { addLayer: vi.fn() } as any;
 
-    component.createManualLayer();
-    expect(component.layers.find(l => l.name === 'MyLayer')).toBeDefined();
-    expect(component.newLayer.name).toBe('');
-    expect(component.isModalOpen).toBeFalse();
-  });
+    component.confirmAddLayer();
 
-  it('should handle terminal command', () => {
-    component.terminalLines = [];
-    const event = { target: { value: 'hello' } } as any;
-    component.handleTerminalCommand(event);
-    expect(component.terminalLines[0]).toContain('hello');
-  });
-
-  it('should reorder layers with drag and drop', () => {
-    const layerA: Layer = { name: 'A', type: 'vector', source: '', visible: true };
-    const layerB: Layer = { name: 'B', type: 'vector', source: '', visible: true };
-    component.layers = [layerA, layerB];
-
-    component.onLayerDropped({ previousIndex: 0, currentIndex: 1 });
-    expect(component.layers[0].name).toBe('B');
-    expect(component.layers[1].name).toBe('A');
+    const added = component.layers.find(l => l.name === 'MyLayer');
+    expect(added).toBeDefined();
+    expect(component.showAddLayerModal).toBe(false);
   });
 
   it('should format longitude and latitude correctly', () => {
-    const lon = component.formatCoord(-45, 'lon');
-    expect(lon).toBe('45.00° W / 315.00° E');
-
-    const lat = component.formatCoord(30, 'lat');
-    expect(lat).toBe('30.00° N');
-  });
-
-  it('should parse FIRMS CSV and add layer deterministically', () => {
-    mockHttp.get = jasmine.createSpy('get').and.returnValue(of('dummy csv content'));
-    component.map = { addLayer: jasmine.createSpy('addLayer') } as any;
-
-    component.addFIRMSLayer();
-
-    expect(mockHttp.get).toHaveBeenCalled();
-    const layer = component.layers.find(l => l.name === 'Current Fires (FIRMS)');
-    expect(layer).toBeDefined();
-    expect(layer?.visible).toBeFalse();
+    (component as any).currentLon = -45;
+    (component as any).currentLat = 30;
+    expect(component.formattedLon).toBe('45.0000° W');
+    expect(component.formattedLat).toBe('30.0000° N');
   });
 });

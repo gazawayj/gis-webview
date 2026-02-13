@@ -255,20 +255,30 @@ export class MapComponent implements OnInit, AfterViewInit {
     const planetLayerList = this.planetState[planet];
 
     planetLayerList.forEach(layer => {
-      // Skip layers explicitly removed
-      if (layer.visible === false && layer.isCSV) return;
+      // Skip basemap
+      if (layer.name === 'Basemap') return;
 
-      if (layer.isCSV) {
-        if (!this.loadedCSV[layer.id]) {
-          this.loadCSVLayer(layer);       // load CSV once
-          this.loadedCSV[layer.id] = true;
+      let olLayer = this.layerMap[layer.id];
+
+      if (!olLayer) {
+        if (layer.isCSV) {
+          if (!this.loadedCSV[layer.id]) {
+            this.loadCSVLayer(layer);
+            this.loadedCSV[layer.id] = true;
+          }
+        } else {
+          this.addVectorLayer(layer);
         }
-      } else {
-        this.addVectorLayer(layer);       // add non-CSV vector layers
+        olLayer = this.layerMap[layer.id];
       }
 
-      // Add to sidebar only if not basemap and not removed
-      if (layer.name !== 'Basemap' && layer.visible !== false) {
+      // Ensure OL layer visibility matches layer.visible
+      if (olLayer) {
+        olLayer.setVisible(layer.visible);
+      }
+
+      // Add to sidebar only if not removed
+      if (layer.visible !== false) {
         this.layers.push(layer);
       }
     });
