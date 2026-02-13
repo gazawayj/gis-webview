@@ -175,6 +175,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
   }
 
+
   ngAfterViewInit(): void {
     this.baseLayer = new TileLayer({
       source: new XYZ({ url: this.BASEMAP_URLS[this.currentPlanet] }),
@@ -277,32 +278,31 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.layerMap = {};
 
     const planetLayerList = this.planetState[planet];
+    const assignedCombos = new Set<string>();
 
     planetLayerList.forEach(layer => {
-      // Skip basemap
-      if (layer.name === 'Basemap') return;
+      // Ensure unique shape+color combo per planet
+      if (!layer.color || !layer.shape || assignedCombos.has(`${layer.shape}-${layer.color}`)) {
+        const { color, shape } = this.pickUniqueColorShape(this.layers.concat(planetLayerList));
+        layer.color = color;
+        layer.shape = shape;
+      }
+      assignedCombos.add(`${layer.shape}-${layer.color}`);
 
-      let olLayer = this.layerMap[layer.id];
+      // Skip layers explicitly removed (CSV)
+      if (layer.visible === false && layer.isCSV) return;
 
-      if (!olLayer) {
-        if (layer.isCSV) {
-          if (!this.loadedCSV[layer.id]) {
-            this.loadCSVLayer(layer);
-            this.loadedCSV[layer.id] = true;
-          }
-        } else {
-          this.addVectorLayer(layer);
+      if (layer.isCSV) {
+        if (!this.loadedCSV[layer.id]) {
+          this.loadCSVLayer(layer);       // load CSV once
+          this.loadedCSV[layer.id] = true;
         }
-        olLayer = this.layerMap[layer.id];
+      } else {
+        this.addVectorLayer(layer);       // add non-CSV vector layers
       }
 
-      // Ensure OL layer visibility matches layer.visible
-      if (olLayer) {
-        olLayer.setVisible(layer.visible);
-      }
-
-      // Add to sidebar only if not removed
-      if (layer.visible !== false) {
+      // Add to sidebar only if not basemap and not removed
+      if (layer.name !== 'Basemap' && layer.visible !== false) {
         this.layers.push(layer);
       }
     });
