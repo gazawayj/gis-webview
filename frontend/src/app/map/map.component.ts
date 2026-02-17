@@ -13,7 +13,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService } from './services/map-facade.service';
-import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
+import { LayerManagerService, LayerConfig, ShapeType } from './services/layer-manager.service';
 
 @Component({
   selector: 'app-map',
@@ -129,7 +129,8 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.updateStyle(layer);
   }
 
-  selectShape(layer: LayerConfig, shape: string) {
+  /** Type-safe shape selection */
+  selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
     layer.shape = shape;
     this.layerManager.updateStyle(layer);
   }

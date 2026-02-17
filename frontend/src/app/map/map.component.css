@@ -101,31 +101,27 @@ body {
   /* allow flex to shrink properly */
   display: flex;
   flex-direction: column-reverse;
-  gap: 0.5rem;
+  gap: 0.25rem;
   overflow-y: auto;
   background-color: var(--panel-bg);
   border-radius: 8px;
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
   /* small vertical padding, no horizontal */
 }
 
-/* ================= LAYER LIST ================= */
 .layer-item-wrapper {
   width: 90%;
-  /* limit the width so it doesn't stretch fully */
   margin: 0 auto 0.5rem;
-  /* center horizontally and keep gap */
   display: block;
 }
 
 .layer-item {
   width: 100%;
-  /* now fills only the wrapper */
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 5px;
   border-radius: 6px;
   background-color: var(--text-color-light);
   color: var(--primary-color);

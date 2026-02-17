@@ -7,7 +7,7 @@ import { Map as OlMap } from 'ol';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
-import { StyleService } from './style.service';
+import { StyleService, ShapeType } from './style.service';
 import { HttpClient } from '@angular/common/http';
 import Papa from 'papaparse';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -15,8 +15,8 @@ import { BehaviorSubject } from 'rxjs';
 
 const BASEMAP_URLS: Record<string, string> = {
   earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  moon: 'https://tileserver.example.com/moon/{z}/{x}/{y}.png',
-  mars: 'https://tileserver.example.com/mars/{z}/{x}/{y}.png'
+  moon: 'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png',
+  mars: 'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png'
 };
 
 const FIRMS_CSV_URL = 'https://gis-webview.onrender.com/firms';
@@ -27,7 +27,7 @@ export interface LayerConfig {
   name: string;
   color: string;
   visible: boolean;
-  shape: string;
+  shape: ShapeType | 'none';
   olLayer: TileLayer<XYZ> | VectorLayer<VectorSource>;
   isBasemap?: boolean;
   description?: string;
@@ -42,6 +42,9 @@ export class LayerManagerService {
 
   private _map?: OlMap;
   public layers: LayerConfig[] = [];
+
+  /** Holds already-created planet layers for persistence */
+  private planetLayers: Record<string, LayerConfig[]> = {};
 
   public isLoading$ = new BehaviorSubject<boolean>(false);
   public loadingMessage$ = new BehaviorSubject<string>('');
@@ -58,10 +61,12 @@ export class LayerManagerService {
   private setLoading(layerId: string, loading: boolean) {
     if (loading) this._loadingLayers.add(layerId);
     else this._loadingLayers.delete(layerId);
-    this.loadingLayers$.next(new Set(this._loadingLayers));
 
+    this.loadingLayers$.next(new Set(this._loadingLayers));
     this.isLoading$.next(this._loadingLayers.size > 0);
-    this.loadingMessage$.next(this._loadingLayers.size > 0 ? `Loading ${[...this._loadingLayers].join(', ')}...` : '');
+    this.loadingMessage$.next(
+      this._loadingLayers.size > 0 ? `Loading ${[...this._loadingLayers].join(', ')}...` : ''
+    );
   }
 
   loadPlanet(planet: 'earth' | 'moon' | 'mars') {
@@ -76,8 +81,15 @@ export class LayerManagerService {
     this.layers.push(basemap);
     this._map.addLayer(basemap.olLayer);
 
-    // Add planet-specific layers
-    const defaultLayers = this.createDefaultLayers(planet);
+    // Add planet-specific layers, using persistent LayerConfig if available
+    let defaultLayers: LayerConfig[];
+    if (this.planetLayers[planet]) {
+      defaultLayers = this.planetLayers[planet];
+    } else {
+      defaultLayers = this.createDefaultLayers(planet);
+      this.planetLayers[planet] = defaultLayers;
+    }
+
     defaultLayers.forEach(layer => {
       this.layers.push(layer);
       this._map!.addLayer(layer.olLayer);
@@ -89,7 +101,15 @@ export class LayerManagerService {
   createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
     const url = BASEMAP_URLS[planet] || BASEMAP_URLS['earth'];
     const olLayer = new TileLayer({ source: new XYZ({ url }), zIndex: 0 });
-    return { id: 'basemap', name: 'Basemap', color: '#ffffff', visible: true, shape: 'none', olLayer, isBasemap: true };
+    return {
+      id: 'basemap',
+      name: 'Basemap',
+      color: '#ffffff',
+      shape: 'none',
+      visible: true,
+      olLayer,
+      isBasemap: true
+    };
   }
 
   createDefaultLayers(planet: string): LayerConfig[] {
@@ -195,7 +215,7 @@ export class LayerManagerService {
   addManualLayer(planet: string, name: string, description: string) {
     if (!this._map) return;
 
-    // Random style assignment
+    // Assign persistent random style
     const { color, shape } = this.styleService.getRandomStyleProps();
     const olLayer = new VectorLayer({
       source: new VectorSource(),
@@ -239,3 +259,5 @@ export class LayerManagerService {
     });
   }
 }
+export type { ShapeType };
+
