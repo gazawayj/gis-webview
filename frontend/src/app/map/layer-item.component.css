@@ -36,6 +36,10 @@
   flex-shrink: 0;     /* stays compact */
 }
 
+:host input[type="checkbox"] {
+  accent-color: var(--primary-color);
+}
+
 .layer-controls button,
 .layer-controls input[type="color"] {
   border: none;

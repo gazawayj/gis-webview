@@ -244,9 +244,17 @@ export class LayerManagerService {
 
   remove(layer: LayerConfig) {
     if (!this._map) return;
+    // Remove from map
     this._map.removeLayer(layer.olLayer);
+    // Remove from active layers
     this.layers = this.layers.filter(l => l.id !== layer.id);
+    // ALSO remove from persistent planet store
+    Object.keys(this.planetLayers).forEach(planet => {
+      this.planetLayers[planet] =
+        this.planetLayers[planet].filter(l => l.id !== layer.id);
+    });
   }
+
 
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
@@ -257,6 +265,12 @@ export class LayerManagerService {
     layers.forEach((layer, idx) => {
       if (layer.olLayer.setZIndex) layer.olLayer.setZIndex(idx + 1);
     });
+  }
+
+  persistCurrentOrder(planet: 'earth' | 'moon' | 'mars') {
+    // Store a shallow copy preserving order
+    this.planetLayers[planet] = this.layers
+      .filter(l => !l.isBasemap);
   }
 }
 export type { ShapeType };

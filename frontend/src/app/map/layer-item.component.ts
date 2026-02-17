@@ -1,13 +1,25 @@
-import { Component, ElementRef, EventEmitter, Input, Output, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef
+} from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
+
+import { ShapeType } from './services/style.service';
 
 export interface LayerItem {
   name: string;
   visible: boolean;
   color: string;
-  shape: string;
+  shape: ShapeType | 'none';
 }
 
 @Component({
@@ -18,30 +30,52 @@ export interface LayerItem {
   styleUrls: ['./layer-item.component.css']
 })
 export class LayerItemComponent {
+
   @Input() layer!: LayerItem;
+
   @Output() visibilityChange = new EventEmitter<boolean>();
   @Output() colorChange = new EventEmitter<string>();
-  @Output() shapeChange = new EventEmitter<string>();
+  @Output() shapeChange = new EventEmitter<ShapeType | 'none'>();
   @Output() remove = new EventEmitter<void>();
 
-  @ViewChild('shapeDropdown', { static: true }) shapeDropdown!: TemplateRef<any>;
-  shapes = ['Circle', 'Square', 'Triangle', 'Diamond', 'Pentagon', 'Hexagon', 'Star', 'Arrow'];
+  @ViewChild('shapeDropdown', { static: true })
+  shapeDropdown!: TemplateRef<any>;
+
+  shapes: (ShapeType | 'none')[] = [
+    'circle',
+    'square',
+    'triangle',
+    'diamond',
+    'pentagon',
+    'hexagon',
+    'star',
+    'arrow'
+  ];
+
   private overlayRef!: OverlayRef;
 
-  constructor(private overlay: Overlay, private vcr: ViewContainerRef, private elRef: ElementRef) { }
+  constructor(
+    private overlay: Overlay,
+    private vcr: ViewContainerRef,
+    private elRef: ElementRef
+  ) { }
 
+  // ===== Visibility =====
   toggleVisibility(event: MouseEvent) {
     event.stopPropagation();
     this.visibilityChange.emit(!this.layer.visible);
   }
 
+  // ===== Color Picker =====
   onColorPicked(event: Event) {
     const value = (event.target as HTMLInputElement)?.value;
     if (value) this.colorChange.emit(value);
   }
 
+  // ===== Shape Dropdown =====
   openShapeDropdown() {
     if (this.overlayRef) this.overlayRef.dispose();
+
     const buttonEl = this.elRef.nativeElement.querySelector('.shape-selected-button');
     if (!buttonEl) return;
 
@@ -65,12 +99,14 @@ export class LayerItemComponent {
     });
 
     this.overlayRef.backdropClick().subscribe(() => this.overlayRef.dispose());
+
     const portal = new TemplatePortal(this.shapeDropdown, this.vcr);
     this.overlayRef.attach(portal);
   }
 
-  selectShape(shape: string) {
-    this.shapeChange.emit(shape.toLowerCase());
+  // ===== Shape Selection =====
+  selectShape(shape: ShapeType | 'none') {
+    this.shapeChange.emit(shape);
     if (this.overlayRef) this.overlayRef.dispose();
   }
 }

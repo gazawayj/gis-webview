@@ -144,6 +144,7 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.layers = basemap ? [basemap, ...nonBasemapLayers] : [...nonBasemapLayers];
 
     this.layerManager.reorderLayers(this.layerManager.layers);
+    this.layerManager.persistCurrentOrder(this.currentPlanet);
     this.cdr.detectChanges();
   }
 
