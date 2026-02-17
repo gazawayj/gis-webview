@@ -1,83 +1,69 @@
 <div class="page">
-  <!-- Sidebar -->
   <aside class="sidebar">
+    <h1>GIS Web Viewer</h1>
 
-    <!-- Top section: header + planet buttons + add-layer button -->
-    <div class="sidebar-top">
-      <h1>GIS Web Viewer</h1>
+    <!-- Planet buttons -->
+    <div class="planet-buttons">
+      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
+      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
+      <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
+    </div>
 
-      <div class="planet-buttons">
-        <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
-        <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
-        <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
-      </div>
+    <!-- Add layer button -->
+    <div class="add-layer">
+      <button (click)="onAddLayer()">Add Layer</button>
+    </div>
 
-      <!-- Add Layer button on the right -->
-      <div class="add-layer">
-        <button (click)="onAddLayer()">+ Add Layer</button>
+    <!-- Layer list with drag & drop -->
+    <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
+      <ng-container *ngFor="let layer of sidebarLayers; let i = index; trackBy: trackLayer">
+        <div class="layer-item-wrapper" cdkDrag>
+          <app-layer-item
+            [layer]="layer"
+            (visibilityChange)="toggleLayer(layer)"
+            (colorChange)="onColorPicked(layer, $event)"
+            (shapeChange)="selectShape(layer, $event)"
+            (remove)="removeLayer(layer)">
+          </app-layer-item>
+        </div>
+      </ng-container>
+
+      <!-- No layers tooltip -->
+      <div *ngIf="sidebarLayers.length === 0" class="no-layers-tooltip">
+        No layers added.
       </div>
     </div>
 
-    <!-- Layer list: scrollable -->
-    <div class="layer-list" cdkDropList [cdkDropListData]="layers" (cdkDropListDropped)="onLayerDropped($event)">
-      <app-layer-item *ngFor="let layer of layers; let i = index; trackBy: trackLayer" [layer]="layer"
-        (visibilityChange)="toggleLayer(layer)" (colorChange)="onColorPicked(layer, $event)"
-        (shapeChange)="selectShape(layer, $event)" (remove)="removeLayer(layer)" cdkDrag>
-      </app-layer-item>
-      <div *ngIf="layers.length === 0" class="no-layers-tooltip">
-        No layers in the list yet, use 'Add Layer' above.
-      </div>
-    </div>
-
-    <!-- Stats panel: fixed at bottom -->
+    <!-- Live stats under layer list -->
     <div class="map-stats">
-      <div class="stat-item">
-        <span class="stat-label">Zoom:</span>
-        <span class="stat-value">{{ zoomDisplay }}</span>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
+    </div>
+
+    <!-- Global loading overlay (popup spinner) -->
+    <div class="spinner-overlay" *ngIf="isLoading">
+      <div class="spinner">
+        <div class="double-bounce1"></div>
+        <div class="double-bounce2"></div>
       </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ lonLabel }}:</span>
-        <span class="stat-value">{{ formattedLon }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ latLabel }}:</span>
-        <span class="stat-value">{{ formattedLat }}</span>
+      <div class="loading-message">{{ loadingMessage }}</div>
+    </div>
+
+    <!-- Add Layer Modal -->
+    <div class="modal" *ngIf="showAddLayerModal">
+      <div class="modal-content">
+        <h3>Add New Layer</h3>
+        <label>Name:<input type="text" [(ngModel)]="newLayerName" /></label>
+        <label>Description:<input type="text" [(ngModel)]="newLayerDescription" /></label>
+        <div class="modal-actions">
+          <button (click)="confirmAddLayer()">Add</button>
+          <button (click)="cancelAddLayer()">Cancel</button>
+        </div>
       </div>
     </div>
   </aside>
 
-  <!-- Main map area -->
-  <main class="map-main">
-    <!-- Map container -->
-    <div #mapContainer class="map-container"></div>
-
-    <!-- Global spinner overlay -->
-    <div class="spinner-overlay" *ngIf="isLoading">
-      <div class="spinner-content">
-        <div class="spinner-icon"></div>
-        <div class="spinner-message">{{ loadingMessage }}</div>
-      </div>
-    </div>
-  </main>
-
-  <!-- Add Layer Modal -->
-  <div class="modal" *ngIf="showAddLayerModal">
-    <div class="modal-content">
-      <h2>Add New Layer</h2>
-
-      <label>
-        Name:
-        <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" autofocus />
-      </label>
-
-      <label>
-        Description:
-        <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
-      </label>
-
-      <div class="modal-actions">
-        <button (click)="confirmAddLayer()" [disabled]="!newLayerName.trim()">Add</button>
-        <button (click)="cancelAddLayer()">Cancel</button>
-      </div>
-    </div>
-  </div>
+  <!-- Map container -->
+  <div #mapContainer class="map-container"></div>
+</div>
