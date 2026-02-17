@@ -4,12 +4,16 @@ import {
   ViewChild,
   AfterViewInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  TemplateRef,
+  ViewContainerRef
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
 
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService } from './services/map-facade.service';
@@ -28,9 +32,10 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true })
   mapContainer!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
+
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
 
-  // ===== UI STATE =====
   zoomDisplay = '2';
   lonLabel = 'Lon';
   latLabel = 'Lat';
@@ -40,41 +45,42 @@ export class MapComponent implements AfterViewInit {
   isLoading = false;
   loadingMessage = '';
 
-  showAddLayerModal = false;
+  /** Modal state */
+  modalMode: 'menu' | 'manual' | 'console' = 'menu';
+
+  /** Manual input fields */
   newLayerName = '';
   newLayerDescription = '';
+  sourceType: 'CSV' | 'GeoJSON' = 'CSV';
+  sourceUrl = '';
+  latField = 'latitude';
+  lonField = 'longitude';
+
+  public overlayRef!: OverlayRef;
 
   constructor(
     private mapFacade: MapFacadeService,
     private layerManager: LayerManagerService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private overlay: Overlay,
+    private vcr: ViewContainerRef
   ) { }
 
-  // ===== Accessors for template =====
   get sidebarLayers(): LayerConfig[] {
     return this.layerManager.layers.filter(layer => !layer.isBasemap);
   }
 
-  get loadingLayers$() {
-    return this.layerManager.loadingLayers$;
-  }
-
   ngAfterViewInit() {
-    // Initialize the map
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
-
-    // Attach map to layer manager
     this.layerManager.attachMap(this.mapFacade.map);
 
-    // Track pointer stats for live display
-    this.mapFacade.trackPointer((lon: number, lat: number, zoom: number) => {
+    this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
       this.currentLat = lat;
       this.zoomDisplay = zoom.toFixed(2);
       this.cdr.detectChanges();
     });
 
-    // Subscribe to global loading spinner
     this.layerManager.loadingLayers$.subscribe(() => {
       const layers = Array.from(this.layerManager.loadingLayers$.value);
       this.isLoading = layers.length > 0;
@@ -82,39 +88,69 @@ export class MapComponent implements AfterViewInit {
       this.cdr.detectChanges();
     });
 
-    // Load all default layers for current planet
     this.layerManager.loadPlanet(this.currentPlanet);
   }
 
+  // ===== Modal Control =====
+
+  onAddLayer() {
+    this.modalMode = 'manual';
+    this.openModal();
+  }
+
+  getModalTitle(): string {
+    switch (this.modalMode) {
+      case 'manual':
+        return 'Add New Manual Layer';
+      case 'console':
+        return 'Layer Console';
+      default: // 'menu'
+        return 'Add New Layer';
+    }
+  }
+
+  openModal() {
+    this.overlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-dark-backdrop',
+      positionStrategy: this.overlay.position()
+        .global()
+        .centerHorizontally()
+        .centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block()
+    });
+
+    this.overlayRef.backdropClick().subscribe(() => this.closeModal());
+
+    const portal = new TemplatePortal(this.addLayerModal, this.vcr);
+    this.overlayRef.attach(portal);
+  }
+
+  closeModal() {
+    if (this.overlayRef) this.overlayRef.dispose();
+  }
+
+  // ===== Manual Layer Creation =====
+
+  createManualLayer() {
+    this.layerManager.addManualLayer(
+      this.currentPlanet,
+      this.newLayerName,
+      this.newLayerDescription
+    );
+    this.closeModal();
+  }
+
   // ===== Planet Switching =====
+
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (planet === this.currentPlanet) return;
-
     this.currentPlanet = planet;
     this.mapFacade.setPlanet(planet);
     this.layerManager.loadPlanet(planet);
   }
 
-  // ===== Layer UI Actions =====
-  onAddLayer() {
-    this.showAddLayerModal = true;
-  }
-
-  confirmAddLayer() {
-    this.layerManager.addManualLayer(
-      this.currentPlanet,
-      this.newLayerName.trim(),
-      this.newLayerDescription.trim()
-    );
-
-    this.newLayerName = '';
-    this.newLayerDescription = '';
-    this.showAddLayerModal = false;
-  }
-
-  cancelAddLayer() {
-    this.showAddLayerModal = false;
-  }
+  // ===== Existing Layer UI =====
 
   toggleLayer(layer: LayerConfig) {
     this.layerManager.toggle(layer);
@@ -129,13 +165,11 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.updateStyle(layer);
   }
 
-  /** Type-safe shape selection */
   selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
     layer.shape = shape;
     this.layerManager.updateStyle(layer);
   }
 
-  // ===== Drag & Drop =====
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
     const nonBasemapLayers = this.layerManager.layers.filter(l => !l.isBasemap);
     moveItemInArray(nonBasemapLayers, event.previousIndex, event.currentIndex);
@@ -144,7 +178,6 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.layers = basemap ? [basemap, ...nonBasemapLayers] : [...nonBasemapLayers];
 
     this.layerManager.reorderLayers(this.layerManager.layers);
-    this.layerManager.persistCurrentOrder(this.currentPlanet);
     this.cdr.detectChanges();
   }
 
@@ -152,7 +185,6 @@ export class MapComponent implements AfterViewInit {
     return layer.id;
   }
 
-  // ===== Pointer display helpers =====
   get formattedLon(): string {
     const abs = Math.abs(this.currentLon).toFixed(4);
     const dir = this.currentLon >= 0 ? 'E' : 'W';

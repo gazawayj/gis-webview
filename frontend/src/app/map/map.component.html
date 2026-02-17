@@ -1,4 +1,6 @@
 <div class="page">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <h1>GIS Web Viewer</h1>
 
@@ -16,13 +18,10 @@
 
     <!-- Layer list with drag & drop -->
     <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
-      <ng-container *ngFor="let layer of sidebarLayers; let i = index; trackBy: trackLayer">
+      <ng-container *ngFor="let layer of sidebarLayers; trackBy: trackLayer">
         <div class="layer-item-wrapper" cdkDrag>
-          <app-layer-item
-            [layer]="layer"
-            (visibilityChange)="toggleLayer(layer)"
-            (colorChange)="onColorPicked(layer, $event)"
-            (shapeChange)="selectShape(layer, $event)"
+          <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
+            (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
             (remove)="removeLayer(layer)">
           </app-layer-item>
         </div>
@@ -34,36 +33,103 @@
       </div>
     </div>
 
-    <!-- Live stats under layer list -->
+    <!-- Live stats -->
     <div class="map-stats">
-      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
-      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
-      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
-    </div>
-
-    <!-- Global loading overlay (popup spinner) -->
-    <div class="spinner-overlay" *ngIf="isLoading">
-      <div class="spinner">
-        <div class="double-bounce1"></div>
-        <div class="double-bounce2"></div>
+      <div class="stat-item">
+        <span class="stat-label">{{ lonLabel }}:</span>
+        <span class="stat-value">{{ formattedLon }}</span>
       </div>
-      <div class="loading-message">{{ loadingMessage }}</div>
-    </div>
-
-    <!-- Add Layer Modal -->
-    <div class="modal" *ngIf="showAddLayerModal">
-      <div class="modal-content">
-        <h3>Add New Layer</h3>
-        <label>Name:<input type="text" [(ngModel)]="newLayerName" /></label>
-        <label>Description:<input type="text" [(ngModel)]="newLayerDescription" /></label>
-        <div class="modal-actions">
-          <button (click)="confirmAddLayer()">Add</button>
-          <button (click)="cancelAddLayer()">Cancel</button>
-        </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ latLabel }}:</span>
+        <span class="stat-value">{{ formattedLat }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Zoom:</span>
+        <span class="stat-value">{{ zoomDisplay }}</span>
       </div>
     </div>
+
   </aside>
 
-  <!-- Map container -->
+  <!-- MAP -->
   <div #mapContainer class="map-container"></div>
+
+  <!-- GLOBAL LOADING SPINNER -->
+  <div class="spinner-overlay" *ngIf="isLoading">
+    <div class="spinner">
+      <div class="double-bounce1"></div>
+      <div class="double-bounce2"></div>
+    </div>
+    <div class="loading-message">{{ loadingMessage }}</div>
+  </div>
+
+  <!-- ADD LAYER MODAL CONTENT (CDK Overlay) -->
+  <!-- ================= ADD LAYER MODAL ================= -->
+  <ng-template #addLayerModal>
+    <div class="layer-modal" *ngIf="overlayRef.hasAttached()">
+      <!-- Header -->
+      <div class="layer-modal-header">
+        <h3 class="layer-modal-title">
+          {{ getModalTitle() }}
+        </h3>
+        <button class="close-btn" (click)="closeModal()">×</button>
+      </div>
+
+      <!-- Body -->
+      <div class="layer-modal-body">
+        <!-- Tab buttons -->
+        <div class="modal-tab-buttons">
+          <button [class.active]="modalMode==='manual'" (click)="modalMode='manual'">Manual</button>
+          <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
+        </div>
+
+        <!-- Manual Inputs -->
+        <div class="manual-inputs" *ngIf="modalMode==='manual'">
+          <label>
+            Name:
+            <input type="text" [(ngModel)]="newLayerName" />
+          </label>
+          <label>
+            Description:
+            <input type="text" [(ngModel)]="newLayerDescription" />
+          </label>
+          <label>
+            Source Type:
+            <select [(ngModel)]="sourceType">
+              <option value="CSV">CSV</option>
+              <option value="GeoJSON">GeoJSON</option>
+            </select>
+          </label>
+          <label>
+            Source URL:
+            <input type="text" [(ngModel)]="sourceUrl" />
+          </label>
+          <label>
+            Latitude Field:
+            <input type="text" [(ngModel)]="latField" />
+          </label>
+          <label>
+            Longitude Field:
+            <input type="text" [(ngModel)]="lonField" />
+          </label>
+        </div>
+
+        <!-- Console -->
+        <div class="console" *ngIf="modalMode==='console'">
+          <div class="terminal">
+            <!-- Terminal output here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="modal-actions">
+        <button [disabled]="!newLayerName" (click)="createManualLayer()">Add</button>
+        <button (click)="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+  </ng-template>
+
+
 </div>
