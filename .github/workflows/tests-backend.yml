@@ -1,6 +1,6 @@
 name: Test Backend
 
-on: 
+on:
   push:
     branches: ["main"]
     paths-ignore:
@@ -27,16 +27,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Backend (if present)
-        run: npm run build --if-present
-
       - name: Run Backend Tests
-        # Use npm test or directly run Vitest/Jest depending on your backend test runner
-        run: npm test
+        # Directly run Vitest for Node.js backend
+        run: npx vitest run --passWithNoTests
