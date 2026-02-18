@@ -87,7 +87,7 @@ export class MapComponent implements AfterViewInit {
 
     // Load default layers for the planet
     this.layerManager.loadPlanet(this.currentPlanet);
-    this.updateLayerZIndexes(); // Ensure initial z-indexes are correct
+    this.layerManager.reorderLayers(this.sidebarLayers);
   }
 
   private updateLabels() {
@@ -120,31 +120,21 @@ export class MapComponent implements AfterViewInit {
   }
 
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
-    const sidebarLayers = this.sidebarLayers.slice();
+    const sidebarLayers = [...this.sidebarLayers];
     moveItemInArray(sidebarLayers, event.previousIndex, event.currentIndex);
 
-    this.layerManager.reorderLayers(sidebarLayers);
+    this.layerManager.reorderLayers(sidebarLayers);  // single source of truth
     this.cdr.detectChanges();
-  }
-
-  private updateLayerZIndexes() {
-    let z = 1;
-    this.sidebarLayers.forEach(layer => {
-      layer.olLayer?.setZIndex(z);
-      z++;
-    });
-    const basemap = this.layerManager.layers.find(l => l.isBasemap);
-    if (basemap) basemap.olLayer?.setZIndex(0);
   }
 
   toggleLayer(layer: LayerConfig) {
     this.layerManager.toggle(layer);
-    this.updateLayerZIndexes();
+    this.layerManager.reorderLayers(this.sidebarLayers);
   }
 
   removeLayer(layer: LayerConfig) {
     this.layerManager.remove(layer);
-    this.updateLayerZIndexes();
+    this.layerManager.reorderLayers(this.sidebarLayers);
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
@@ -165,7 +155,7 @@ export class MapComponent implements AfterViewInit {
     this.mapFacade.setPlanet(planet);
     this.layerManager.loadPlanet(planet);
     this.updateLabels();
-    this.updateLayerZIndexes();
+    this.layerManager.reorderLayers(this.sidebarLayers);
   }
 
   onAddLayer() {
@@ -249,7 +239,7 @@ export class MapComponent implements AfterViewInit {
         this.layerManager.loadLayerFromSource(this.previewLayer, this.fileContent);
       }
 
-      this.updateLayerZIndexes();
+      this.layerManager.reorderLayers(this.sidebarLayers);
       this.cdr.detectChanges();
     };
 
@@ -277,10 +267,10 @@ export class MapComponent implements AfterViewInit {
         this.previewLayer = null;
       }
 
-      this.updateLayerZIndexes();
+      this.layerManager.reorderLayers(this.sidebarLayers);
     } else if (this.consoleInput) {
       this.layerManager.addLayerFromConsole(this.currentPlanet, this.consoleInput);
-      this.updateLayerZIndexes();
+      this.layerManager.reorderLayers(this.sidebarLayers);
     }
 
     this.cancelAddLayer();

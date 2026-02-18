@@ -41,7 +41,7 @@ export class LayerManagerService {
   private _loadingLayers = new Set<string>();
   public loadingLayers$ = new BehaviorSubject<Set<string>>(new Set());
 
-  constructor(public styleService: StyleService, private http: HttpClient) {}
+  constructor(public styleService: StyleService, private http: HttpClient) { }
 
   attachMap(map: OlMap) {
     this._map = map;
@@ -153,8 +153,8 @@ export class LayerManagerService {
       if (!parsed.data.length) return false;
 
       const headers = Object.keys(parsed.data[0]).map(h => h.toLowerCase());
-      const latCandidates = ['latitude','lat','y','ycoord','y_coord','ycoordinate'];
-      const lonCandidates = ['longitude','lon','lng','long','x','xcoord','x_coord','xcoordinate'];
+      const latCandidates = ['latitude', 'lat', 'y', 'ycoord', 'y_coord', 'ycoordinate'];
+      const lonCandidates = ['longitude', 'lon', 'lng', 'long', 'x', 'xcoord', 'x_coord', 'xcoordinate'];
       const latField = layer.latField || headers.find(h => latCandidates.includes(h));
       const lonField = layer.lonField || headers.find(h => lonCandidates.includes(h));
       if (!latField || !lonField) return false;
@@ -175,7 +175,7 @@ export class LayerManagerService {
       try {
         const geojson = typeof geojsonData === 'string' ? JSON.parse(geojsonData) : geojsonData;
         if (!geojson?.features?.length) return false;
-        const features = new GeoJSON().readFeatures(geojson, { dataProjection:'EPSG:4326', featureProjection:'EPSG:3857' });
+        const features = new GeoJSON().readFeatures(geojson, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
         if (!features.length) return false;
         source.addFeatures(features);
         return true;
@@ -195,7 +195,7 @@ export class LayerManagerService {
     // ================= URL FETCH PATH =================
     if (layer.sourceUrl) {
       if (layer.sourceType === 'CSV') {
-        this.http.get(layer.sourceUrl, { responseType:'text' }).subscribe({
+        this.http.get(layer.sourceUrl, { responseType: 'text' }).subscribe({
           next: text => processCSV(text),
           error: err => console.warn(`CSV load error: ${err}`),
           complete: finish
@@ -232,7 +232,7 @@ export class LayerManagerService {
 
     const { color, shape } = this.styleService.getRandomStyleProps();
     const vectorLayer = new VectorLayer({ source: new VectorSource(), style: () => this.styleService.getStyle(color, shape) });
-    const config: LayerConfig = { id:`manual-${Date.now()}`, name, description, color, shape, visible:true, olLayer: vectorLayer, sourceType, latField, lonField };
+    const config: LayerConfig = { id: `manual-${Date.now()}`, name, description, color, shape, visible: true, olLayer: vectorLayer, sourceType, latField, lonField };
 
     const success = this.loadLayerFromSource(config, fileContent);
     if (!success) { console.warn('Import rejected: no valid features'); return; }
@@ -253,7 +253,7 @@ export class LayerManagerService {
 
     // Add manually, initially with no content
     this.addManualLayer(planet, name, 'Added from console', undefined, type);
-    const layer = this.layers[this.layers.length-1];
+    const layer = this.layers[this.layers.length - 1];
     layer.sourceUrl = url;
     this.loadLayerFromSource(layer);
   }
