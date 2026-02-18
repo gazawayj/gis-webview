@@ -11,5 +11,9 @@
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.4",
+    "vitest": "^4.0.0"
   }
 }

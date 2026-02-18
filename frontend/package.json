@@ -39,8 +39,6 @@
     "typescript": "~5.9.3",
     "jsdom": "^22.1.0",
     "vitest": "^4.0.18",
-    "supertest": "^6.3.3",
-
     "eslint": "^9.19.0",
     "@eslint/js": "^9.19.0",
     "typescript-eslint": "^8.25.0",
