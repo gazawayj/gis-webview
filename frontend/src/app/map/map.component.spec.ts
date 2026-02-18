@@ -1,6 +1,6 @@
 // frontend/src/app/map/map.component.spec.ts
+import { Component, ElementRef, ViewChild, AfterViewInit, TemplateRef, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, TemplateRef, ViewContainerRef } from '@angular/core';
 import { LayerManagerService } from './services/layer-manager.service';
 import { MapFacadeService } from './services/map-facade.service';
 import { Overlay } from '@angular/cdk/overlay';
@@ -28,6 +28,7 @@ class MapComponentTest implements AfterViewInit {
   currentLat = 0;
   lonLabel = 'Lon';
   latLabel = 'Lat';
+
   newLayerName = '';
   newLayerDescription = '';
   latField = 'latitude';
@@ -117,7 +118,6 @@ describe('MapComponent', () => {
   });
 
   it('should switch planet and update labels', () => {
-    component.currentPlanet = 'earth';
     component.currentPlanet = 'mars';
     component.updateLabels();
     expect(component.lonLabel).toBe('M-Longitude');
