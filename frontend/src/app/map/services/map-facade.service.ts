@@ -13,6 +13,7 @@ export class MapFacadeService {
   map!: Map;
   baseLayer!: TileLayer<XYZ>;
 
+  
   constructor(private zone: NgZone) { }
 
   initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars') {
