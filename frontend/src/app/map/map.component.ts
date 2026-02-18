@@ -209,7 +209,7 @@ export class MapComponent implements AfterViewInit {
       const { color, shape } = this.layerManager.styleService.getRandomStyleProps();
       const vectorLayer = new VectorLayer({
         source: new VectorSource(),
-        style: f => this.layerManager.styleService.getStyle(color, shape)
+        style: this.layerManager.styleService.getStyle(color, shape)
       });
 
       // Remove previous preview layer if any

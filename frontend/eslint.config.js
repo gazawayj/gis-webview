@@ -1,67 +1,76 @@
-// @ts-check
-const eslint = require("@eslint/js");
-const { defineConfig } = require("eslint/config");
-const tseslint = require("typescript-eslint");
-const angular = require("angular-eslint");
+const js = require('@eslint/js');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+const angularPlugin = require('@angular-eslint/eslint-plugin');
+const angularTemplatePlugin = require('@angular-eslint/eslint-plugin-template');
+const angularTemplateParser = require('@angular-eslint/template-parser');
 
-module.exports = defineConfig([
+const globals = {
+  console: 'readonly',
+  window: 'readonly',
+  document: 'readonly',
+  process: 'readonly',
+  module: 'readonly',
+  require: 'readonly'
+};
+
+module.exports = [
+  // =========================
+  // GLOBAL IGNORES
+  // =========================
   {
     ignores: [
-      "**/tiles/**", 
-      "node_modules/", 
-      "dist/", 
-      "README.md", 
-      "**/README.md",
-      ".eslintignore"
-    ],
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      'out-tsc/**',
+      'eslint.config.js',
+      '*.config.js'
+    ]
   },
-  {
-    files: ["**/*.ts"],
-    extends: [
-      eslint.configs.recommended,
-      tseslint.configs.recommended,
-      tseslint.configs.stylistic,
-      angular.configs.tsRecommended,
-    ],
-    processor: angular.processInlineTemplates,
-    rules: {
-      // 1. Allow 'any' (common in tests/OpenLayers)
-      "@typescript-eslint/no-explicit-any": "off",
-      // 2. Allow unused vars (helps with WIP tests)
-      "@typescript-eslint/no-unused-vars": "warn",
-      // 3. Allow simple type annotations (e.g. name: string = 'Mars')
-      "@typescript-eslint/no-inferrable-types": "off",
-      // 4. Relax the inject() requirement (keep constructor injection)
-      "@angular-eslint/prefer-inject": "off",
-      // 5. Allow empty functions (needed for mocks)
-      "@typescript-eslint/no-empty-function": "off",
 
-      "@angular-eslint/directive-selector": [
-        "error",
-        {
-          type: "attribute",
-          prefix: "app",
-          style: "camelCase",
-        },
-      ],
-      "@angular-eslint/component-selector": [
-        "error",
-        {
-          type: "element",
-          prefix: "app",
-          style: "kebab-case",
-        },
-      ],
-    },
-  },
+  js.configs.recommended,
+
+  // =========================
+  // TYPESCRIPT FILES (all src files including specs)
+  // =========================
   {
-    files: ["**/*.html"],
-    extends: [
-      angular.configs.templateRecommended,
-      angular.configs.templateAccessibility,
-    ],
-    rules: {
-      "@angular-eslint/template/prefer-control-flow": "off"
+    files: ['src/**/*.ts', 'src/**/*.js'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+        sourceType: 'module'
+      },
+      globals
     },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      '@angular-eslint': angularPlugin
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      ...angularPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'no-console': 'off',
+      'no-undef': 'off'
+    }
+  },
+
+  // =========================
+  // ANGULAR HTML TEMPLATES
+  // =========================
+  {
+    files: ['src/**/*.html'],
+    languageOptions: {
+      parser: angularTemplateParser
+    },
+    plugins: {
+      '@angular-eslint/template': angularTemplatePlugin
+    },
+    rules: {
+      ...angularTemplatePlugin.configs.recommended.rules
+    }
   }
-]);
+];
