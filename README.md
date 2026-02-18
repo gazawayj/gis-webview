@@ -1,9 +1,8 @@
 # GIS WebView
 
-A modern web application for interactive geospatial visualization and experimentation.
+A modern web application for interactive geospatial visualization and experimentation. The backend sleeps when not in use, so some layers may take a few minutes to load on first launch.
 
-**Live at:** [https://gazawayj.github.io/](https://gazawayj.github.io/)  
-*(Temporarily limited due to backend updates. Still visible, but non-functional for a few days.)*
+**Live at:** [https://gazawayj.github.io/gis-webview/]  
 
 ---
 
@@ -14,6 +13,8 @@ A modern web application for interactive geospatial visualization and experiment
 | **Build** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg" /></a> |
 | **Lint** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
 | **Tests** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml/badge.svg" /></a> |
+
+*(Currently refactoring services, tests may temporarily fail during the system change.)*
 
 ---
 
@@ -32,7 +33,7 @@ The project focuses on rendering planetary-scale spatial data. Raster imagery, v
 This project serves both as:
 
 - A learning project for creating a modern web-based GIS, usable for planetary and exo-planetary investigations.
-- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance.
+- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance (AI features coming soon).
 
 ---
 
@@ -45,10 +46,10 @@ This project serves both as:
   CI pipelines powered by GitHub Actions handle builds, linting, and tests.  
 
 - **Optimized Frontend Bundling**  
-  Webpack-based build.  
+  Webpack-based build using OpenLayers.  
 
 - **Standards-Based Spatial Formats**  
-  Support for GeoJSON.
+  Support for GeoJSON/CSV files and URLs.
 
 ---
 
