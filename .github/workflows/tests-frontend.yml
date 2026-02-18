@@ -13,7 +13,7 @@ on:
       - 'backend/tiles/**/*.png'
 
 jobs:
-  test-frontend:
+  test:
     runs-on: ubuntu-latest
 
     defaults:
@@ -35,5 +35,4 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Run frontend unit tests
-        # Skip backend SSR test files
-        run: npx vitest run --passWithNoTests --include 'src/**/*.spec.ts' --exclude 'src/app/app.spec.ts'
+        run: npx vitest run --passWithNoTests

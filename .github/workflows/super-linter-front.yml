@@ -35,6 +35,7 @@ jobs:
         run: |
           npm install --save-dev \
             eslint@10 @eslint/js \
+            @typescript-eslint/parser @typescript-eslint/eslint-plugin \
             @angular-eslint/eslint-plugin \
             @angular-eslint/eslint-plugin-template \
             @angular-eslint/template-parser \
