@@ -20,7 +20,8 @@ const BASEMAP_URLS: Record<string, string> = {
 };
 
 const FIRMS_CSV_URL = 'https://gis-webview.onrender.com/firms';
-const EARTHQUAKE_GEOJSON_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+const EARTHQUAKE_GEOJSON_URL =
+  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
 
 export interface LayerConfig {
   id: string;
@@ -39,20 +40,16 @@ export interface LayerConfig {
 
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
-
   private _map?: OlMap;
   public layers: LayerConfig[] = [];
-
-  /** Holds already-created planet layers for persistence */
   private planetLayers: Record<string, LayerConfig[]> = {};
 
   public isLoading$ = new BehaviorSubject<boolean>(false);
   public loadingMessage$ = new BehaviorSubject<string>('');
-
   private _loadingLayers = new Set<string>();
   public loadingLayers$ = new BehaviorSubject<Set<string>>(new Set());
 
-  constructor(private styleService: StyleService, private http: HttpClient) { }
+  constructor(public styleService: StyleService, private http: HttpClient) { }
 
   attachMap(map: OlMap) {
     this._map = map;
@@ -65,32 +62,35 @@ export class LayerManagerService {
     this.loadingLayers$.next(new Set(this._loadingLayers));
     this.isLoading$.next(this._loadingLayers.size > 0);
     this.loadingMessage$.next(
-      this._loadingLayers.size > 0 ? `Loading ${[...this._loadingLayers].join(', ')}...` : ''
+      this._loadingLayers.size > 0
+        ? `Loading ${[...this._loadingLayers].join(', ')}...`
+        : ''
     );
   }
 
+  // ================= PLANET LAYERS =================
   loadPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (!this._map) return;
 
     // Remove old layers
-    this.layers.forEach(l => this._map!.removeLayer(l.olLayer));
+    this.layers.forEach((l) => this._map!.removeLayer(l.olLayer));
     this.layers = [];
 
-    // Add basemap
+    // Basemap first
     const basemap = this.createBasemap(planet);
     this.layers.push(basemap);
     this._map.addLayer(basemap.olLayer);
 
-    // Add planet-specific layers, using persistent LayerConfig if available
-    let defaultLayers: LayerConfig[];
+    // Default and manual layers
+    let planetLayerList: LayerConfig[];
     if (this.planetLayers[planet]) {
-      defaultLayers = this.planetLayers[planet];
+      planetLayerList = this.planetLayers[planet];
     } else {
-      defaultLayers = this.createDefaultLayers(planet);
-      this.planetLayers[planet] = defaultLayers;
+      planetLayerList = this.createDefaultLayers(planet);
+      this.planetLayers[planet] = planetLayerList;
     }
 
-    defaultLayers.forEach(layer => {
+    planetLayerList.forEach((layer) => {
       this.layers.push(layer);
       this._map!.addLayer(layer.olLayer);
     });
@@ -104,7 +104,7 @@ export class LayerManagerService {
     return {
       id: 'basemap',
       name: 'Basemap',
-      color: '#ffffff',
+      color: '#fff',
       shape: 'none',
       visible: true,
       olLayer,
@@ -116,11 +116,11 @@ export class LayerManagerService {
     const layers: LayerConfig[] = [];
 
     if (planet === 'earth') {
-      // FIRMS CSV layer
-      const { color: firmsColor, shape: firmsShape } = this.styleService.getRandomStyleProps();
-      const firmsSource = new VectorSource();
+      // FIRMS CSV
+      const { color: firmsColor, shape: firmsShape } =
+        this.styleService.getRandomStyleProps();
       const firmsLayer = new VectorLayer({
-        source: firmsSource,
+        source: new VectorSource(),
         style: (f) => this.styleService.getStyle(firmsColor, firmsShape)
       });
       const firmsConfig: LayerConfig = {
@@ -136,13 +136,13 @@ export class LayerManagerService {
         lonField: 'longitude'
       };
       layers.push(firmsConfig);
-      this.loadCSVLayer(firmsConfig);
+      this.loadLayerFromSource(firmsConfig);
 
-      // Earthquake GeoJSON layer
-      const { color: eqColor, shape: eqShape } = this.styleService.getRandomStyleProps();
-      const eqSource = new VectorSource({ format: new GeoJSON() });
+      // Earthquakes GeoJSON
+      const { color: eqColor, shape: eqShape } =
+        this.styleService.getRandomStyleProps();
       const eqLayer = new VectorLayer({
-        source: eqSource,
+        source: new VectorSource(),
         style: (f) => this.styleService.getStyle(eqColor, eqShape)
       });
       const eqConfig: LayerConfig = {
@@ -156,66 +156,93 @@ export class LayerManagerService {
         sourceUrl: EARTHQUAKE_GEOJSON_URL
       };
       layers.push(eqConfig);
-      this.loadGeoJSONLayer(eqConfig);
+      this.loadLayerFromSource(eqConfig);
     }
 
     return layers;
   }
 
-  private loadCSVLayer(layer: LayerConfig) {
-    if (!layer.sourceUrl || !this._map) return;
+  // ================= NEW: GENERALIZED LAYER LOADING =================
+  loadLayerFromSource(layer: LayerConfig, fileContent?: string) {
+    if (!this._map) return;
+    if (!(layer.olLayer instanceof VectorLayer)) return;
 
-    const vl = layer.olLayer as VectorLayer<VectorSource>;
-    const source = vl.getSource();
+    const source = layer.olLayer.getSource();
     if (!source) return;
 
     this.setLoading(layer.id, true);
 
-    this.http.get(layer.sourceUrl, { responseType: 'text' }).subscribe({
-      next: (csv) => {
-        const parsed = Papa.parse<any>(csv, { header: true, skipEmptyLines: true });
-        parsed.data.forEach((row) => {
-          const lat = parseFloat(row[layer.latField || 'latitude']);
-          const lon = parseFloat(row[layer.lonField || 'longitude']);
-          if (!isNaN(lat) && !isNaN(lon)) {
-            source.addFeature(new Feature(new Point(fromLonLat([lon, lat]))));
+    const processCSV = (csvText: string) => {
+      source.clear();
+      const parsed = Papa.parse<any>(csvText, { header: true, skipEmptyLines: true });
+      parsed.data.forEach((row) => {
+        const lat = parseFloat(row[layer.latField || 'latitude']);
+        const lon = parseFloat(row[layer.lonField || 'longitude']);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          source.addFeature(new Feature(new Point(fromLonLat([lon, lat]))));
+        }
+      });
+      this.setLoading(layer.id, false);
+    };
+
+    const processGeoJSON = (geojsonData: any) => {
+      source.clear();
+      try {
+        const features = new GeoJSON().readFeatures(geojsonData, {
+          dataProjection: 'EPSG:4326',
+          featureProjection: 'EPSG:3857'
+        });
+        if (features.length) source.addFeatures(features);
+      } catch (err) {
+        console.error(`Failed to parse GeoJSON for layer ${layer.name}:`, err);
+      } finally {
+        this.setLoading(layer.id, false);
+      }
+    };
+
+    if (layer.sourceType === 'CSV') {
+      if (fileContent) processCSV(fileContent);
+      else if (layer.sourceUrl) {
+        this.http.get(layer.sourceUrl, { responseType: 'text' }).subscribe({
+          next: processCSV,
+          error: (err) => {
+            console.error(`CSV load error for ${layer.name}:`, err);
+            this.setLoading(layer.id, false);
           }
         });
-        this.setLoading(layer.id, false);
-      },
-      error: (err) => {
-        console.error(`CSV layer load error for ${layer.name}:`, err);
-        this.setLoading(layer.id, false);
       }
-    });
+    } else if (layer.sourceType === 'GeoJSON') {
+      if (fileContent) processGeoJSON(fileContent);
+      else if (layer.sourceUrl) {
+        this.http.get(layer.sourceUrl).subscribe({
+          next: processGeoJSON,
+          error: (err) => {
+            console.error(`GeoJSON load error for ${layer.name}:`, err);
+            this.setLoading(layer.id, false);
+          }
+        });
+      }
+    } else {
+      this.setLoading(layer.id, false);
+    }
   }
 
-  private loadGeoJSONLayer(layer: LayerConfig) {
-    if (!layer.sourceUrl || !this._map) return;
-
-    const vl = layer.olLayer as VectorLayer<VectorSource>;
-    const source = vl.getSource();
-    if (!source) return;
-
-    this.setLoading(layer.id, true);
-
-    this.http.get(layer.sourceUrl).subscribe({
-      next: (geojson: any) => {
-        const features = new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
-        if (features.length) source.addFeatures(features);
-        this.setLoading(layer.id, false);
-      },
-      error: (err) => {
-        console.error(`GeoJSON layer load error for ${layer.name}:`, err);
-        this.setLoading(layer.id, false);
-      }
-    });
-  }
-
-  addManualLayer(planet: string, name: string, description: string) {
+  addManualLayer(
+    planet: 'earth' | 'moon' | 'mars',
+    name: string,
+    description: string,
+    fileContent?: string,
+    sourceType?: 'CSV' | 'GeoJSON',
+    latField?: string,
+    lonField?: string
+  ) {
     if (!this._map) return;
 
-    // Assign persistent random style
+    // Prevent duplicate names for same planet
+    if (!this.planetLayers[planet]) this.planetLayers[planet] = [];
+    const exists = this.planetLayers[planet].some(l => l.name === name);
+    if (exists) return;
+
     const { color, shape } = this.styleService.getRandomStyleProps();
     const olLayer = new VectorLayer({
       source: new VectorSource(),
@@ -229,11 +256,23 @@ export class LayerManagerService {
       color,
       shape,
       visible: true,
-      olLayer
+      olLayer,
+      sourceType,
+      latField,
+      lonField
     };
 
+    // Add to planet dictionary
+    this.planetLayers[planet].push(layer);
+
+    // Add to map and master layers array
     this.layers.push(layer);
     this._map.addLayer(olLayer);
+
+    if (fileContent && sourceType) {
+      this.loadLayerFromSource(layer, fileContent);
+    }
+
     this.reorderLayers(this.layers);
   }
 
@@ -244,34 +283,77 @@ export class LayerManagerService {
 
   remove(layer: LayerConfig) {
     if (!this._map) return;
-    // Remove from map
     this._map.removeLayer(layer.olLayer);
-    // Remove from active layers
     this.layers = this.layers.filter(l => l.id !== layer.id);
-    // ALSO remove from persistent planet store
-    Object.keys(this.planetLayers).forEach(planet => {
-      this.planetLayers[planet] =
-        this.planetLayers[planet].filter(l => l.id !== layer.id);
+    Object.keys(this.planetLayers).forEach((planet) => {
+      this.planetLayers[planet] = this.planetLayers[planet].filter(l => l.id !== layer.id);
     });
   }
-
 
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
     layer.olLayer.setStyle(this.styleService.getStyle(layer.color, layer.shape));
   }
 
-  reorderLayers(layers: LayerConfig[]) {
-    layers.forEach((layer, idx) => {
-      if (layer.olLayer.setZIndex) layer.olLayer.setZIndex(idx + 1);
+  reorderLayers(sidebarLayers: LayerConfig[]) {
+    const basemap = this.layers.find(l => l.isBasemap);
+    let z = 1;
+    sidebarLayers.forEach(layer => {
+      layer.olLayer.setZIndex?.(z);
+      z++;
     });
+    if (basemap) basemap.olLayer.setZIndex(0);
+    this.layers = basemap ? [basemap, ...sidebarLayers] : [...sidebarLayers];
   }
 
   persistCurrentOrder(planet: 'earth' | 'moon' | 'mars') {
-    // Store a shallow copy preserving order
-    this.planetLayers[planet] = this.layers
-      .filter(l => !l.isBasemap);
+    this.planetLayers[planet] = this.layers.filter(l => !l.isBasemap);
   }
-}
-export type { ShapeType };
 
+  addLayerFromConsole(
+    planet: 'earth' | 'moon' | 'mars',
+    consoleInput: string
+  ) {
+    try {
+      const featuresArray = JSON.parse(consoleInput);
+      if (!Array.isArray(featuresArray))
+        throw new Error('Console input must be array of {lon, lat}');
+
+      const { color, shape } = this.styleService.getRandomStyleProps();
+      const olLayer = new VectorLayer({
+        source: new VectorSource(),
+        style: (f) => this.styleService.getStyle(color, shape)
+      });
+
+      const layer: LayerConfig = {
+        id: `console-${Date.now()}`,
+        name: `Console Layer`,
+        color,
+        shape,
+        visible: true,
+        olLayer
+      };
+
+      const source = olLayer.getSource();
+      featuresArray.forEach((pt) => {
+        if (typeof pt.lon === 'number' && typeof pt.lat === 'number') {
+          source?.addFeature(new Feature(new Point(fromLonLat([pt.lon, pt.lat]))));
+        }
+      });
+
+      // Add to planet dictionary
+      if (!this.planetLayers[planet]) this.planetLayers[planet] = [];
+      this.planetLayers[planet].push(layer);
+
+      // Add to map and master layers array
+      this.layers.push(layer);
+      this._map?.addLayer(olLayer);
+      this.reorderLayers(this.layers);
+    } catch (err) {
+      console.error('Failed to parse console input:', err);
+    }
+  }
+
+}
+
+export type { ShapeType };

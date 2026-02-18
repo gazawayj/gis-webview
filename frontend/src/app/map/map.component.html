@@ -1,6 +1,4 @@
 <div class="page">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <h1>GIS Web Viewer</h1>
 
@@ -11,125 +9,113 @@
       <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
     </div>
 
-    <!-- Add layer button -->
+    <!-- Add Layer button -->
     <div class="add-layer">
       <button (click)="onAddLayer()">Add Layer</button>
     </div>
 
-    <!-- Layer list with drag & drop -->
+    <!-- Layer list -->
     <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
-      <ng-container *ngFor="let layer of sidebarLayers; trackBy: trackLayer">
+      <ng-container *ngFor="let layer of sidebarLayers; let i = index; trackBy: trackLayer">
         <div class="layer-item-wrapper" cdkDrag>
-          <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
-            (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
+          <app-layer-item
+            [layer]="layer"
+            (visibilityChange)="toggleLayer(layer)"
+            (colorChange)="onColorPicked(layer, $event)"
+            (shapeChange)="selectShape(layer, $event)"
             (remove)="removeLayer(layer)">
           </app-layer-item>
         </div>
       </ng-container>
 
-      <!-- No layers tooltip -->
       <div *ngIf="sidebarLayers.length === 0" class="no-layers-tooltip">
         No layers added.
       </div>
     </div>
 
-    <!-- Live stats -->
+    <!-- Stats -->
     <div class="map-stats">
-      <div class="stat-item">
-        <span class="stat-label">{{ lonLabel }}:</span>
-        <span class="stat-value">{{ formattedLon }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ latLabel }}:</span>
-        <span class="stat-value">{{ formattedLat }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Zoom:</span>
-        <span class="stat-value">{{ zoomDisplay }}</span>
-      </div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
     </div>
-
   </aside>
 
-  <!-- MAP -->
+  <!-- Map -->
   <div #mapContainer class="map-container"></div>
 
-  <!-- GLOBAL LOADING SPINNER -->
-  <div class="spinner-overlay" *ngIf="isLoading">
-    <div class="spinner">
-      <div class="double-bounce1"></div>
-      <div class="double-bounce2"></div>
-    </div>
-    <div class="loading-message">{{ loadingMessage }}</div>
-  </div>
-
-  <!-- ADD LAYER MODAL CONTENT (CDK Overlay) -->
-  <!-- ================= ADD LAYER MODAL ================= -->
+  <!-- Add Layer Modal -->
   <ng-template #addLayerModal>
-    <div class="layer-modal" *ngIf="overlayRef.hasAttached()">
+    <div class="layer-modal">
       <!-- Header -->
       <div class="layer-modal-header">
-        <h3 class="layer-modal-title">
-          {{ getModalTitle() }}
-        </h3>
-        <button class="close-btn" (click)="closeModal()">×</button>
+        <span class="layer-modal-title">{{ modalTitle }}</span>
+        <button class="close-btn" (click)="cancelAddLayer()">×</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tab-buttons">
+        <button [class.active]="modalMode==='manual'" (click)="switchModalMode('manual')">Manual</button>
+        <button [class.active]="modalMode==='console'" (click)="switchModalMode('console')">Console</button>
       </div>
 
       <!-- Body -->
       <div class="layer-modal-body">
-        <!-- Tab buttons -->
-        <div class="modal-tab-buttons">
-          <button [class.active]="modalMode==='manual'" (click)="modalMode='manual'">Manual</button>
-          <button [class.active]="modalMode==='console'" (click)="modalMode='console'">Console</button>
-        </div>
-
         <!-- Manual Inputs -->
-        <div class="manual-inputs" *ngIf="modalMode==='manual'">
+        <div *ngIf="modalMode==='manual'" class="manual-inputs">
           <label>
             Name:
-            <input type="text" [(ngModel)]="newLayerName" />
+            <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
           </label>
           <label>
             Description:
-            <input type="text" [(ngModel)]="newLayerDescription" />
+            <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
           </label>
           <label>
-            Source Type:
-            <select [(ngModel)]="sourceType">
-              <option value="CSV">CSV</option>
-              <option value="GeoJSON">GeoJSON</option>
-            </select>
-          </label>
-          <label>
-            Source URL:
-            <input type="text" [(ngModel)]="sourceUrl" />
+            File:
+            <input type="file" (change)="handleFileInput($event)" />
           </label>
           <label>
             Latitude Field:
-            <input type="text" [(ngModel)]="latField" />
+            <input type="text" [(ngModel)]="latField" placeholder="latitude" />
           </label>
           <label>
             Longitude Field:
-            <input type="text" [(ngModel)]="lonField" />
+            <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
           </label>
-        </div>
 
-        <!-- Console -->
-        <div class="console" *ngIf="modalMode==='console'">
-          <div class="terminal">
-            <!-- Terminal output here -->
+          <!-- File Content Preview -->
+          <div *ngIf="fileContent" class="file-preview">
+            <strong>Preview (first 500 chars):</strong>
+            <pre>{{ fileContent | slice:0:500 }}</pre>
+            <small *ngIf="fileContent.length > 500">...truncated</small>
+          </div>
+
+          <!-- Live Preview Layer Info -->
+          <div *ngIf="previewLayer" class="preview-info">
+            <strong>Preview Layer Style:</strong>
+            <div class="preview-style">
+              <span>Color: <span [style.color]="previewLayer.color">{{ previewLayer.color }}</span></span>
+              <span>Shape: {{ previewLayer.shape }}</span>
+            </div>
+            <small>This layer is temporarily added to the map for preview.</small>
           </div>
         </div>
+
+        <!-- Console Input -->
+        <div *ngIf="modalMode==='console'" class="console">
+          <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
+        </div>
       </div>
 
-      <!-- Actions -->
+      <!-- Modal Actions -->
       <div class="modal-actions">
-        <button [disabled]="!newLayerName" (click)="createManualLayer()">Add</button>
-        <button (click)="closeModal()">Cancel</button>
+        <button (click)="confirmAddLayer()" [disabled]="
+          (modalMode==='manual' && (!newLayerName || !fileContent)) ||
+          (modalMode==='console' && !consoleInput)
+        ">Add</button>
+        <button (click)="cancelAddLayer()">Cancel</button>
       </div>
     </div>
-
   </ng-template>
-
-
 </div>
