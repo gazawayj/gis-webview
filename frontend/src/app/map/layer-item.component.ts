@@ -10,10 +10,9 @@ import {
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
+import { SHAPES, ShapeType } from './services/symbol-constants';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-
-import { ShapeType } from './services/style.service';
 
 export interface LayerItem {
   name: string;
@@ -41,16 +40,7 @@ export class LayerItemComponent {
   @ViewChild('shapeDropdown', { static: true })
   shapeDropdown!: TemplateRef<any>;
 
-  shapes: (ShapeType | 'none')[] = [
-    'circle',
-    'square',
-    'triangle',
-    'diamond',
-    'pentagon',
-    'hexagon',
-    'star',
-    'arrow'
-  ];
+  shapes: (ShapeType | 'none')[] = ['none', ...SHAPES];
 
   private overlayRef!: OverlayRef;
 

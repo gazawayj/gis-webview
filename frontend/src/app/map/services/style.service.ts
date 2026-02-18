@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon } from 'ol/style';
-
-export type ShapeType = 'circle' | 'square' | 'triangle' | 'diamond' | 'pentagon' | 'hexagon' | 'star' | 'arrow';
+import { SHAPES, COLOR_PALETTE, ShapeType } from './symbol-constants';
 
 @Injectable({ providedIn: 'root' })
 export class StyleService {
@@ -9,13 +8,8 @@ export class StyleService {
   private cache: Record<string, Style> = {};
 
   /** Pools for random assignment */
-  private colorsPool: string[] = [
-    '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231',
-    '#911eb4','#46f0f0','#f032e6','#bcf60c','#fabebe',
-    '#008080','#e6beff','#9a6324','#fffac8','#800000',
-    '#aaffc3','#808000','#ffd8b1','#000075','#808080'
-  ];
-  private shapesPool: ShapeType[] = ['circle','square','triangle','diamond','pentagon','hexagon','star','arrow'];
+  private colorsPool = [...COLOR_PALETTE];
+  private shapesPool = [...SHAPES];
 
   private usedColors: Set<string> = new Set();
   private usedShapes: Set<ShapeType> = new Set();

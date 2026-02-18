@@ -4,6 +4,8 @@ import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import { fromLonLat, toLonLat } from 'ol/proj';
+import { BASEMAP_URLS } from '../map-constants';
+
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
@@ -11,17 +13,11 @@ export class MapFacadeService {
   map!: Map;
   baseLayer!: TileLayer<XYZ>;
 
-  readonly BASEMAP_URLS = {
-    earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    moon: 'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png',
-    mars: 'https://mars-gis.netlify.app/tiles/{z}/{x}/{y}.png'
-  };
-
   constructor(private zone: NgZone) { }
 
   initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars') {
     this.baseLayer = new TileLayer({
-      source: new XYZ({ url: this.BASEMAP_URLS[planet] }),
+      source: new XYZ({ url: BASEMAP_URLS[planet] }),
       visible: true
     });
 
@@ -36,13 +32,12 @@ export class MapFacadeService {
   }
 
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
-    this.baseLayer.setSource(new XYZ({ url: this.BASEMAP_URLS[planet] }));
+    this.baseLayer.setSource(new XYZ({ url: BASEMAP_URLS[planet] }));
     const view = this.map.getView();
     view.setCenter(fromLonLat([0, 0]));
     view.setZoom(2);
   }
 
-  // EXACT original behavior restored
   trackPointer(callback: (lon: number, lat: number, zoom: number) => void) {
 
     const view = this.map.getView();

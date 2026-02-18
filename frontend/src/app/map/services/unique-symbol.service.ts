@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
+import { SHAPES, COLOR_PALETTE } from './symbol-constants';
 
 @Injectable({ providedIn: 'root' })
 export class UniqueSymbolService {
 
-  readonly COLOR_PALETTE = ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-  readonly SHAPES = ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'arrow'];
+  readonly COLOR_PALETTE = COLOR_PALETTE;
+  readonly SHAPES = SHAPES;
 
   pickUnique(used: Set<string>): { color: string; shape: string } {
     const maxAttempts = 200;
