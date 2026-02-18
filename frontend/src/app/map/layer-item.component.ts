@@ -73,10 +73,9 @@ export class LayerItemComponent {
       .flexibleConnectedTo(buttonEl)
       .withPositions([{
         originX: 'end',
-        originY: 'top',
+        originY: 'center',
         overlayX: 'start',
-        overlayY: 'center',
-        offsetX: 4
+        overlayY: 'center'
       }])
       .withFlexibleDimensions(false)
       .withPush(false);
