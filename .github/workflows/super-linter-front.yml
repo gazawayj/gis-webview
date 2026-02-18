@@ -2,13 +2,13 @@ name: Lint Front
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - 'README.md'
       - '**/README.md'
       - '**/tiles/**/*.png'
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - 'README.md'
       - '**/README.md'
@@ -21,11 +21,20 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-      - run: npm install --save-dev @angular-eslint/eslint-plugin @angular-eslint/eslint-plugin-template @angular-eslint/template-parser --legacy-peer-deps
-      - run: npm run lint
+
+      - name: Install dependencies
+        # Install all dependencies including devDependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run lint
+        # Use npx to ensure ESLint binary is found
+        run: npx eslint . --ext .ts,.tsx,.js,.jsx

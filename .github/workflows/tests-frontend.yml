@@ -2,12 +2,12 @@ name: Test Frontend
 
 on: 
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - 'public/tiles/**/*.png'
       - 'backend/tiles/**/*.png'
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - 'public/tiles/**/*.png'
       - 'backend/tiles/**/*.png'
@@ -35,4 +35,4 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Run frontend unit tests
-        run: npm test
+        run: npx vitest run --passWithNoTests

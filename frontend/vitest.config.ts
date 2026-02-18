@@ -6,6 +6,6 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
-    setupFiles: [], // optional if you have setup scripts
+    setupFiles: ['./src/test-setup.ts'], // initialize Angular test environment
   },
 });

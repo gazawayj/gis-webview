@@ -38,6 +38,8 @@
     "rxjs-marbles": "^7.0.0",
     "typescript": "~5.9.3",
     "jsdom": "^22.1.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "supertest": "^6.3.3",
+    "zone.js": "^0.13.0"
   }
 }

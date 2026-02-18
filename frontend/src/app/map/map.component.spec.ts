@@ -13,7 +13,7 @@ import { By } from '@angular/platform-browser';
 class MockTileLayer {
   visible = true;
   zIndex = 0;
-  setSource() {}
+  setSource() { }
   setVisible(v: boolean) { this.visible = v; }
   setZIndex(z: number) { this.zIndex = z; }
 }
@@ -49,11 +49,11 @@ describe('MapComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [MapComponent],
+      imports: [MapComponent],
       providers: [
         { provide: HttpClient, useValue: mockHttp }
       ],
-      schemas: [NO_ERRORS_SCHEMA] // Ignore template errors for OL map container
+      schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
     fixture = TestBed.createComponent(MapComponent);

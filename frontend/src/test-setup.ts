@@ -1,40 +1,24 @@
-// src/test-setup.ts
 import 'zone.js';
 import 'zone.js/testing';
-import { getTestBed } from '@angular/core/testing';
-import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { TestBed } from '@angular/core/testing';
+import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
 import { vi } from 'vitest';
 
-
-declare const Zone: any;
-const ProxyZoneSpec = (Zone as any)['ProxyZoneSpec'];
-if (ProxyZoneSpec) {
-  Zone.current.fork(new ProxyZoneSpec());
-}
-
-// Initialize with the standard (non-dynamic) testing module
-getTestBed().initTestEnvironment(
-  BrowserTestingModule,
-  platformBrowserTesting()
+// Initialize Angular TestBed
+TestBed.initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting()
 );
 
-/**
- * Polyfill ResizeObserver for OpenLayers
- * This is here because OpenLayers calls 'new ResizeObserver()'
- * A simple vi.fn() results in a "is not a constructor" error.
- */
+// ResizeObserver polyfill
 class ResizeObserverMock {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
 }
-
-// Assign to the global scope for the JSDOM environment
 (global as any).ResizeObserver = ResizeObserverMock;
 
-/**
- * Optional: Mock URL.createObjectURL if you use it for Map tiles/blobs
- */
+// Optional mock for URL.createObjectURL
 if (typeof window !== 'undefined' && !window.URL.createObjectURL) {
   window.URL.createObjectURL = vi.fn(() => 'mock-url');
 }
