@@ -2,14 +2,26 @@ import express from 'express';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+// Fix __dirname in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cache directory for FIRMS CSV
+const CACHE_DIR = path.join(__dirname, 'cache');
+
+// Ensure cache directory exists
+await fs.mkdir(CACHE_DIR, { recursive: true });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// CORS allowed origins
 app.use(cors({
   origin: [
     'https://gazawayj.github.io',
@@ -17,22 +29,16 @@ app.use(cors({
   ]
 }));
 
-// Your NASA FIRMS Map Key
+// NASA FIRMS Map Key
 const FIRMS_MAP_KEY = '8c771d8430508dba8db3afeb34e9ff72';
 
-// Default parameters: world, VIIRS_SNPP_NRT, 1-day range
+// Default FIRMS params
 const DEFAULT_SOURCE = 'VIIRS_SNPP_NRT';
 const DEFAULT_AREA = 'world';
 const DEFAULT_RANGE = '1';
 
-// Cache configuration
-const CACHE_DIR = path.join(__dirname, 'cache');
-const CACHE_FILE = path.join(CACHE_DIR, 'firms.csv');
-let lastFetchTs = 0;
-const CACHE_INTERVAL = 1000 * 60 * 60; // 1 hour
-
-// Ensure cache folder exists
-if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR);
+// Cache duration in milliseconds (24 hours)
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
 // Health check
 app.get('/health', (req, res) => {
@@ -42,34 +48,42 @@ app.get('/health', (req, res) => {
 // FIRMS endpoint with caching
 app.get('/firms', async (req, res) => {
   try {
-    const now = Date.now();
+    const source = req.query.source || DEFAULT_SOURCE;
+    const area = req.query.area || DEFAULT_AREA;
+    const range = req.query.range || DEFAULT_RANGE;
 
-    // If cache is older than interval or missing, fetch new data
-    if (!fs.existsSync(CACHE_FILE) || now - lastFetchTs > CACHE_INTERVAL) {
-      const source = req.query.source || DEFAULT_SOURCE;
-      const area = req.query.area || DEFAULT_AREA;
-      const range = req.query.range || DEFAULT_RANGE;
+    const cacheFile = path.join(CACHE_DIR, `${source}-${area}-${range}.csv`);
 
-      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_MAP_KEY}/${source}/${area}/${range}`;
-      console.log('Fetching FIRMS from NASA:', url);
+    let useCache = false;
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('NASA FIRMS API fetch failed');
-
-      const text = await response.text();
-      fs.writeFileSync(CACHE_FILE, text);
-      lastFetchTs = now;
-      console.log('FIRMS cache updated.');
-    } else {
-      console.log('Serving FIRMS from cache.');
+    try {
+      const stats = await fs.stat(cacheFile);
+      const age = Date.now() - stats.mtimeMs;
+      if (age < CACHE_DURATION) useCache = true;
+    } catch {
+      // Cache doesn't exist, will fetch
     }
 
-    // Serve cached file
+    if (useCache) {
+      const cachedData = await fs.readFile(cacheFile, 'utf8');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(cachedData);
+    }
+
+    // Fetch from NASA FIRMS
+    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_MAP_KEY}/${source}/${area}/${range}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('NASA FIRMS API fetch failed');
+
+    const text = await response.text();
+
+    // Save to cache
+    await fs.writeFile(cacheFile, text, 'utf8');
+
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.sendFile(CACHE_FILE);
+    res.send(text);
   } catch (err) {
-    console.error('Error serving FIRMS:', err);
+    console.error(err);
     res.status(500).send({ error: err.message });
   }
 });

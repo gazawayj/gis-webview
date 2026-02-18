@@ -10,7 +10,7 @@ import { fromLonLat } from 'ol/proj';
 import { StyleService } from './style.service';
 import { ShapeType } from './symbol-constants';
 import { HttpClient } from '@angular/common/http';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 import GeoJSON from 'ol/format/GeoJSON';
 import { BehaviorSubject } from 'rxjs';
 import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL } from '../map-constants';

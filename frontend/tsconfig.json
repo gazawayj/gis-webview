@@ -5,6 +5,8 @@
     "types": ["vitest/globals", "node"],
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
