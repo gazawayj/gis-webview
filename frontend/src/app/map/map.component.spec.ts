@@ -1,162 +1,109 @@
-// map.component.spec.ts
-import { TestBed, ComponentFixture } from '@angular/core/testing';
+// frontend/src/app/map/map.component.spec.ts
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { MapComponent } from './map.component';
-import { HttpClient } from '@angular/common/http';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-
+import { LayerManagerService } from './services/layer-manager.service';
 import { MapFacadeService } from './services/map-facade.service';
-import { LayerManagerService, LayerConfig, ShapeType } from './services/layer-manager.service';
+import { of } from 'rxjs';
 
-// =====================
-// Mock OpenLayers layers
-// =====================
-class MockTileLayer {
-  visible = true;
-  zIndex = 0;
-  setSource() {}
-  setVisible(v: boolean) { this.visible = v; }
-  setZIndex(z: number) { this.zIndex = z; }
-}
+// =======================
+// Test wrapper with inline template
+// =======================
+@Component({
+  selector: 'app-map',
+  standalone: true,
+  template: '<div #mapContainer></div>', // minimal inline template
+  styles: [] // empty styles
+})
+class MapComponentTestWrapper extends MapComponent {}
 
-class MockVectorLayer extends MockTileLayer {
-  source: any;
-  style: any;
-}
-
-// =====================
-// Typed mock MapFacadeService
-// =====================
-const mockMapFacade: Partial<MapFacadeService> = {
-  initMap: vi.fn(),
-  trackPointer: vi.fn((cb: (lon: number, lat: number, zoom: number) => void) => {}),
-  setPlanet: vi.fn(),
-  map: {
-    addLayer: vi.fn(),
-    removeLayer: vi.fn()
-  } as any
-};
-
-// =====================
-// Typed mock LayerManagerService
-// =====================
-const mockLayerManager: Partial<LayerManagerService> = {
-  attachMap: vi.fn(),
-  loadPlanet: vi.fn(),
-  toggle: vi.fn(),
-  remove: vi.fn(),
-  reorderLayers: vi.fn(),
-  addManualLayer: vi.fn(),
-  addLayerFromConsole: vi.fn(),
-  loadLayerFromSource: vi.fn(),
-  updateStyle: vi.fn(),
-  styleService: {
-    getRandomStyleProps: vi.fn(() => ({ color: '#000', shape: 'circle' })),
-    getStyle: vi.fn()
-  } as any,
-  layers: [] as LayerConfig[],
-  loadingLayers$: { value: [], subscribe: vi.fn() } as any
-};
-
-// =====================
-// Extended MapComponent type for test
-// =====================
-type TestableMapComponent = MapComponent & {
-  baseLayer: MockTileLayer;
-  layerMap: Record<string, any>;
-  previewLayer: LayerConfig | null;
-};
-
-// =====================
-// Tests
-// =====================
 describe('MapComponent', () => {
-  let fixture: ComponentFixture<MapComponent>;
-  let component: TestableMapComponent;
+  let component: MapComponentTestWrapper;
+  let fixture: any;
+  let layerManager: LayerManagerService;
+  let mapFacade: MapFacadeService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MapComponent],
+      imports: [MapComponentTestWrapper],
       providers: [
-        { provide: HttpClient, useValue: {} },
-        { provide: MapFacadeService, useValue: mockMapFacade },
-        { provide: LayerManagerService, useValue: mockLayerManager }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
-    })
-    .overrideComponent(MapComponent, {
-      set: { template: '<div></div>', styles: [''] }
-    })
-    .compileComponents();
+        LayerManagerService,
+        MapFacadeService
+      ]
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(MapComponent);
-    component = fixture.componentInstance as TestableMapComponent;
+    fixture = TestBed.createComponent(MapComponentTestWrapper);
+    component = fixture.componentInstance;
 
-    // Mock mapContainer for AfterViewInit
-    component.mapContainer = { nativeElement: {} } as any;
+    layerManager = TestBed.inject(LayerManagerService);
+    mapFacade = TestBed.inject(MapFacadeService);
 
-    // Initialize internal properties for testing
-    component.baseLayer = new MockTileLayer();
-    component.layerMap = {};
-    component.previewLayer = null;
-    (component as any).layerManager = mockLayerManager as LayerManagerService;
-    (component as any).mapFacade = mockMapFacade as MapFacadeService;
+    // Mock mapFacade map to prevent real OpenLayers map creation
+    mapFacade.map = {
+      addLayer: jest.fn(),
+      removeLayer: jest.fn(),
+      getView: () => ({ setCenter: jest.fn(), setZoom: jest.fn() }),
+      on: jest.fn()
+    } as any;
+
+    // Prevent actual HTTP calls in LayerManager
+    jest.spyOn(layerManager, 'loadLayerFromSource').mockImplementation(() => true);
+    jest.spyOn(layerManager, 'loadPlanet').mockImplementation(() => {});
+
+    fixture.detectChanges();
   });
 
   it('should initialize default properties', () => {
-    expect(component.isLoading).toBe(false);
     expect(component.currentPlanet).toBe('earth');
     expect(component.zoomDisplay).toBe('2');
+    expect(component.currentLon).toBe(0);
+    expect(component.currentLat).toBe(0);
     expect(component.lonLabel).toBe('Lon');
     expect(component.latLabel).toBe('Lat');
-    expect((component as any).layerManager.layers.length).toBe(0);
   });
 
   it('should switch planet and update baseLayer', () => {
-    component.setPlanet('moon');
-    expect(component.currentPlanet).toBe('moon');
-    expect(mockMapFacade.setPlanet).toHaveBeenCalledWith('moon');
-
+    const spyLoadPlanet = jest.spyOn(layerManager, 'loadPlanet');
     component.setPlanet('mars');
     expect(component.currentPlanet).toBe('mars');
-    expect(mockMapFacade.setPlanet).toHaveBeenCalledWith('mars');
+    expect(spyLoadPlanet).toHaveBeenCalledWith('mars');
+    expect(component.lonLabel).toBe('M-Longitude');
+    expect(component.latLabel).toBe('M-Latitude');
   });
 
   it('should open and close modal', () => {
-    // Mock overlayRef to avoid actual DOM
-    component['overlayRef'] = { attach: vi.fn(), backdropClick: () => ({ subscribe: vi.fn() }), dispose: vi.fn() } as any;
-
-    component.onAddLayer();
-    expect(component.modalMode).toBe('manual');
-
-    component.cancelAddLayer();
-    expect(component.previewLayer).toBeNull();
-    expect(component.newLayerName).toBe('');
+    component.openModal();
+    expect(component['overlayRef']).toBeDefined();
+    component.closeModal();
+    expect(component['overlayRef']?.hasAttached()).toBe(false);
   });
 
   it('should create a manual layer', () => {
-    component.newLayerName = 'TestLayer';
-    component.fileContent = 'mock csv content';
-    component.previewLayer = { olLayer: {} } as any;
-
+    component.newLayerName = 'Test Layer';
+    component.fileContent = 'latitude,longitude\n10,20';
+    const spyAdd = jest.spyOn(layerManager, 'addManualLayer');
     component.confirmAddLayer();
-
-    expect(mockLayerManager.addManualLayer).toHaveBeenCalledWith(
+    expect(spyAdd).toHaveBeenCalledWith(
       component.currentPlanet,
-      'TestLayer',
+      'Test Layer',
       '',
-      'mock csv content',
+      'latitude,longitude\n10,20',
       'CSV',
-      component.latField,
-      component.lonField
+      'latitude',
+      'longitude'
     );
-    expect(component.previewLayer).toBeNull();
   });
 
   it('should format longitude and latitude correctly', () => {
-    component.currentLon = -45;
-    component.currentLat = 30;
-    expect(component.formattedLon).toBe('45.0000° W');
-    expect(component.formattedLat).toBe('30.0000° N');
+    component.currentLon = 45.123456;
+    component.currentLat = -12.654321;
+    expect(component.formattedLon).toBe('45.1235° E');
+    expect(component.formattedLat).toBe('12.6543° S');
+
+    component.currentLon = -75.9876;
+    component.currentLat = 30.1234;
+    expect(component.formattedLon).toBe('75.9876° W');
+    expect(component.formattedLat).toBe('30.1234° N');
   });
 });
