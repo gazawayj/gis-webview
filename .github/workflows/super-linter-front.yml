@@ -34,13 +34,11 @@ jobs:
       - name: Install ESLint and Angular ESLint plugins
         run: |
           npm install --save-dev \
-            eslint@10 @eslint/js \
-            @typescript-eslint/parser @typescript-eslint/eslint-plugin \
-            @angular-eslint/eslint-plugin \
-            @angular-eslint/eslint-plugin-template \
-            @angular-eslint/template-parser \
-            --legacy-peer-deps
+            eslint@9.15.0 @eslint/js@9.9.0 \
+            @typescript-eslint/parser@6.2.0 @typescript-eslint/eslint-plugin@6.2.0 \
+            @angular-eslint/eslint-plugin@16.2.0 \
+            @angular-eslint/eslint-plugin-template@16.2.0 \
+            @angular-eslint/template-parser@16.2.0
 
       - name: Run lint
-        # Use npx to ensure ESLint binary is found
         run: npx eslint . --ext .ts,.tsx,.js,.jsx

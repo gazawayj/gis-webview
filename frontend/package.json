@@ -40,6 +40,13 @@
     "jsdom": "^22.1.0",
     "vitest": "^4.0.18",
     "supertest": "^6.3.3",
-    "zone.js": "^0.13.0"
+    "zone.js": "^0.13.0",
+    "eslint": "9.15.0",
+    "@eslint/js": "9.9.0",
+    "@typescript-eslint/parser": "6.2.0",
+    "@typescript-eslint/eslint-plugin": "6.2.0",
+    "@angular-eslint/eslint-plugin": "16.2.0",
+    "@angular-eslint/eslint-plugin-template": "16.2.0",
+    "@angular-eslint/template-parser": "16.2.0"
   }
 }
