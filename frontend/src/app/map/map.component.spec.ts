@@ -2,8 +2,8 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { MapComponent } from './map.component';
 import { HttpClient } from '@angular/common/http';
-import { vi } from 'vitest';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // =====================
 // Mock OpenLayers layers
@@ -13,7 +13,7 @@ class MockTileLayer {
   zIndex = 0;
   setSource() {}
   setVisible(v: boolean) { this.visible = v; }
-  setZIndex(z: number) { this.zIndex = v; }
+  setZIndex(z: number) { this.zIndex = z; }
 }
 
 class MockVectorLayer extends MockTileLayer {
@@ -47,18 +47,18 @@ describe('MapComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MapComponent],
-      providers: [{ provide: HttpClient, useValue: mockHttp }],
-      schemas: [NO_ERRORS_SCHEMA] // ignore unknown elements/attributes
-    }).compileComponents();
-
-    // Override external template and styles to inline
-    TestBed.overrideComponent(MapComponent, {
+      imports: [],
+      declarations: [MapComponent],
+      providers: [
+        { provide: HttpClient, useValue: mockHttp }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).overrideComponent(MapComponent, {
       set: {
-        template: '<div></div>',
-        styles: ['']
+        template: '<div></div>',  // Inline empty template
+        styles: ['']              // Inline empty styles
       }
-    });
+    }).compileComponents();
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
@@ -69,6 +69,7 @@ describe('MapComponent', () => {
     // Mock OL layers
     component.baseLayer = new MockTileLayer() as any;
     component.layerMap = {};
+    component.map = { addLayer: vi.fn() } as any;
   });
 
   it('should initialize default properties', () => {
@@ -97,7 +98,6 @@ describe('MapComponent', () => {
   it('should create a manual layer', () => {
     component.newLayerName = 'MyLayer';
     component.newLayerDescription = 'desc';
-    component.map = { addLayer: vi.fn() } as any;
 
     component.confirmAddLayer();
 
@@ -109,7 +109,6 @@ describe('MapComponent', () => {
   it('should format longitude and latitude correctly', () => {
     (component as any).currentLon = -45;
     (component as any).currentLat = 30;
-
     expect(component.formattedLon).toBe('45.0000° W');
     expect(component.formattedLat).toBe('30.0000° N');
   });
