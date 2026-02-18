@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --include=dev
 
       - name: Run Backend Tests
         # Directly run Vitest for Node.js backend
