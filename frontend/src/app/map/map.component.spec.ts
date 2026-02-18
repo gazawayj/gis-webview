@@ -1,22 +1,23 @@
 // frontend/src/app/map/map.component.spec.ts
-import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { MapComponent } from './map.component';
 import { LayerManagerService } from './services/layer-manager.service';
 import { MapFacadeService } from './services/map-facade.service';
-import { of } from 'rxjs';
 
-// =======================
-// Test wrapper with inline template
-// =======================
+// ============================
+// Inline test version of MapComponent
+// ============================
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+
 @Component({
   selector: 'app-map',
   standalone: true,
   template: '<div #mapContainer></div>', // minimal inline template
   styles: [] // empty styles
 })
-class MapComponentTestWrapper extends MapComponent {}
+class MapComponentTestWrapper extends MapComponent implements AfterViewInit {
+  @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+}
 
 describe('MapComponent', () => {
   let component: MapComponentTestWrapper;
@@ -27,10 +28,7 @@ describe('MapComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MapComponentTestWrapper],
-      providers: [
-        LayerManagerService,
-        MapFacadeService
-      ]
+      providers: [LayerManagerService, MapFacadeService]
     }).compileComponents();
 
     fixture = TestBed.createComponent(MapComponentTestWrapper);
@@ -39,7 +37,7 @@ describe('MapComponent', () => {
     layerManager = TestBed.inject(LayerManagerService);
     mapFacade = TestBed.inject(MapFacadeService);
 
-    // Mock mapFacade map to prevent real OpenLayers map creation
+    // Mock mapFacade map to prevent real OpenLayers creation
     mapFacade.map = {
       addLayer: jest.fn(),
       removeLayer: jest.fn(),
@@ -47,7 +45,7 @@ describe('MapComponent', () => {
       on: jest.fn()
     } as any;
 
-    // Prevent actual HTTP calls in LayerManager
+    // Prevent real HTTP requests in LayerManager
     jest.spyOn(layerManager, 'loadLayerFromSource').mockImplementation(() => true);
     jest.spyOn(layerManager, 'loadPlanet').mockImplementation(() => {});
 
