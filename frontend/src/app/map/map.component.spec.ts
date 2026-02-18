@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild, AfterViewInit, TemplateRef } from '@a
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LayerManagerService } from './services/layer-manager.service';
 import { MapFacadeService } from './services/map-facade.service';
+import { MapComponent } from './map.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
