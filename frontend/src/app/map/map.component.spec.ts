@@ -47,16 +47,15 @@ describe('MapComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [],
-      declarations: [MapComponent],
+      imports: [MapComponent], // standalone component goes here
       providers: [
         { provide: HttpClient, useValue: mockHttp }
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).overrideComponent(MapComponent, {
       set: {
-        template: '<div></div>',  // Inline empty template
-        styles: ['']              // Inline empty styles
+        template: '<div></div>', // empty inline template
+        styles: ['']            // empty inline styles
       }
     }).compileComponents();
 
@@ -69,7 +68,7 @@ describe('MapComponent', () => {
     // Mock OL layers
     component.baseLayer = new MockTileLayer() as any;
     component.layerMap = {};
-    component.map = { addLayer: vi.fn() } as any;
+    component.map = { addLayer: vi.fn(), removeLayer: vi.fn() } as any;
   });
 
   it('should initialize default properties', () => {
@@ -98,6 +97,7 @@ describe('MapComponent', () => {
   it('should create a manual layer', () => {
     component.newLayerName = 'MyLayer';
     component.newLayerDescription = 'desc';
+    component.fileContent = 'lat,lon\n10,20';
 
     component.confirmAddLayer();
 
