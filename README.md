@@ -33,7 +33,7 @@ The project focuses on rendering planetary-scale spatial data. Raster imagery, v
 This project serves both as:
 
 - A learning project for creating a modern web-based GIS, usable for planetary and exo-planetary investigations.
-- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance.
+- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance (AI features coming soon).
 
 ---
 
