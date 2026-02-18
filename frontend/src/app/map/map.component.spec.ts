@@ -1,11 +1,9 @@
 // map.component.spec.ts
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { MapComponent, LayerConfig } from './map.component';
+import { MapComponent } from './map.component';
 import { HttpClient } from '@angular/common/http';
-import { of } from 'rxjs';
+import { vi } from 'vitest';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { By } from '@angular/platform-browser';
 
 // =====================
 // Mock OpenLayers layers
@@ -13,9 +11,9 @@ import { By } from '@angular/platform-browser';
 class MockTileLayer {
   visible = true;
   zIndex = 0;
-  setSource() { }
+  setSource() {}
   setVisible(v: boolean) { this.visible = v; }
-  setZIndex(z: number) { this.zIndex = z; }
+  setZIndex(z: number) { this.zIndex = v; }
 }
 
 class MockVectorLayer extends MockTileLayer {
@@ -50,11 +48,17 @@ describe('MapComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MapComponent],
-      providers: [
-        { provide: HttpClient, useValue: mockHttp }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
+      providers: [{ provide: HttpClient, useValue: mockHttp }],
+      schemas: [NO_ERRORS_SCHEMA] // ignore unknown elements/attributes
     }).compileComponents();
+
+    // Override external template and styles to inline
+    TestBed.overrideComponent(MapComponent, {
+      set: {
+        template: '<div></div>',
+        styles: ['']
+      }
+    });
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
@@ -74,7 +78,6 @@ describe('MapComponent', () => {
   });
 
   it('should switch planet and update baseLayer', () => {
-    const oldSource = component.baseLayer.setSource;
     component.setPlanet('moon');
     expect(component.currentPlanet).toBe('moon');
     expect(component.baseLayer.setSource).toBeDefined();
@@ -106,6 +109,7 @@ describe('MapComponent', () => {
   it('should format longitude and latitude correctly', () => {
     (component as any).currentLon = -45;
     (component as any).currentLat = 30;
+
     expect(component.formattedLon).toBe('45.0000° W');
     expect(component.formattedLat).toBe('30.0000° N');
   });
