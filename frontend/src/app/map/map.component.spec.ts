@@ -1,9 +1,14 @@
 // frontend/src/app/map/map.component.spec.ts
-import { Component, ElementRef, TemplateRef, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, TemplateRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { vi } from 'vitest';
+
+import { MapComponent } from './map.component';
+import { LayerManagerService } from './services/layer-manager.service';
+import { MapFacadeService } from './services/map-facade.service';
 
 // ============================
 // Mock Services
@@ -11,25 +16,30 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 class MockLayerManagerService {
   layers: any[] = [];
   loadingLayers$ = { value: [], subscribe: () => {} };
-  attachMap = jest.fn();
-  loadPlanet = jest.fn();
-  loadLayerFromSource = jest.fn();
-  addManualLayer = jest.fn();
-  reorderLayers = jest.fn();
-  toggle = jest.fn();
-  remove = jest.fn();
-  updateStyle = jest.fn();
+  attachMap = vi.fn();
+  loadPlanet = vi.fn();
+  loadLayerFromSource = vi.fn();
+  addManualLayer = vi.fn();
+  reorderLayers = vi.fn();
+  toggle = vi.fn();
+  remove = vi.fn();
+  updateStyle = vi.fn();
 }
 
 class MockMapFacadeService {
-  map: any = { addLayer: jest.fn(), removeLayer: jest.fn(), getView: () => ({ setCenter: jest.fn(), setZoom: jest.fn() }), on: jest.fn() };
-  initMap = jest.fn();
-  setPlanet = jest.fn();
-  trackPointer = jest.fn((fn: any) => {});
+  map: any = { 
+    addLayer: vi.fn(), 
+    removeLayer: vi.fn(), 
+    getView: () => ({ setCenter: vi.fn(), setZoom: vi.fn() }), 
+    on: vi.fn() 
+  };
+  initMap = vi.fn();
+  setPlanet = vi.fn();
+  trackPointer = vi.fn((fn: any) => {});
 }
 
 // ============================
-// Minimal Inline Test Component
+// Inline Test Wrapper Component
 // ============================
 @Component({
   selector: 'app-map',
@@ -38,46 +48,25 @@ class MockMapFacadeService {
   template: `<div #mapContainer></div><ng-template #addLayerModal></ng-template>`,
   styles: []
 })
-class MapComponentTest implements AfterViewInit {
+class MapComponentTest extends MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
 
-  // Properties we want to test
-  currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
-  zoomDisplay = '2';
-  currentLon = 0;
-  currentLat = 0;
-  lonLabel = 'Lon';
-  latLabel = 'Lat';
-
-  constructor(
-    public mapFacade = new MockMapFacadeService(),
-    public layerManager = new MockLayerManagerService()
-  ) {}
-
   ngAfterViewInit() {
-    // fake setup (no OpenLayers)
-  }
-
-  updateLabels() {
-    switch (this.currentPlanet) {
-      case 'earth': this.lonLabel = 'Lon'; this.latLabel = 'Lat'; break;
-      case 'moon': this.lonLabel = 'Longitude'; this.latLabel = 'Latitude'; break;
-      case 'mars': this.lonLabel = 'M-Longitude'; this.latLabel = 'M-Latitude'; break;
-      default: this.lonLabel = 'Lon'; this.latLabel = 'Lat';
+    // Assign mock services
+    if (this.mapFacade) {
+      this.mapFacade.map = {
+        addLayer: vi.fn(),
+        removeLayer: vi.fn(),
+        getView: () => ({ setCenter: vi.fn(), setZoom: vi.fn() }),
+        on: vi.fn()
+      };
     }
-  }
 
-  get formattedLon(): string {
-    const abs = Math.abs(this.currentLon).toFixed(4);
-    const dir = this.currentLon >= 0 ? 'E' : 'W';
-    return `${abs}° ${dir}`;
-  }
-
-  get formattedLat(): string {
-    const abs = Math.abs(this.currentLat).toFixed(4);
-    const dir = this.currentLat >= 0 ? 'N' : 'S';
-    return `${abs}° ${dir}`;
+    if (this.layerManager) {
+      vi.spyOn(this.layerManager, 'loadPlanet').mockImplementation(() => {});
+      vi.spyOn(this.layerManager, 'loadLayerFromSource').mockImplementation(() => true);
+    }
   }
 }
 
@@ -87,14 +76,27 @@ class MapComponentTest implements AfterViewInit {
 describe('MapComponent (minimal)', () => {
   let component: MapComponentTest;
   let fixture: ComponentFixture<MapComponentTest>;
+  let layerManager: LayerManagerService;
+  let mapFacade: MapFacadeService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MapComponentTest],
+      providers: [
+        { provide: LayerManagerService, useClass: MockLayerManagerService },
+        { provide: MapFacadeService, useClass: MockMapFacadeService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(MapComponentTest);
     component = fixture.componentInstance;
+
+    layerManager = TestBed.inject(LayerManagerService);
+    mapFacade = TestBed.inject(MapFacadeService);
+
+    component.layerManager = layerManager;
+    component.mapFacade = mapFacade;
+
     fixture.detectChanges();
   });
 
