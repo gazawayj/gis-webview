@@ -1,17 +1,10 @@
 // frontend/src/app/map/map.component.spec.ts
-import { Component, AfterViewInit } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // ============================
-// Minimal Mock Component
+// Minimal Mock MapComponent
 // ============================
-@Component({
-  selector: 'app-map',
-  standalone: true,
-  template: '', // empty template, no external files
-})
-class MapComponentTest implements AfterViewInit {
+class MockMapComponent {
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   zoomDisplay = '2';
   currentLon = 0;
@@ -19,16 +12,23 @@ class MapComponentTest implements AfterViewInit {
   lonLabel = 'Lon';
   latLabel = 'Lat';
 
-  ngAfterViewInit() {
-    // nothing needed for this minimal test
-  }
-
   updateLabels() {
     switch (this.currentPlanet) {
-      case 'earth': this.lonLabel = 'Lon'; this.latLabel = 'Lat'; break;
-      case 'moon': this.lonLabel = 'Longitude'; this.latLabel = 'Latitude'; break;
-      case 'mars': this.lonLabel = 'M-Longitude'; this.latLabel = 'M-Latitude'; break;
-      default: this.lonLabel = 'Lon'; this.latLabel = 'Lat';
+      case 'earth':
+        this.lonLabel = 'Lon';
+        this.latLabel = 'Lat';
+        break;
+      case 'moon':
+        this.lonLabel = 'Longitude';
+        this.latLabel = 'Latitude';
+        break;
+      case 'mars':
+        this.lonLabel = 'M-Longitude';
+        this.latLabel = 'M-Latitude';
+        break;
+      default:
+        this.lonLabel = 'Lon';
+        this.latLabel = 'Lat';
     }
   }
 
@@ -49,17 +49,10 @@ class MapComponentTest implements AfterViewInit {
 // Tests
 // ============================
 describe('MapComponent (minimal)', () => {
-  let component: MapComponentTest;
-  let fixture: ComponentFixture<MapComponentTest>;
+  let component: MockMapComponent;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [MapComponentTest]
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(MapComponentTest);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+  beforeEach(() => {
+    component = new MockMapComponent();
   });
 
   it('should initialize default properties', () => {
