@@ -46,10 +46,10 @@ This project serves both as:
   CI pipelines powered by GitHub Actions handle builds, linting, and tests.  
 
 - **Optimized Frontend Bundling**  
-  Webpack-based build.  
+  Webpack-based build using OpenLayers.  
 
 - **Standards-Based Spatial Formats**  
-  Support for GeoJSON.
+  Support for GeoJSON/CSV files and URLs.
 
 ---
 
