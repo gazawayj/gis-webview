@@ -96,7 +96,9 @@ Current and planned improvements:
 ## Author
 
 <p align=center>
+
 Jim Gazaway  
 Greeley, CO  
 [GitHub](https://github.com/gazawayj) | [Email](mailto:gazawayj@gmail.com)
+
 </p>
