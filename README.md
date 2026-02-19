@@ -105,7 +105,6 @@ Current areas of active development include:
 > I'm looking for **steady, visible improvement** rather than rapid feature expansion.
 
 ---
----
 
 ## Directory Structure
 
