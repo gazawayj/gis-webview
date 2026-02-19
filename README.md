@@ -90,8 +90,6 @@ gazawayj-gis-webview/
 └── .github/       CI/CD workflows
 ```
 
-> This high-level view only highlights architecture.
-
 ---
 
 ## Development Roadmap
