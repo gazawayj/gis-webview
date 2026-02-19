@@ -106,6 +106,47 @@ Current areas of active development include:
 > I'm looking for **steady, visible improvement** rather than rapid feature expansion.
 
 ---
+---
+
+## Directory Structure
+
+```text
+gazawayj-gis-webview/
+├── README.md
+├── package.json
+├── backend/
+│   ├── package.json
+│   ├── server.js
+│   └── src/
+│       ├── index.spec.ts
+│       ├── server.spec.ts
+│       └── test-setup.ts
+├── frontend/
+│   ├── angular.json
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig*.json
+│   ├── vitest.config.ts
+│   ├── public/
+│   │   └── _headers
+│   └── src/
+│       ├── main.ts
+│       ├── styles.css
+│       ├── app/
+│       │   └── map/
+│       │       └── services/
+│       ├── assets/
+│       │   └── tiles/
+│       │       ├── earth/
+│       │       ├── mars/
+│       │       └── moon/
+│       └── environments/
+└── .github/
+    └── workflows/
+```
+
+---
 
 <p align="center">
   Built and maintained by <strong>Jim Gazaway</strong>
