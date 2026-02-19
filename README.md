@@ -2,7 +2,7 @@
 
 Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
 
-**Live Demo:** [https://gazawayj.github.io/](https://gazawayj.github.io/)
+**Live Demo:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
 ---
 
@@ -55,7 +55,7 @@ The frontend handles visualization and interaction, while the backend serves GIS
 
 ## Technology Stack
 
-[![Tech Stack](https://skillicons.dev/icons?i=github,js,html,css,py,nodejs,angular)](https://skillicons.dev)
+[![Tech Stack](https://skillicons.dev/icons?i=github,js,html,css,py,nodejs,angular,ts)](https://skillicons.dev)
 
 - Angular  
 - OpenLayers  
@@ -63,17 +63,6 @@ The frontend handles visualization and interaction, while the backend serves GIS
 - TypeScript  
 - GitHub Actions  
 - GeoJSON, CSV, XYZ tile services  
-
----
-
-## Data & Spatial Layers
-
-**Included Layers:**
-
-- Earth: Active fires (GeoJSON), basemap layers  
-- Mars & Moon: Basemap configuration and tiles  
-
-Data is organized to support extension for custom layers and planetary projections.
 
 ---
 
