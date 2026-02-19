@@ -110,6 +110,7 @@ Current areas of active development include:
 
 ## Directory Structure
 
+This project is organized into separate frontend and backend components:
 ```text
 gazawayj-gis-webview/
 ├── README.md
