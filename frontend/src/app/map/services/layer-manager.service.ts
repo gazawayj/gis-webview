@@ -10,7 +10,7 @@ import { fromLonLat } from 'ol/proj';
 import { StyleService } from './style.service';
 import { ShapeType } from './symbol-constants';
 import { HttpClient } from '@angular/common/http';
-import * as Papa from 'papaparse';
+import Papa from 'papaparse';
 import GeoJSON from 'ol/format/GeoJSON';
 import { BehaviorSubject } from 'rxjs';
 import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL } from '../map-constants';
@@ -149,7 +149,7 @@ export class LayerManagerService {
     const finish = () => this.setLoading(layer.id, false);
 
     const processCSV = (csvText: string): boolean => {
-      const parsed = Papa.parse<any>(csvText, { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
       if (!parsed.data.length) return false;
 
       const headers = Object.keys(parsed.data[0]).map(h => h.toLowerCase());
@@ -160,7 +160,7 @@ export class LayerManagerService {
       if (!latField || !lonField) return false;
 
       let validCount = 0;
-      parsed.data.forEach(row => {
+      parsed.data.forEach((row: any) => {
         const lat = parseFloat(row[latField]);
         const lon = parseFloat(row[lonField]);
         if (!isNaN(lat) && !isNaN(lon)) {

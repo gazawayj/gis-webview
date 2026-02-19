@@ -1,39 +1,40 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "strict": true,
-    "types": ["vitest/globals", "node"],
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "baseUrl": "./",
+    "paths": {
+      "papaparse": ["node_modules/papaparse/papaparse.d.ts"]
+    }
   },
   "angularCompilerOptions": {
-    "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strictTemplates": true,
+    "enableI18nLegacyMessageIdFormat": false
   },
   "include": [
     "src/main.ts",
     "src/polyfills.ts",
-    "src/app/**/*.ts"
+    "src/papaparse.d.ts",
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "src/test.ts",
     "**/*.spec.ts",
-    "src/app/app.ts",
-    "src/app/app.config.ts",
-    "src/app/app.routes.ts"
+    "src/test.ts"
   ]
 }
