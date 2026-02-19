@@ -94,6 +94,7 @@ Current and planned improvements:
 ---
 
 ## Author
+
 <p align=center>
 Jim Gazaway  
 Greeley, CO  
