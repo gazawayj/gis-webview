@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Angular project
+        run: npm run build -- --base-href /
+
+      - name: List build output
+        run: ls -R dist/
+
+      - name: Push to gazawayj.github.io
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'frontend/dist/frontend' # Path to your build output
+          destination-github-username: 'gazawayj'
+          destination-repository-name: 'gazawayj.github.io'
+          user-email: gazawayj@gmail.com
+          target-branch: main
