@@ -1,3 +1,4 @@
+<p align="center">
 # GIS WebView
 
 Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
@@ -94,6 +95,7 @@ Current and planned improvements:
 ---
 
 ## Author
+</p>
 
 Jim Gazaway  
 Greeley, CO  
