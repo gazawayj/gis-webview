@@ -111,38 +111,80 @@ Current areas of active development include:
 This project is organized into separate frontend and backend components:
 ```text
 gazawayj-gis-webview/
-├── README.md
-├── package.json
-├── backend/
-│   ├── package.json
-│   ├── server.js
-│   └── src/
-│       ├── index.spec.ts
-│       ├── server.spec.ts
-│       └── test-setup.ts
-├── frontend/
-│   ├── angular.json
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package.json
-│   ├── tsconfig*.json
-│   ├── vitest.config.ts
-│   ├── public/
-│   │   └── _headers
-│   └── src/
-│       ├── main.ts
-│       ├── styles.css
-│       ├── app/
-│       │   └── map/
-│       │       └── services/
-│       ├── assets/
-│       │   └── tiles/
-│       │       ├── earth/
-│       │       ├── mars/
-│       │       └── moon/
-│       └── environments/
-└── .github/
-    └── workflows/
+Directory structure:
+└── gazawayj-gis-webview/
+    ├── README.md
+    ├── backend/
+    │   ├── package.json
+    │   ├── server.js
+    │   └── src/
+    │       ├── server.spec.ts
+    │       └── test-setup.ts
+    ├── frontend/
+    │   ├── angular.json
+    │   ├── eslint.config.js
+    │   ├── index.html
+    │   ├── package.json
+    │   ├── tsconfig.app.json
+    │   ├── tsconfig.eslint.json
+    │   ├── tsconfig.json
+    │   ├── tsconfig.spec.json
+    │   ├── vitest.config.ts
+    │   ├── .editorconfig
+    │   ├── public/
+    │   │   └── _headers
+    │   └── src/
+    │       ├── index.html
+    │       ├── main.ts
+    │       ├── papaparse.d.ts
+    │       ├── server.ts
+    │       ├── styles.css
+    │       ├── test-setup.ts
+    │       ├── test.ts
+    │       ├── app/
+    │       │   ├── app.component.css
+    │       │   ├── app.component.html
+    │       │   ├── app.component.ts
+    │       │   ├── app.css
+    │       │   ├── app.html
+    │       │   ├── app.module.ts
+    │       │   ├── app.spec.ts
+    │       │   └── map/
+    │       │       ├── layer-item.component.css
+    │       │       ├── layer-item.component.html
+    │       │       ├── layer-item.component.ts
+    │       │       ├── map-constants.ts
+    │       │       ├── map.component.css
+    │       │       ├── map.component.html
+    │       │       ├── map.component.spec.ts
+    │       │       ├── map.component.ts
+    │       │       └── services/
+    │       │           ├── layer-manager.service.ts
+    │       │           ├── map-facade.service.ts
+    │       │           ├── style.service.ts
+    │       │           ├── symbol-constants.ts
+    │       │           └── unique-symbol.service.ts
+    │       ├── assets/
+    │       │   └── tiles/
+    │       │       ├── earth/
+    │       │       │   ├── active-fires.geojson
+    │       │       │   └── layers.json
+    │       │       ├── mars/
+    │       │       │   └── layers.json
+    │       │       └── moon/
+    │       │           └── layers.json
+    │       └── environments/
+    │           ├── environment.prod.ts
+    │           └── environment.ts
+    └── .github/
+        └── workflows/
+            ├── build-back.yml
+            ├── build-front.yml
+            ├── deployToIO.yml
+            ├── super-linter-back.yml
+            ├── super-linter-front.yml
+            ├── tests-backend.yml
+            └── tests-frontend.yml
 ```
 
 ---
