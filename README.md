@@ -2,7 +2,7 @@
 
 A modern web application for interactive geospatial visualization and experimentation. The backend sleeps when not in use, so some layers may take a few minutes to load on first launch.
 
-**Live at:** [gazawayj.github.io/]  
+**Live at:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
 ---
 
