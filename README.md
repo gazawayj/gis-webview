@@ -7,11 +7,13 @@ A web application for interactive geospatial visualization and experimentation.
 
 ## Application Status
 
+<p align="center">
 | Frontend | Backend |
 |:--:|:--:|
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg" /></a> |
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml/badge.svg" /></a> |
+</p>
 
 ---
 
@@ -119,7 +121,16 @@ Directory structure:
     │   ├── server.js
     │   └── src/
     │       ├── server.spec.ts
-    │       └── test-setup.ts
+    │       ├── test-setup.ts
+    │       ├── assets/
+    │       │   └── tiles/
+    │       │       ├── earth/
+    │       │       │   ├── active-fires.geojson
+    │       │       │   └── layers.json
+    │       │       ├── mars/
+    │       │       │   └── layers.json
+    │       │       └── moon/
+    │       │           └── layers.json
     ├── frontend/
     │   ├── angular.json
     │   ├── eslint.config.js
@@ -164,15 +175,6 @@ Directory structure:
     │       │           ├── style.service.ts
     │       │           ├── symbol-constants.ts
     │       │           └── unique-symbol.service.ts
-    │       ├── assets/
-    │       │   └── tiles/
-    │       │       ├── earth/
-    │       │       │   ├── active-fires.geojson
-    │       │       │   └── layers.json
-    │       │       ├── mars/
-    │       │       │   └── layers.json
-    │       │       └── moon/
-    │       │           └── layers.json
     │       └── environments/
     │           ├── environment.prod.ts
     │           └── environment.ts
