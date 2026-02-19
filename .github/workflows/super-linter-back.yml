@@ -1,4 +1,4 @@
-name: Lint Backend
+name: Lint 
 
 on:
   push:
