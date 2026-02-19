@@ -1,6 +1,4 @@
-<p align="center">
-  
-# GIS WebView
+ # GIS WebView
 
 Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
 
@@ -10,12 +8,17 @@ Interactive browser-based GIS platform for planetary-scale visualization and exp
 
 ## Application Status
 
+<p align="center">
+
+  
 | Frontend | Backend |
 |:--:|:--:|
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg" /></a> |
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
 | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml/badge.svg" /></a> |
 
+
+</p>
 ---
 
 ## Purpose
@@ -96,7 +99,6 @@ Current and planned improvements:
 ---
 
 ## Author
-</p>
 
 Jim Gazaway  
 Greeley, CO  
