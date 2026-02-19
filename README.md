@@ -1,7 +1,9 @@
 # GIS WebView
 
 A web application for interactive geospatial visualization and experimentation. 
-**Live at:** [gazawayj.github.io/](https://gazawayj.github.io/)
+
+### Live Demo
+[gazawayj.github.io/](https://gazawayj.github.io/)
 
 ---
 
