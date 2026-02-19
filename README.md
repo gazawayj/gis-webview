@@ -69,7 +69,7 @@ Code quality and stability are enforced through automated workflows:
 Planned and exploratory features for upcoming iterations include:
 
 - **Advanced Layer Management**  
-  Drag-and-drop layer ordering (soon), opacity controls (coming), and grouping (coming) for complex map compositions.  
+  Drag-and-drop layer ordering, opacity controls (coming), and grouping (coming) for complex map compositions.  
 
 - **Custom Projections & Planetary CRS**  
   Support for non-Earth coordinate systems, including custom definitions for Mars and Moon datasets.  
