@@ -84,9 +84,9 @@ High-level layout of the repository:
 ```
 gazawayj-gis-webview/
 ├── backend/       Node.js API and GIS services
-├── frontend/      Angular web client + OpenLayers
-│   ├── src/app/map
 │   └── assets/tiles
+├── frontend/      Angular web client + OpenLayers
+│   └── src/app/map
 └── .github/       CI/CD workflows
 ```
 
