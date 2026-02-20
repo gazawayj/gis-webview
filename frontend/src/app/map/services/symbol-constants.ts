@@ -6,7 +6,8 @@ export const SHAPES = [
   'pentagon',
   'hexagon',
   'star',
-  'arrow'
+  'arrow',
+  'line'
 ] as const;
 
 export type ShapeType = typeof SHAPES[number];

@@ -14,7 +14,7 @@ export class StyleService {
   private usedColors: Set<string> = new Set();
   private usedShapes: Set<ShapeType> = new Set();
 
-  constructor() {}
+  constructor() { }
 
   /** Returns a unique random color (resets when exhausted) */
   getRandomColor(): string {
@@ -46,12 +46,13 @@ export class StyleService {
     };
   }
 
-  /** Existing style generator */
+  /** Style generator */
   getStyle(color: string, shape: string): Style {
     const key = `${shape}-${color}`;
     if (this.cache[key]) return this.cache[key];
 
     let image;
+    let stroke: Stroke | undefined;
 
     switch (shape.toLowerCase()) {
       case 'square':
@@ -82,15 +83,23 @@ export class StyleService {
         image = new Icon({
           src: 'data:image/svg+xml;utf8,' +
             encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-            <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
-            </svg>`)
+          <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
+          </svg>`)
         });
+        break;
+
+      case 'line':
+        stroke = new Stroke({ color, width: 3 });
         break;
 
       default:
         image = new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
     }
 
-    return this.cache[key] = new Style({ image });
+    const styleConfig: any = {};
+    if (image) styleConfig.image = image;
+    if (stroke) styleConfig.stroke = stroke;
+
+    return this.cache[key] = new Style(styleConfig);
   }
 }

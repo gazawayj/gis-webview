@@ -194,6 +194,39 @@ export class LayerManagerService {
     });
   }
 
+  /** Adds a distance measurement layer as a first-class layer */
+addDistanceLayer(
+  planet: 'earth' | 'moon' | 'mars',
+  name: string,
+  features: Feature[]
+) {
+  if (!this._map || !features.length) return;
+
+  // Get a consistent color for distance layers
+  const color = '#633e0f';
+  const shape: ShapeType = 'line';
+
+  // Create OL vector layer
+  const vectorLayer = new VectorLayer({
+    source: new VectorSource({ features: features.map(f => f.clone()) }),
+    style: () => this.styleService.getStyle(color, shape)
+  });
+
+  const config: LayerConfig = {
+    id: `distance-${Date.now()}`,
+    name,
+    color,
+    shape,
+    visible: true,
+    olLayer: vectorLayer,
+    sourceType: 'GeoJSON',        // keep as GeoJSON for compatibility
+    description: 'Distance measurement layer'
+  };
+
+  // Register layer under the specified planet
+  this.registerLayer(config, planet);
+}
+
   /** Manual layer */
   addManualLayer(
     planet: 'earth' | 'moon' | 'mars',

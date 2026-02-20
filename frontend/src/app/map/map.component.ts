@@ -1,3 +1,4 @@
+// COMPLETE FILE: frontend/src/app/map/map.component.ts
 import {
   Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy,
   ChangeDetectorRef, TemplateRef, ViewContainerRef
@@ -12,7 +13,6 @@ import { MapFacadeService } from './services/map-facade.service';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
 import { ToolService, ToolType } from './services/tool.service';
 import { ShapeType } from './services/symbol-constants';
-import { toLonLat } from 'ol/proj';
 
 @Component({
   selector: 'app-map',
@@ -46,7 +46,7 @@ export class MapComponent implements AfterViewInit {
 
   private overlayRef!: OverlayRef;
   private distanceOverlayRef!: OverlayRef;
-  toolList: string[] = ['Distance'];
+  toolList: string[] = [];
 
   constructor(
     private mapFacade: MapFacadeService,
@@ -55,18 +55,19 @@ export class MapComponent implements AfterViewInit {
     private cdr: ChangeDetectorRef,
     private overlay: Overlay,
     private vcr: ViewContainerRef
-  ) { }
+  ) {}
 
   ngAfterViewInit() {
-    // Initialize map and automatically load current planet (basemap + built-in layers)
+    // Initialize map with the current planet
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
 
-    // Distance modal trigger
+    // Distance save modal trigger
     this.mapContainer.nativeElement.addEventListener('distance-save-request', () => this.openDistanceSaveModal());
 
+    // Subscribe to tool changes
     this.toolService.activeTool$.subscribe(tool => this.mapFacade.activateTool(tool));
 
-    // Track pointer for coordinates display
+    // Track pointer coordinates
     this.mapFacade.trackPointer((lon: number, lat: number, zoom: number) => {
       this.currentLon = lon;
       this.currentLat = lat;
@@ -108,9 +109,8 @@ export class MapComponent implements AfterViewInit {
     this.cancelDistanceSave();
   }
 
-  /** Cancels distance save and clears the tool */
   cancelDistanceSave() {
-    this.mapFacade.activateTool(undefined as any); // clear distance tool
+    this.mapFacade.activateTool(undefined as any); // Clear distance tool
     this.closeDistanceSaveModal();
     this.cdr.detectChanges();
   }
@@ -131,16 +131,16 @@ export class MapComponent implements AfterViewInit {
   private updateLabels() {
     switch (this.currentPlanet) {
       case 'moon':
-        this.lonLabel = 'Longitude';
-        this.latLabel = 'Latitude';
+        this.lonLabel = 'Selenographic Longitude';
+        this.latLabel = 'Selenographic Latitude';
         break;
       case 'mars':
-        this.lonLabel = 'M-Longitude';
-        this.latLabel = 'M-Latitude';
+        this.lonLabel = 'Areographic Longitude';
+        this.latLabel = 'Areographic Latitude';
         break;
       default:
-        this.lonLabel = 'Lon';
-        this.latLabel = 'Lat';
+        this.lonLabel = 'Longitude';
+        this.latLabel = 'Latitude';
     }
   }
 
@@ -187,7 +187,6 @@ export class MapComponent implements AfterViewInit {
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
-    layer.color = color;
     this.layerManager.updateStyle(layer);
     this.cdr.detectChanges();
   }
@@ -203,12 +202,12 @@ export class MapComponent implements AfterViewInit {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
 
-    this.layerManager.loadPlanet(planet);
+    // Unified service call via facade
     this.mapFacade.setPlanet(planet);
 
     this.updateLabels();
-    this.cdr.detectChanges();
     this.closeToolbox();
+    this.cdr.detectChanges();
   }
 
   // ================= ADD LAYER MODAL =================
@@ -243,9 +242,7 @@ export class MapComponent implements AfterViewInit {
 
   switchModalMode(mode: 'manual' | 'console') {
     this.modalMode = mode;
-    this.modalTitle = mode === 'manual'
-      ? 'Add New Manual Layer'
-      : 'Add Layer via Console';
+    this.modalTitle = mode === 'manual' ? 'Add New Manual Layer' : 'Add Layer via Console';
     this.cdr.detectChanges();
   }
 
@@ -271,19 +268,16 @@ export class MapComponent implements AfterViewInit {
   confirmAddLayer() {
     if (!this.newLayerName.trim()) return;
 
-    if (this.modalMode === 'manual') {
-      this.layerManager.addManualLayer(
-        this.currentPlanet,
-        this.newLayerName,
-        this.newLayerDescription,
-        this.fileContent || undefined,
-        this.fileContent?.trim().startsWith('{') ? 'GeoJSON' : 'CSV',
-        this.latField,
-        this.lonField
-      );
-    } else if (this.modalMode === 'console' && this.consoleInput.trim()) {
-      //this.layerManager.addLayerFromConsole(this.currentPlanet, this.consoleInput);
-    }
+    // Use facade to add manual layer
+    this.layerManager.addManualLayer(
+      this.currentPlanet,
+      this.newLayerName,
+      this.newLayerDescription,
+      this.fileContent || undefined,
+      this.fileContent?.trim().startsWith('{') ? 'GeoJSON' : 'CSV',
+      this.latField,
+      this.lonField
+    );
 
     this.closeModal();
     this.cdr.detectChanges();
