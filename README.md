@@ -49,7 +49,7 @@ Data      → GeoJSON, CSV, XYZ tiles, planetary datasets
 CI/CD     → GitHub Actions: build, lint, tests
 ```
 
-The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles. All components are designed for modularity and extensibility.
+The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles.
 
 ---
 
