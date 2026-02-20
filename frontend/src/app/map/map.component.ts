@@ -1,4 +1,3 @@
-// COMPLETE FILE: frontend/src/app/map/map.component.ts
 import {
   Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy,
   ChangeDetectorRef, TemplateRef, ViewContainerRef
@@ -99,6 +98,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   closeDistanceSaveModal() {
+    this.mapFacade.cancelDistanceLayer() 
     this.distanceOverlayRef?.dispose();
   }
 
@@ -106,11 +106,12 @@ export class MapComponent implements AfterViewInit {
     const layerName = name?.trim() || `Distance-${Date.now()}`;
     this.mapFacade.saveDistanceLayer(layerName);
     this.cdr.detectChanges();
+    this.mapFacade.cancelDistanceLayer() 
     this.cancelDistanceSave();
   }
 
   cancelDistanceSave() {
-    this.mapFacade.activateTool(undefined as any); // Clear distance tool
+    this.mapFacade.activateTool(undefined as any);
     this.closeDistanceSaveModal();
     this.cdr.detectChanges();
   }

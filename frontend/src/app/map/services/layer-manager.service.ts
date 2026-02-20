@@ -1,3 +1,5 @@
+// frontend/src/app/services/layer-manager.service.ts
+
 import { Injectable } from '@angular/core';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
@@ -22,22 +24,29 @@ export interface LayerConfig {
   shape: ShapeType | 'none';
   olLayer: TileLayer<XYZ> | VectorLayer<VectorSource>;
   isBasemap?: boolean;
-  description?: string;
-  sourceType?: 'CSV' | 'GeoJSON';
-  sourceUrl?: string;
-  latField?: string;
-  lonField?: string;
+  isTemporary?: boolean;
+  _planet?: 'earth' | 'moon' | 'mars';
 }
 
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
   private _map?: OlMap;
+
   public layers: LayerConfig[] = [];
   public currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
 
   private registry = new Map<string, LayerConfig>();
-  private planetCache: Record<'earth' | 'moon' | 'mars', LayerConfig[]> = { earth: [], moon: [], mars: [] };
-  private basemapRegistry: Record<'earth' | 'moon' | 'mars', LayerConfig> = { earth: null!, moon: null!, mars: null! };
+  private planetCache: Record<'earth' | 'moon' | 'mars', LayerConfig[]> = {
+    earth: [],
+    moon: [],
+    mars: []
+  };
+
+  private basemapRegistry: Record<'earth' | 'moon' | 'mars', LayerConfig> = {
+    earth: null!,
+    moon: null!,
+    mars: null!
+  };
 
   constructor(public styleService: StyleService, private http: HttpClient) {}
 
@@ -45,189 +54,264 @@ export class LayerManagerService {
     this._map = map;
   }
 
-  /** Registers a layer to map, sidebar, and cache */
-  registerLayer(config: LayerConfig, planet: 'earth' | 'moon' | 'mars') {
+  // ================================
+  // 🌍 PLANET LOADING (FINAL)
+  // ================================
+  loadPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (!this._map) return;
-    if (this.registry.has(config.id)) return;
 
-    this.registry.set(config.id, config);
+    // ⭐ STEP 1 — SAVE CURRENT PLANET STATE
+    this.saveCurrentMapLayersToCache();
 
-    if (!this.planetCache[planet].some(l => l.id === config.id)) {
-      this.planetCache[planet].push(config);
-    }
-
-    if (planet === this.currentPlanet) {
-      if (!this._map.getLayers().getArray().includes(config.olLayer)) {
-        config.olLayer.setVisible(config.visible);
-        this._map.addLayer(config.olLayer);
-      }
-    }
-
-    if (!config.isBasemap && !this.layers.some(l => l.id === config.id)) {
-      this.layers.push(config);
-    }
-
-    this.applyZOrder();
-  }
-
-  /** Loads all layers for a planet */
-  loadPlanet(planet: 'earth'|'moon'|'mars') {
-    if (!this._map) return;
-    this.currentPlanet = planet;
-
-    // Clear map
-    this._map.getLayers().getArray().forEach(layer => this._map?.removeLayer(layer));
-
-    // Clear sidebar
+    // ⭐ STEP 2 — CLEAR MAP
+    this._map.getLayers().clear();
     this.layers = [];
 
-    // Add basemap
+    // ⭐ STEP 3 — SET NEW PLANET
+    this.currentPlanet = planet;
+
+    // ⭐ STEP 4 — ADD BASEMAP
     const basemap = this.createBasemap(planet);
     this._map.addLayer(basemap.olLayer);
 
-    // Initialize built-in layers
+    // ⭐ STEP 5 — ENSURE BUILT-INS EXIST
     this.initBuiltInLayers(planet);
 
-    // Add cached layers
+    // ⭐ STEP 6 — LOAD PLANET CACHE
     this.planetCache[planet].forEach(layer => {
-      if (!this._map?.getLayers().getArray().includes(layer.olLayer)) {
-        this._map?.addLayer(layer.olLayer);
-      }
-      if (!layer.isBasemap && !this.layers.some(l => l.id === layer.id)) this.layers.push(layer);
+      this._map!.addLayer(layer.olLayer);
+      layer.olLayer.setVisible(layer.visible);
+
+      if (!layer.isBasemap) this.layers.push(layer);
     });
+
+    // ⭐ STEP 7 — Z ORDER
     this.applyZOrder();
   }
 
-  createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
-    if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
+  // ================================
+  // 💾 SAVE PLANET STATE
+  // ================================
+  private saveCurrentMapLayersToCache() {
+    if (!this._map) return;
 
-    const olLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAP_URLS[planet] || BASEMAP_URLS['earth'] }),
-      zIndex: 0,
-      visible: true
+    const layersOnMap = this._map.getLayers().getArray();
+
+    const persistent: LayerConfig[] = [];
+
+    layersOnMap.forEach(l => {
+      const cfg = Array.from(this.registry.values()).find(c => c.olLayer === l);
+      if (!cfg) return;
+
+      if (cfg.isBasemap) return;
+      if (cfg.isTemporary) return;
+      if (cfg._planet !== this.currentPlanet) return;
+
+      persistent.push(cfg);
     });
 
-    const basemap: LayerConfig = {
+    this.planetCache[this.currentPlanet] = persistent;
+  }
+
+  // ================================
+  // 🧱 LAYER CREATION
+  // ================================
+  createLayer(params: {
+    planet: 'earth' | 'moon' | 'mars';
+    name: string;
+    features?: Feature[];
+    shape?: ShapeType;
+    color?: string;
+    id?: string;
+    cache?: boolean;
+    isTemporary?: boolean;
+  }): LayerConfig | null {
+    if (!this._map) return null;
+
+    const {
+      planet,
+      name,
+      features,
+      shape,
+      color,
+      id,
+      cache = true,
+      isTemporary = false
+    } = params;
+
+    const layerId = id || `${name}-${Date.now()}`;
+
+    if (this.registry.has(layerId)) return this.registry.get(layerId)!;
+
+    const vectorLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: () => this.styleService.getStyle(color!, shape!)
+    });
+
+    const config: LayerConfig = {
+      id: layerId,
+      name,
+      color: color!,
+      shape: shape!,
+      visible: true,
+      olLayer: vectorLayer,
+      isTemporary,
+      _planet: planet
+    };
+
+    if (features?.length) {
+      vectorLayer.getSource()?.addFeatures(features.map(f => f.clone()));
+    }
+
+    this.registry.set(layerId, config);
+
+    // Cache if permanent
+    if (cache && !isTemporary) {
+      this.planetCache[planet].push(config);
+    }
+
+    // Add to map if active planet
+    if (planet === this.currentPlanet) {
+      this._map.addLayer(config.olLayer);
+      if (!config.isBasemap) this.layers.push(config);
+    }
+
+    this.applyZOrder();
+    return config;
+  }
+
+  // ================================
+  // 📏 DISTANCE LAYER
+  // ================================
+  addDistanceLayer(planet: 'earth' | 'moon' | 'mars', name: string, features: Feature[]) {
+    return this.createLayer({
+      planet,
+      name,
+      features,
+      shape: 'line',
+      color: this.styleService.getRandomColor(),
+      cache: true,
+      isTemporary: false
+    });
+  }
+
+  // ================================
+  // 🗑 REMOVE LAYER
+  // ================================
+  remove(layer?: LayerConfig) {
+    if (!layer || !this._map) return;
+
+    this._map.removeLayer(layer.olLayer);
+    this.registry.delete(layer.id);
+
+    this.layers = this.layers.filter(l => l.id !== layer.id);
+
+    Object.keys(this.planetCache).forEach(p => {
+      this.planetCache[p as 'earth' | 'moon' | 'mars'] =
+        this.planetCache[p as 'earth' | 'moon' | 'mars'].filter(l => l.id !== layer.id);
+    });
+  }
+
+  // ================================
+  // 🗺 BASEMAP
+  // ================================
+  private createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
+    if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
+
+    const layer = new TileLayer({
+      source: new XYZ({ url: BASEMAP_URLS[planet] }),
+      zIndex: 0
+    });
+
+    const config: LayerConfig = {
       id: `basemap-${planet}`,
       name: 'Basemap',
       color: '#fff',
       shape: 'none',
       visible: true,
-      olLayer,
-      isBasemap: true
+      olLayer: layer,
+      isBasemap: true,
+      _planet: planet
     };
 
-    this.basemapRegistry[planet] = basemap;
-    return basemap;
+    this.basemapRegistry[planet] = config;
+    return config;
   }
 
-  /** Initialize built-in layers */
+  // ================================
+  // 🔥 BUILT-INS
+  // ================================
   private initBuiltInLayers(planet: 'earth' | 'moon' | 'mars') {
-    if (planet === 'earth') {
-      this.loadFIRMSLayer();
-      this.loadEarthquakeLayer();
+    if (planet !== 'earth') return;
+
+    if (!this.planetCache.earth.length) {
+      this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe(csv => {
+        const features: Feature[] = [];
+        const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+
+        parsed.data.forEach((r: any) => {
+          const lat = parseFloat(r.latitude);
+          const lon = parseFloat(r.longitude);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            features.push(new Feature(new Point(fromLonLat([lon, lat]))));
+          }
+        });
+
+        this.createLayer({
+          planet: 'earth',
+          name: 'FIRMS Fires',
+          features,
+          shape: 'circle',
+          color: '#ff3300',
+          cache: true
+        });
+      });
+
+      this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
+        const features = new GeoJSON().readFeatures(g, { featureProjection: 'EPSG:3857' });
+
+        this.createLayer({
+          planet: 'earth',
+          name: 'Earthquakes',
+          features,
+          shape: 'triangle',
+          color: '#0077ff',
+          cache: true
+        });
+      });
     }
-    // future moon/mars layers
   }
 
-  /** FIRMS CSV */
-  private loadFIRMSLayer() {
-    if (!FIRMS_CSV_URL) return;
-    this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe(csvText => {
-      const features: Feature[] = [];
-      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-      parsed.data.forEach((row: any) => {
-        const lat = parseFloat(row['latitude']);
-        const lon = parseFloat(row['longitude']);
-        if (!isNaN(lat) && !isNaN(lon)) features.push(new Feature(new Point(fromLonLat([lon, lat]))));
-      });
-      if (!features.length) return;
+  // ================================
+  // 🔢 Z ORDER
+  // ================================
+  applyZOrder() {
+    if (!this._map) return;
 
-      const color = '#ff3300';
-      const shape: ShapeType = 'circle';
-      const vectorLayer = new VectorLayer({
-        source: new VectorSource({ features }),
-        style: () => this.styleService.getStyle(color, shape)
-      });
-
-      const config: LayerConfig = {
-        id: 'firms-layer',
-        name: 'FIRMS Fires',
-        color,
-        shape,
-        visible: true,
-        olLayer: vectorLayer,
-        sourceType: 'CSV',
-        description: 'NASA FIRMS fire data'
-      };
-
-      this.registerLayer(config, 'earth');
-    });
+    let z = 0;
+    this._map.getLayers().forEach(l => l.setZIndex(z++));
   }
 
-  /** Earthquake GeoJSON */
-  private loadEarthquakeLayer() {
-    if (!EARTHQUAKE_GEOJSON_URL) return;
-    this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(geojsonText => {
-      const features = new GeoJSON().readFeatures(geojsonText, { featureProjection: 'EPSG:3857' });
-      if (!features.length) return;
+  // ================= SIDEBAR SUPPORT =================
 
-      const color = '#0077ff';
-      const shape: ShapeType = 'triangle';
-      const vectorLayer = new VectorLayer({
-        source: new VectorSource({ features }),
-        style: () => this.styleService.getStyle(color, shape)
-      });
-
-      const config: LayerConfig = {
-        id: 'earthquake-layer',
-        name: 'Earthquakes',
-        color,
-        shape,
-        visible: true,
-        olLayer: vectorLayer,
-        sourceType: 'GeoJSON',
-        description: 'Recent earthquake data'
-      };
-
-      this.registerLayer(config, 'earth');
-    });
+  reorderLayers(sidebarOrder: LayerConfig[]) {
+    if (!this._map) return;
+    this.layers = sidebarOrder;
+    this.applyZOrder();
   }
 
-  /** Adds a distance measurement layer as a first-class layer */
-addDistanceLayer(
-  planet: 'earth' | 'moon' | 'mars',
-  name: string,
-  features: Feature[]
-) {
-  if (!this._map || !features.length) return;
+  toggle(layer: LayerConfig) {
+    layer.visible = !layer.visible;
+    layer.olLayer.setVisible(layer.visible);
+  }
 
-  // Get a consistent color for distance layers
-  const color = '#633e0f';
-  const shape: ShapeType = 'line';
+  updateStyle(layer: LayerConfig) {
+    if (!(layer.olLayer instanceof VectorLayer)) return;
+    layer.olLayer.setStyle(() =>
+      this.styleService.getStyle(layer.color, layer.shape)
+    );
+  }
 
-  // Create OL vector layer
-  const vectorLayer = new VectorLayer({
-    source: new VectorSource({ features: features.map(f => f.clone()) }),
-    style: () => this.styleService.getStyle(color, shape)
-  });
-
-  const config: LayerConfig = {
-    id: `distance-${Date.now()}`,
-    name,
-    color,
-    shape,
-    visible: true,
-    olLayer: vectorLayer,
-    sourceType: 'GeoJSON',        // keep as GeoJSON for compatibility
-    description: 'Distance measurement layer'
-  };
-
-  // Register layer under the specified planet
-  this.registerLayer(config, planet);
-}
-
-  /** Manual layer */
   addManualLayer(
     planet: 'earth' | 'moon' | 'mars',
     name: string,
@@ -237,90 +321,13 @@ addDistanceLayer(
     latField?: string,
     lonField?: string
   ) {
-    if (!this._map) return;
-
-    const { color, shape } = this.styleService.getRandomStyleProps();
-    const vectorLayer = new VectorLayer({
-      source: new VectorSource(),
-      style: () => this.styleService.getStyle(color, shape)
-    });
-
-    const config: LayerConfig = {
-      id: `manual-${Date.now()}`,
+    // Uses existing createLayer pipeline
+    return this.createLayer({
+      planet,
       name,
-      description,
-      color,
-      shape,
-      visible: true,
-      olLayer: vectorLayer,
-      sourceType,
-      latField,
-      lonField
-    };
-
-    if (fileContent) this.loadLayerFromSource(config, fileContent);
-    this.registerLayer(config, planet);
-  }
-
-  /** Load features from CSV/GeoJSON */
-  loadLayerFromSource(layer: LayerConfig, fileContent?: string): boolean {
-    if (!(layer.olLayer instanceof VectorLayer)) return false;
-    const source = layer.olLayer.getSource();
-    if (!source) return false;
-    source.clear();
-
-    if (layer.sourceType === 'CSV' && fileContent) {
-      const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
-      parsed.data.forEach((row: any) => {
-        const lat = parseFloat(row[layer.latField || 'latitude']);
-        const lon = parseFloat(row[layer.lonField || 'longitude']);
-        if (!isNaN(lat) && !isNaN(lon)) source.addFeature(new Feature(new Point(fromLonLat([lon, lat]))));
-      });
-    } else if (layer.sourceType === 'GeoJSON' && fileContent) {
-      const features = new GeoJSON().readFeatures(fileContent, { featureProjection: 'EPSG:3857' });
-      source.addFeatures(features);
-    }
-
-    return source.getFeatures().length > 0;
-  }
-
-  /** Toggle layer */
-  toggle(layer: LayerConfig) {
-    layer.visible = !layer.visible;
-    layer.olLayer.setVisible(layer.visible);
-  }
-
-  /** Remove layer */
-  remove(layer: LayerConfig) {
-    if (!this._map) return;
-    this._map.removeLayer(layer.olLayer);
-    this.registry.delete(layer.id);
-    this.layers = this.layers.filter(l => l.id !== layer.id);
-    Object.keys(this.planetCache).forEach(p => {
-      this.planetCache[p as 'earth'|'moon'|'mars'] =
-        this.planetCache[p as 'earth'|'moon'|'mars'].filter(l => l.id !== layer.id);
+      shape: 'circle',
+      color: this.styleService.getRandomColor(),
+      cache: true
     });
-  }
-
-  /** Update vector style */
-  updateStyle(layer: LayerConfig) {
-    if (!(layer.olLayer instanceof VectorLayer)) return;
-    layer.olLayer.setStyle(() => this.styleService.getStyle(layer.color, layer.shape));
-  }
-
-  /** Reorder sidebar layers */
-  reorderLayers(sidebarOrder: LayerConfig[]) {
-    if (!this._map) return;
-    this.layers = sidebarOrder;
-    this.applyZOrder();
-  }
-
-  /** Apply z-index: basemap=0, layers stacked above */
-  applyZOrder() {
-    if (!this._map) return;
-    let z = 0;
-    const basemap = this.planetCache[this.currentPlanet].find(l => l.isBasemap);
-    if (basemap) basemap.olLayer.setZIndex(z++);
-    this.layers.forEach(l => l.olLayer.setZIndex(z++));
   }
 }
