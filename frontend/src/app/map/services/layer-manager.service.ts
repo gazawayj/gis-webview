@@ -95,7 +95,6 @@ export class LayerManagerService {
       }
       if (!layer.isBasemap && !this.layers.some(l => l.id === layer.id)) this.layers.push(layer);
     });
-
     this.applyZOrder();
   }
 

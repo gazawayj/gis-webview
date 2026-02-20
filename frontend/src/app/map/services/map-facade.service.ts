@@ -87,7 +87,6 @@ export class MapFacadeService {
     this.measureLayer = new VectorLayer({
       source: this.measureSource,
       style: this.getDistanceStyle(primaryColor),
-      zIndex: 1000 // ensure labels are on top
     });
     this.map.addLayer(this.measureLayer);
 
@@ -138,7 +137,8 @@ export class MapFacadeService {
           const mid = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
           const label = new Feature({
             geometry: new Point(mid),
-            distanceLabel: distLabel
+            distanceLabel: distLabel,
+            zindex: 100100
           });
 
           // Label style always on top
