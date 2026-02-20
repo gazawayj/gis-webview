@@ -23,7 +23,7 @@ GIS WebView is designed to explore modern techniques for **interactive planetary
 - Planetary basemaps and non-Earth coordinate systems  
 - Standards-compliant spatial data (GeoJSON, CSV, XYZ tiles)  
 - Fast, interactive visualization with layer management  
-- A foundation for AI-assisted geospatial workflows  
+- A base for AI-assisted geospatial workflows  
 
 This platform is intended to be a foundation for professional GIS development.
 
@@ -49,7 +49,7 @@ Data      → GeoJSON, CSV, XYZ tiles, planetary datasets
 CI/CD     → GitHub Actions: build, lint, tests
 ```
 
-The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles. All components are designed for modularity and extensibility.
+The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles.
 
 ---
 
