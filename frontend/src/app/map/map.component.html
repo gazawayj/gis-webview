@@ -15,11 +15,15 @@
     </div>
 
     <!-- Layer list -->
-    <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
+    <div class="layer-list"
+         cdkDropList
+         [cdkDropListData]="sidebarLayers"
+         (cdkDropListDropped)="onLayerDropped($event)">
       <ng-container *ngFor="let layer of sidebarLayers; let i = index; trackBy: trackLayer">
-        <div class="layer-item-wrapper" cdkDrag>
-          <app-layer-item
-            [layer]="layer"
+        <div class="layer-item-wrapper"
+             cdkDrag
+             (cdkDragMoved)="onLayerDragMoved()">
+          <app-layer-item [layer]="layer"
             (visibilityChange)="toggleLayer(layer)"
             (colorChange)="onColorPicked(layer, $event)"
             (shapeChange)="selectShape(layer, $event)"
@@ -35,9 +39,30 @@
 
     <!-- Stats -->
     <div class="map-stats">
-      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
-      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
-      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
+      <div class="stat-item">
+        <span class="stat-label">{{ latLabel }}:</span>
+        <span class="stat-value">{{ formattedLat }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ lonLabel }}:</span>
+        <span class="stat-value">{{ formattedLon }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Zoom:</span>
+        <span class="stat-value">{{ zoomDisplay }}</span>
+      </div>
+    </div>
+
+    <!-- Toolbox -->
+    <div class="toolbar-wrapper">
+      <div class="toolbar-label">Toolbox</div>
+      <div class="toolbar-buttons">
+        <img src="assets/icons/distance-tool.svg"
+             alt="Distance Tool"
+             class="tool-icon"
+             title="Distance Tool"
+             (click)="activateTool('distance')" />
+      </div>
     </div>
   </aside>
 
@@ -83,23 +108,6 @@
             Longitude Field:
             <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
           </label>
-
-          <!-- File Content Preview -->
-          <div *ngIf="fileContent" class="file-preview">
-            <strong>Preview (first 500 chars):</strong>
-            <pre>{{ fileContent | slice:0:500 }}</pre>
-            <small *ngIf="fileContent.length > 500">...truncated</small>
-          </div>
-
-          <!-- Live Preview Layer Info -->
-          <div *ngIf="previewLayer" class="preview-info">
-            <strong>Preview Layer Style:</strong>
-            <div class="preview-style">
-              <span>Color: <span [style.color]="previewLayer.color">{{ previewLayer.color }}</span></span>
-              <span>Shape: {{ previewLayer.shape }}</span>
-            </div>
-            <small>This layer is temporarily added to the map for preview.</small>
-          </div>
         </div>
 
         <!-- Console Input -->
@@ -115,6 +123,18 @@
           (modalMode==='console' && !consoleInput)
         ">Add</button>
         <button (click)="cancelAddLayer()">Cancel</button>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Distance Save Modal -->
+  <ng-template #distanceSaveModal>
+    <div class="distance-save-modal">
+      <h3>Save Distance Layer</h3>
+      <input type="text" placeholder="Layer name" [(ngModel)]="distanceLayerName" />
+      <div class="buttons">
+        <button (click)="confirmSaveDistance(distanceLayerName)">Save</button>
+        <button (click)="closeDistanceSaveModal()">Cancel</button>
       </div>
     </div>
   </ng-template>

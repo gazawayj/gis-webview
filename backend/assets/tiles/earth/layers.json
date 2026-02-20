@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Active Fires",
+    "type": "vector",
+    "source": "active-fires.geojson",
+    "visible": true,
+    "color": "#ff5500",
+    "zIndex": 0
+  }
+]

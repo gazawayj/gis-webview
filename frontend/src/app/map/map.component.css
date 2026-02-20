@@ -106,6 +106,9 @@ body {
   flex-direction: column-reverse;
   overflow-y: auto;
   background-color: var(--panel-bg);
+  border-radius: 8px;
+  gap: 4px;
+  padding-bottom: 8px;
 }
 
 .layer-item-wrapper {
@@ -211,6 +214,97 @@ body {
   color: var(--text-color-dark);
   text-align: right;
 }
+
+/* ===================== TOOLBAR ===================== */
+
+.toolbar-wrapper {
+  flex-shrink: 0;
+  margin-top: 1rem;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-bottom: 8px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.toolbar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-align: center;
+  width: 100%;
+}
+
+.tool-icon {
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  color: var(--primary-color); /* sets line and points color */
+  background: #cacaca;
+}
+
+.tool-icon:hover {
+  transform: scale(1.1);
+}
+
+/* ================= DISTANCE TOOL ================= */
+
+.distance-save-modal {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  width: 280px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.distance-save-modal h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.distance-save-modal input {
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.distance-save-modal .buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.distance-save-modal button {
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.distance-save-modal button:first-child {
+  background-color: #007bff;
+  color: white;
+}
+
+.distance-save-modal button:last-child {
+  background-color: #ccc;
+  color: #333;
+}
+
 
 /* ===================== MODAL ===================== */
 .modal {
@@ -422,3 +516,37 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===================== TOOLS ===================== */
+
+.measure-tooltip {
+  position: relative;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 4px 8px;
+  border: 1px solid black;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.measure-tooltip-static {
+  background: var(--primary-color);
+  color: white;
+  border: 1px solid black;
+}
+
+.measure-segment {
+  padding: 2px 4px;
+  background-color: white;
+  color: var(--primary-color);                 /* text color */
+  border: 1px solid var(--primary-color);      /* black border */
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;        /* so it doesn’t block map interaction */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+
