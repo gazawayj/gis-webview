@@ -1,4 +1,4 @@
-name: Build
+name: Deploy To IO
 
 on:
   push:
@@ -31,21 +31,18 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Angular project
-        run: npm run build -- --base-href /gis-webview/
+        run: npm run build -- --base-href /
 
       - name: List build output
         run: ls -R dist/
 
-      - name: Upload build artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Push to gazawayj.github.io
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          path: 'frontend/dist/frontend'
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+          source-directory: 'frontend/dist/frontend' # Path to your build output
+          destination-github-username: 'gazawayj'
+          destination-repository-name: 'gazawayj.github.io'
+          user-email: gazawayj@gmail.com
+          target-branch: main

@@ -1,112 +1,104 @@
-# GIS WebView
+ # GIS WebView
 
-A modern web application for interactive geospatial visualization and experimentation. The backend sleeps when not in use, so some layers may take a few minutes to load on first launch.
+Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
 
-**Live at:** [https://gazawayj.github.io/gis-webview/]  
+**Live Demo:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
 ---
 
 ## Application Status
+  
+| Frontend | Backend |
+|:--:|:--:|
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg" /></a> |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
+| <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml/badge.svg" /></a> |
 
-| Category | Frontend | Backend |
-|:--|:--:|:--:|
-| **Build** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/build-back.yml/badge.svg" /></a> |
-| **Lint** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-front.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/super-linter-back.yml/badge.svg" /></a> |
-| **Tests** | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-frontend.yml/badge.svg" /></a> | <a href="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml"><img src="https://github.com/gazawayj/gis-webview/actions/workflows/tests-backend.yml/badge.svg" /></a> |
+---
+
+## Purpose
+
+GIS WebView is designed to explore modern techniques for **interactive planetary GIS** in the browser. It emphasizes:
+
+- Planetary basemaps and non-Earth coordinate systems  
+- Standards-compliant spatial data (GeoJSON, CSV, XYZ tiles)  
+- Fast, interactive visualization with layer management  
+- A foundation for AI-assisted geospatial workflows  
+
+This platform is intended to be a foundation for professional GIS development.
+
+---
+
+## Capabilities
+
+- Multi-planet support (Earth, Mars, Moon)  
+- Vector and raster layer rendering  
+- Interactive layer management with planned drag-and-drop, opacity, and grouping controls  
+- Temporal data visualization and animation (planned)  
+- Plain-language AI-assisted layer creation (planned)  
+- Browser-native, standards-compliant spatial formats  
+
+---
+
+## System Architecture
+
+```
+Frontend  → Angular + OpenLayers web client
+Backend   → Node.js GIS services and API
+Data      → GeoJSON, CSV, XYZ tiles, planetary datasets
+CI/CD     → GitHub Actions: build, lint, tests
+```
+
+The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles. All components are designed for modularity and extensibility.
 
 ---
 
 ## Technology Stack
 
-[![Tech Stack](https://skillicons.dev/icons?i=github,js,html,css,py,nodejs,angular)](https://skillicons.dev)
+[![Tech Stack](https://skillicons.dev/icons?i=github,js,html,css,py,nodejs,angular,ts)](https://skillicons.dev)
+
+- Angular  
+- OpenLayers  
+- Node.js / Express  
+- TypeScript  
+- GitHub Actions  
+- GeoJSON, CSV, XYZ tile services  
 
 ---
 
-## Overview
+## Directory Structure
 
-**GIS WebView** is an evolving geospatial web platform designed to explore modern patterns for GIS visualization directly in the browser.
+High-level layout of the repository:
 
-The project focuses on rendering planetary-scale spatial data. Raster imagery, vector layers, and tiled map services—using **Angular** and **OpenLayers**. The frontend provides interactive mapping, layer management, and user controls, while the backend serves GIS-friendly formats such as **GeoJSON**, raster metadata (coming soon), and map tiles.
-
-This project serves both as:
-
-- A learning project for creating a modern web-based GIS, usable for planetary and exo-planetary investigations.
-- A foundation for a more complete, extensible GIS visualization system utilizing AI-assistance (AI features coming soon).
-
----
-
-## Key Features
-
-- **Planetary Basemap Support**  
-  Early support for Earth, Mars, and Moon datasets.  
-
-- **Automated Quality Control**  
-  CI pipelines powered by GitHub Actions handle builds, linting, and tests.  
-
-- **Optimized Frontend Bundling**  
-  Webpack-based build using OpenLayers.  
-
-- **Standards-Based Spatial Formats**  
-  Support for GeoJSON/CSV files and URLs.
+```
+gazawayj-gis-webview/
+├── backend/       Node.js API and GIS services
+│   └── assets/tiles
+├── frontend/      Angular web client + OpenLayers
+│   └── src/app/map
+└── .github/       CI/CD workflows
+```
 
 ---
 
-## Continuous Integration
+## Development Roadmap
 
-Code quality and stability are enforced through automated workflows:
+Current and planned improvements:
 
-- **Super-Linter**  
-  Ensures consistent coding standards across all supported languages.  
-
-- **Test Automation**  
-  Frontend and backend tests run automatically as part of CI. **May temporarily break during frontend/backend changes, as time allows for repair.**  
-
-> CI workflows are iterative and will evolve alongside the project.
+- Drag-and-drop layer ordering, grouping, and opacity controls  
+- Advanced planetary projections and CRS support  
+- Raster analysis tools (slope, hillshade, elevation profiling)  
+- Temporal layers and animated map playback  
+- Integration of AI-assisted GIS workflows  
 
 ---
 
-## Future Features
+## Author
 
-Planned and exploratory features for upcoming iterations include:
+<p align=center>
 
-- **Advanced Layer Management**  
-  Drag-and-drop layer ordering (soon), opacity controls (coming), and grouping (coming) for complex map compositions.  
+Jim Gazaway  
+Greeley, CO  
+[GitHub](https://github.com/gazawayj) | [Email](mailto:gazawayj@gmail.com)
 
-- **Custom Projections & Planetary CRS**  
-  Support for non-Earth coordinate systems, including custom definitions for Mars and Moon datasets.  
-
-- **Raster Analysis Tools**  
-  On-the-fly slope, hillshade, and elevation profiling for planetary DEMs (coming).  
-
-- **Vector Query & Inspection**  
-  Feature selection, attribute inspection, and spatial querying directly within the map view (coming).  
-
-- **Time-Aware Data Visualization**  
-  Support for temporal layers and animated map playback (coming).  
-
-- **Pluggable Data Sources**  
-  Modular backend connectors for XYZ, and cloud-hosted (coming) GIS services.  
-
-- **Integrated AI Assistance**  
-  Plain-language AI assistance for intelligent, automated layer creation (coming).  
-
-> Features will be implemented incrementally.
-
----
-
-## Project Direction
-
-Current areas of active development include:
-
-- ~~Expanding planetary basemap and CRS support.~~ done.
-- Improving automated test coverage for map interactions.  
-- ~~Refining CI workflows for faster developer feedback~~ done.
-- Experimenting with additional spatial data formats and services.  
-
-> I'm looking for **steady, visible improvement** rather than rapid feature expansion.
-
----
-
-<p align="center">
-  Built and maintained by <strong>Jim Gazaway</strong>
 </p>
