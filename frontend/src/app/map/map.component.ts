@@ -8,10 +8,11 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { LayerItemComponent } from './layer-item.component';
-import { MapFacadeService } from './services/map-facade.service';
+import { MapFacadeService, ToolPlugin } from './services/map-facade.service';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
-import { ToolService, ToolType } from './services/tool.service';
+import { ToolService } from './services/tool.service';
 import { ShapeType } from './services/symbol-constants';
+import { DistanceToolPlugin } from './tools/distance-tool.plugin';
 
 @Component({
   selector: 'app-map',
@@ -24,7 +25,7 @@ import { ShapeType } from './services/symbol-constants';
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
-  @ViewChild('distanceSaveModal') distanceSaveModal!: TemplateRef<any>;
+  @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>; // renamed generic modal
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   zoomDisplay = '2';
@@ -41,10 +42,10 @@ export class MapComponent implements AfterViewInit {
   lonField = 'longitude';
   fileContent: string | null = null;
   consoleInput = '';
-  distanceLayerName = '';
+  pluginLayerName = '';
 
   private overlayRef!: OverlayRef;
-  private distanceOverlayRef!: OverlayRef;
+  private pluginOverlayRef!: OverlayRef;
   toolList: string[] = [];
 
   constructor(
@@ -54,20 +55,26 @@ export class MapComponent implements AfterViewInit {
     private cdr: ChangeDetectorRef,
     private overlay: Overlay,
     private vcr: ViewContainerRef
-  ) {}
+  ) { }
 
   ngAfterViewInit() {
-    // Initialize map with the current planet
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
 
-    // Distance save modal trigger
-    this.mapContainer.nativeElement.addEventListener('distance-save-request', () => this.openDistanceSaveModal());
+    // Generic plugin save request
+    this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
 
     // Subscribe to tool changes
-    this.toolService.activeTool$.subscribe(tool => this.mapFacade.activateTool(tool));
+    this.toolService.activeTool$.subscribe(tool => {
+      if (tool === 'distance') {
+        const plugin = new DistanceToolPlugin(this.mapFacade);
+        this.mapFacade.activateTool(plugin);
+      } else {
+        this.mapFacade.activateTool(undefined as any);
+      }
+    });
 
     // Track pointer coordinates
-    this.mapFacade.trackPointer((lon: number, lat: number, zoom: number) => {
+    this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
       this.currentLat = lat;
       this.zoomDisplay = zoom.toFixed(2);
@@ -78,47 +85,46 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  // ================= DISTANCE MODAL =================
-  openDistanceSaveModal() {
-    this.distanceLayerName = `Distance-${Date.now()}`;
-    this.distanceOverlayRef = this.overlay.create({
+  // ================= PLUGIN SAVE MODAL =================
+  openPluginSaveModal() {
+    this.pluginLayerName = `Distance-${Date.now()}`; // default name
+    this.pluginOverlayRef = this.overlay.create({
       hasBackdrop: true,
       backdropClass: 'cdk-overlay-dark-backdrop',
       positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
-      scrollStrategy: this.overlay.scrollStrategies.block()
+      scrollStrategy: this.overlay.scrollStrategies.block(),
     });
 
-    const portal = new TemplatePortal(this.distanceSaveModal, this.vcr);
-    this.distanceOverlayRef.attach(portal);
+    const portal = new TemplatePortal(this.pluginSaveModal, this.vcr);
+    this.pluginOverlayRef.attach(portal);
 
-    // Close and clear tool on backdrop click
-    this.distanceOverlayRef.backdropClick().subscribe(() => this.cancelDistanceSave());
-
+    this.pluginOverlayRef.backdropClick().subscribe(() => this.cancelPluginSave());
     this.cdr.detectChanges();
   }
 
-  closeDistanceSaveModal() {
-    this.mapFacade.cancelDistanceLayer() 
-    this.distanceOverlayRef?.dispose();
+  closePluginSaveModal() {
+    this.pluginOverlayRef?.dispose();
   }
 
-  confirmSaveDistance(name?: string) {
+  confirmSavePlugin(name?: string) {
     const layerName = name?.trim() || `Distance-${Date.now()}`;
-    this.mapFacade.saveDistanceLayer(layerName);
+    this.mapFacade.saveActivePlugin(layerName);
+    this.closePluginSaveModal();
     this.cdr.detectChanges();
-    this.mapFacade.cancelDistanceLayer() 
-    this.cancelDistanceSave();
   }
 
-  cancelDistanceSave() {
-    this.mapFacade.activateTool(undefined as any);
-    this.closeDistanceSaveModal();
+  cancelPluginSave() {
+    this.mapFacade.cancelActivePlugin();
+    this.closePluginSaveModal();
     this.cdr.detectChanges();
   }
 
   // ================= TOOLBOX =================
   activateTool(tool: 'distance') {
-    this.mapFacade.activateTool(tool);
+    if (tool === 'distance') {
+      const plugin = new DistanceToolPlugin(this.mapFacade);
+      this.mapFacade.activateTool(plugin);
+    }
     this.toolList = [tool];
   }
 
@@ -188,9 +194,10 @@ export class MapComponent implements AfterViewInit {
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
-    this.layerManager.updateStyle(layer);
-    this.cdr.detectChanges();
-  }
+  layer.color = color;               // <--- update the LayerConfig
+  this.layerManager.updateStyle(layer);
+  this.cdr.detectChanges();
+}
 
   selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
     layer.shape = shape;
@@ -202,10 +209,7 @@ export class MapComponent implements AfterViewInit {
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
-
-    // Unified service call via facade
     this.mapFacade.setPlanet(planet);
-
     this.updateLabels();
     this.closeToolbox();
     this.cdr.detectChanges();
@@ -247,7 +251,6 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  // ================= FILE INPUT =================
   handleFileInput(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
@@ -269,7 +272,6 @@ export class MapComponent implements AfterViewInit {
   confirmAddLayer() {
     if (!this.newLayerName.trim()) return;
 
-    // Use facade to add manual layer
     this.layerManager.addManualLayer(
       this.currentPlanet,
       this.newLayerName,

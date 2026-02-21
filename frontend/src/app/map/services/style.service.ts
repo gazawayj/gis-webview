@@ -1,105 +1,91 @@
 import { Injectable } from '@angular/core';
-import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon } from 'ol/style';
+import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon, Text } from 'ol/style';
 import { SHAPES, COLOR_PALETTE, ShapeType } from './symbol-constants';
 
 @Injectable({ providedIn: 'root' })
 export class StyleService {
 
-  private cache: Record<string, Style> = {};
-
-  /** Pools for random assignment */
   private colorsPool = [...COLOR_PALETTE];
   private shapesPool = [...SHAPES];
 
   private usedColors: Set<string> = new Set();
   private usedShapes: Set<ShapeType> = new Set();
 
-  constructor() { }
+  constructor() {}
 
-  /** Returns a unique random color (resets when exhausted) */
+  /** ================= RANDOM GENERATORS ================= */
   getRandomColor(): string {
-    if (this.usedColors.size >= this.colorsPool.length) {
-      this.usedColors.clear();
-    }
+    if (this.usedColors.size >= this.colorsPool.length) this.usedColors.clear();
     const available = this.colorsPool.filter(c => !this.usedColors.has(c));
     const color = available[Math.floor(Math.random() * available.length)];
     this.usedColors.add(color);
     return color;
   }
 
-  /** Returns a unique random shape (resets when exhausted) */
   getRandomShape(): ShapeType {
-    if (this.usedShapes.size >= this.shapesPool.length) {
-      this.usedShapes.clear();
-    }
+    if (this.usedShapes.size >= this.shapesPool.length) this.usedShapes.clear();
     const available = this.shapesPool.filter(s => !this.usedShapes.has(s));
     const shape = available[Math.floor(Math.random() * available.length)];
     this.usedShapes.add(shape);
     return shape;
   }
 
-  /** Convenience: get both color and shape for a new layer */
-  getRandomStyleProps(): { color: string, shape: ShapeType } {
-    return {
-      color: this.getRandomColor(),
-      shape: this.getRandomShape()
-    };
+  /** ==================== MAIN STYLE GETTER ==================== */
+  getLayerStyle(options: { type: 'point' | 'line' | 'label', baseColor?: string, shape?: ShapeType, text?: string }): Style {
+    switch (options.type) {
+      case 'point': {
+        const color = options.baseColor || this.getRandomColor();
+        const shape = options.shape || this.getRandomShape();
+        return new Style({ image: this.createShapeImage(shape, color) });
+      }
+      case 'line': {
+        const color = options.baseColor || this.getRandomColor();
+        return new Style({ stroke: new Stroke({ color, width: 3 }) });
+      }
+      case 'label': {
+        const color = options.baseColor || this.getRandomColor();
+        return new Style({
+          text: new Text({
+            text: options.text || '',
+            font: 'bold 14px sans-serif',
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 3 }),
+            offsetY: -15
+          })
+        });
+      }
+      default:
+        const color = options.baseColor || this.getRandomColor();
+        return new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) }) });
+    }
   }
 
-  /** Style generator */
-  getStyle(color: string, shape: string): Style {
-    const key = `${shape}-${color}`;
-    if (this.cache[key]) return this.cache[key];
-
-    let image;
-    let stroke: Stroke | undefined;
-
-    switch (shape.toLowerCase()) {
-      case 'square':
-        image = new RegularShape({ points: 4, radius: 5, angle: Math.PI / 4, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'triangle':
-        image = new RegularShape({ points: 3, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'diamond':
-        image = new RegularShape({ points: 4, radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'pentagon':
-        image = new RegularShape({ points: 5, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'hexagon':
-        image = new RegularShape({ points: 6, radius: 6, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'star':
-        image = new RegularShape({ points: 5, radius: 6, radius2: 3, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
-        break;
-
-      case 'arrow':
-        image = new Icon({
-          src: 'data:image/svg+xml;utf8,' +
-            encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-          <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
-          </svg>`)
-        });
-        break;
-
-      case 'line':
-        stroke = new Stroke({ color, width: 3 });
-        break;
-
-      default:
-        image = new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
+  /** ==================== PRIVATE HELPERS ==================== */
+  private createShapeImage(shape: ShapeType, color: string) {
+    const lower = shape.toLowerCase();
+    if (['square','triangle','diamond','pentagon','hexagon','star'].includes(lower)) {
+      const pointsMap: Record<string, number> = { square: 4, triangle: 3, diamond: 4, pentagon: 5, hexagon: 6, star: 5 };
+      const radius2 = lower === 'star' ? 3 : undefined;
+      const angle = lower === 'square' ? Math.PI / 4 : 0;
+      return new RegularShape({
+        points: pointsMap[lower],
+        radius: 6,
+        radius2,
+        angle,
+        fill: new Fill({ color }),
+        stroke: new Stroke({ color: '#000', width: 1 })
+      });
     }
 
-    const styleConfig: any = {};
-    if (image) styleConfig.image = image;
-    if (stroke) styleConfig.stroke = stroke;
+    if (lower === 'arrow') {
+      return new Icon({
+        src: 'data:image/svg+xml;utf8,' +
+          encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+            <polygon points="10,2 16,10 12,10 12,18 8,18 8,10 4,10" fill="${color}" stroke="black"/>
+          </svg>`)
+      });
+    }
 
-    return this.cache[key] = new Style(styleConfig);
+    return new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
   }
 }

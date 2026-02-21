@@ -4,9 +4,9 @@
 
     <!-- Planet buttons -->
     <div class="planet-buttons">
-      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
-      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
       <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
+      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
+      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
     </div>
 
     <!-- Add Layer button -->
@@ -72,21 +72,17 @@
   <!-- Add Layer Modal -->
   <ng-template #addLayerModal>
     <div class="layer-modal">
-      <!-- Header -->
       <div class="layer-modal-header">
         <span class="layer-modal-title">{{ modalTitle }}</span>
         <button class="close-btn" (click)="cancelAddLayer()">×</button>
       </div>
 
-      <!-- Tabs -->
       <div class="modal-tab-buttons">
         <button [class.active]="modalMode==='manual'" (click)="switchModalMode('manual')">Manual</button>
         <button [class.active]="modalMode==='console'" (click)="switchModalMode('console')">Console</button>
       </div>
 
-      <!-- Body -->
       <div class="layer-modal-body">
-        <!-- Manual Inputs -->
         <div *ngIf="modalMode==='manual'" class="manual-inputs">
           <label>
             Name:
@@ -110,13 +106,11 @@
           </label>
         </div>
 
-        <!-- Console Input -->
         <div *ngIf="modalMode==='console'" class="console">
           <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
         </div>
       </div>
 
-      <!-- Modal Actions -->
       <div class="modal-actions">
         <button (click)="confirmAddLayer()" [disabled]="
           (modalMode==='manual' && (!newLayerName || !fileContent)) ||
@@ -127,14 +121,14 @@
     </div>
   </ng-template>
 
-  <!-- Distance Save Modal -->
-  <ng-template #distanceSaveModal>
-    <div class="distance-save-modal">
-      <h3>Save Distance Layer</h3>
-      <input type="text" placeholder="Layer name" [(ngModel)]="distanceLayerName" />
+  <!-- Generic Plugin Save Modal -->
+  <ng-template #pluginSaveModal>
+    <div class="plugin-save-modal">
+      <h3>Save Layer</h3>
+      <input type="text" placeholder="Layer name" [(ngModel)]="pluginLayerName" />
       <div class="buttons">
-        <button (click)="confirmSaveDistance(distanceLayerName)">Save</button>
-        <button (click)="closeDistanceSaveModal()">Cancel</button>
+        <button (click)="confirmSavePlugin(pluginLayerName)">Save</button>
+        <button (click)="cancelPluginSave()">Cancel</button>
       </div>
     </div>
   </ng-template>

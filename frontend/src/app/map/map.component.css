@@ -255,7 +255,7 @@ body {
 
 /* ================= DISTANCE TOOL ================= */
 
-.distance-save-modal {
+.plugin-save-modal {
   background: white;
   border-radius: 8px;
   padding: 16px;
@@ -266,13 +266,13 @@ body {
   gap: 12px;
 }
 
-.distance-save-modal h3 {
+.plugin-save-modal h3 {
   margin: 0;
   font-size: 1.1rem;
   text-align: center;
 }
 
-.distance-save-modal input {
+.plugin-save-modal input {
   padding: 6px 8px;
   font-size: 0.95rem;
   border-radius: 4px;
@@ -281,13 +281,13 @@ body {
   box-sizing: border-box;
 }
 
-.distance-save-modal .buttons {
+.plugin-save-modal .buttons {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.distance-save-modal button {
+.plugin-save-modal button {
   padding: 6px 12px;
   font-size: 0.95rem;
   border: none;
@@ -295,12 +295,12 @@ body {
   cursor: pointer;
 }
 
-.distance-save-modal button:first-child {
+.plugin-save-modal button:first-child {
   background-color: #007bff;
   color: white;
 }
 
-.distance-save-modal button:last-child {
+.plugin-save-modal button:last-child {
   background-color: #ccc;
   color: #333;
 }

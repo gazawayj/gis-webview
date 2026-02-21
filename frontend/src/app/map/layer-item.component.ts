@@ -40,7 +40,7 @@ export class LayerItemComponent {
   @ViewChild('shapeDropdown', { static: true })
   shapeDropdown!: TemplateRef<any>;
 
-  shapes: (ShapeType | 'none')[] = ['none', ...SHAPES];
+  shapes: (ShapeType | 'none')[] = ['none', ...SHAPES.filter(s => s && s !== 'line')];
 
   private overlayRef!: OverlayRef;
 
