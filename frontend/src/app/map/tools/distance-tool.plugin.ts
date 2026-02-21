@@ -1,3 +1,4 @@
+// frontend/src/app/map/tools/distance-tool.plugin.ts
 import { MapFacadeService, ToolPlugin } from '../services/map-facade.service';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -6,11 +7,11 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { getLength } from 'ol/sphere';
 import { PLANETS } from '../map-constants';
-import { ShapeType } from '../services/symbol-constants';
+import { SHAPES, ShapeType } from '../services/symbol-constants';
+import { Style } from 'ol/style';
 
 export class DistanceToolPlugin implements ToolPlugin {
     name = 'distance';
-    tempLayerConfig?: any;
     tempSource?: VectorSource;
     drawInteraction?: Draw;
     vertexLayer?: VectorLayer<VectorSource>;
@@ -23,34 +24,32 @@ export class DistanceToolPlugin implements ToolPlugin {
     shape: ShapeType;
     private mapFacade: MapFacadeService;
     private planet: 'earth' | 'moon' | 'mars';
+    private tempLayer?: VectorLayer<VectorSource>;
 
     constructor(mapFacade: MapFacadeService) {
         this.mapFacade = mapFacade;
         this.planet = this.mapFacade['currentPlanet'];
         this.color = this.mapFacade['layerManager'].styleService.getRandomColor();
-        this.shape = this.mapFacade['layerManager'].styleService.getRandomShape();; 
+
+        // ===== FIX: enforce valid shape =====
+        const randomShape = this.mapFacade['layerManager'].styleService.getRandomShape();
+        this.shape = (randomShape && SHAPES.includes(randomShape) && randomShape !== 'line')
+            ? randomShape
+            : 'circle';
     }
 
     activate() {
         const map = this.mapFacade['map'];
         if (!map) return;
 
+        // Temporary source for line + vertices + labels
         this.tempSource = new VectorSource();
 
-        const createdLayer = this.mapFacade['layerManager'].createLayer({
-            planet: this.planet,
-            name: 'Temp Distance',
-            shape: 'line',
-            color: this.color,
-            cache: false,
-            isTemporary: true,
-            styleFn: f => this.getDrawStyle(f)
-        });
-        if (!createdLayer) return;
+        // Temporary layer rendering tempSource
+        this.tempLayer = new VectorLayer({ source: this.tempSource, style: f => this.getDrawStyle(f) });
+        map.addLayer(this.tempLayer);
 
-        this.tempLayerConfig = createdLayer;
-        this.tempLayerConfig.shape = this.mapFacade['layerManager'].styleService.getRandomShape();
-
+        // Draw interaction
         this.drawInteraction = new Draw({
             source: this.tempSource,
             type: 'LineString',
@@ -59,20 +58,24 @@ export class DistanceToolPlugin implements ToolPlugin {
         map.addInteraction(this.drawInteraction);
         this.drawInteraction.on('drawstart', (evt: any) => (this.currentFeature = evt.feature));
 
+        // Vertex layer for live points
         this.vertexSource = new VectorSource();
         this.vertexLayer = new VectorLayer({ source: this.vertexSource });
         map.addLayer(this.vertexLayer);
 
+        // Pointer move updates vertices + labels
         this.pointerMoveHandler = evt => {
             this.vertexSource?.clear();
             if (this.currentFeature) {
                 const coords = (this.currentFeature.getGeometry() as LineString).getCoordinates() as [number, number][];
                 coords.forEach(c => this.addVertexFeature(c));
+                this.updateDistanceLabels(coords);
             }
             if (evt.coordinate) this.addVertexFeature(evt.coordinate as [number, number]);
         };
         map.on('pointermove', this.pointerMoveHandler);
 
+        // Right-click finishes drawing
         this.rightClickHandler = evt => {
             evt.preventDefault();
             if (this.currentFeature) this.drawInteraction?.finishDrawing();
@@ -81,72 +84,55 @@ export class DistanceToolPlugin implements ToolPlugin {
         map.getTargetElement().addEventListener('contextmenu', this.rightClickHandler);
     }
 
-    private getDrawStyle(feature: FeatureLike) {
+    // ================= STYLE HANDLING =================
+    private getDrawStyle(feature: FeatureLike): Style[] {
+        if (!(feature instanceof Feature)) return [];
         const lm = this.mapFacade['layerManager'];
-        const styles: any[] = [];
-        if (!(feature instanceof Feature)) return styles;
+
+        if (feature.get('isDistanceLabel') || feature.get('text')) {
+            const s = feature.getStyle();
+            if (Array.isArray(s)) return s as Style[];
+            if (s instanceof Style) return [s];
+            return [];
+        }
+
         const geom = feature.getGeometry();
-        if (!geom || geom.getType() !== 'LineString') return styles;
+        if (!geom) return [];
 
-        const coords = (geom as LineString).getCoordinates() as [number, number][];
-
-        // Line style
-        styles.push(lm.styleService.getLayerStyle({
-            type: 'line',
-            baseColor: this.color
-        }));
-
-        // Vertices
-        const shape: ShapeType | undefined = this.tempLayerConfig?.shape === 'none'
-            ? undefined
-            : this.tempLayerConfig?.shape;
-        coords.forEach(coord => {
-            styles.push(lm.styleService.getLayerStyle({
-                type: 'point',
-                baseColor: this.tempLayerConfig?.color,
-                shape
-            }));
-        });
-
+        const styles: Style[] = [];
+        if (geom.getType() === 'LineString') {
+            styles.push(lm.styleService.getLayerStyle({ type: 'line', baseColor: this.color }));
+            const coords = (geom as LineString).getCoordinates() as [number, number][];
+            coords.forEach(coord => {
+                styles.push(lm.styleService.getLayerStyle({
+                    type: 'point',
+                    baseColor: this.color,
+                    shape: this.shape
+                }));
+            });
+        }
         return styles;
     }
 
     private addVertexFeature(coord: [number, number]) {
-        if (!this.vertexSource || !this.tempLayerConfig) return;
-        const shape: ShapeType | undefined = this.tempLayerConfig.shape === 'none'
-            ? undefined
-            : this.tempLayerConfig.shape;
+        if (!this.vertexSource) return;
         const vertex = new Feature(new Point(coord));
         vertex.setStyle(this.mapFacade['layerManager'].styleService.getLayerStyle({
             type: 'point',
-            baseColor: this.tempLayerConfig.color,
-            shape
+            baseColor: this.color,
+            shape: this.shape
         }));
         this.vertexSource.addFeature(vertex);
     }
 
-    private buildStyledFeatures(feature: Feature): Feature[] {
+    // ================= DISTANCE LABELS =================
+    private updateDistanceLabels(coords: [number, number][]) {
+        if (!this.tempSource || coords.length < 2) return;
+
+        const oldLabels = this.tempSource.getFeatures().filter(f => f.get('isDistanceLabel'));
+        oldLabels.forEach(f => this.tempSource?.removeFeature(f));
+
         const lm = this.mapFacade['layerManager'];
-        const featuresToSave: Feature[] = [];
-        const cloned = feature.clone();
-        featuresToSave.push(cloned);
-
-        const geom = cloned.getGeometry() as LineString;
-        const coords = geom.getCoordinates() as [number, number][];
-        const lineColor = cloned.get('color') || this.tempLayerConfig?.color || '#000';
-        const shape: ShapeType | undefined = this.tempLayerConfig?.shape === 'none'
-            ? undefined
-            : this.tempLayerConfig?.shape;
-
-        coords.forEach(coord => {
-            const vertex = new Feature(new Point(coord));
-            vertex.setStyle(lm.styleService.getLayerStyle({
-                type: 'point',
-                baseColor: lineColor,
-                shape
-            }));
-            featuresToSave.push(vertex);
-        });
 
         for (let i = 1; i < coords.length; i++) {
             const [c1, c2] = [coords[i - 1], coords[i]];
@@ -155,10 +141,60 @@ export class DistanceToolPlugin implements ToolPlugin {
             const distanceText = distanceMeters >= 1000
                 ? `${(distanceMeters / 1000).toFixed(2)} km`
                 : `${distanceMeters.toFixed(1)} m`;
+
+            const labelFeature = new Feature(new Point(midpoint));
+            labelFeature.set('isDistanceLabel', true);
+            labelFeature.set('text', distanceText);
+            labelFeature.setStyle(lm.styleService.getLayerStyle({ type: 'label', baseColor: this.color, text: distanceText }));
+
+            this.tempSource.addFeature(labelFeature);
+        }
+    }
+
+    // ================= SAVING =================
+    private buildStyledFeatures(feature: Feature): Feature[] {
+        const lm = this.mapFacade['layerManager'];
+        const featuresToSave: Feature[] = [];
+        const cloned = feature.clone();
+        featuresToSave.push(cloned);
+
+        const geom = cloned.getGeometry() as LineString;
+        const coords = geom.getCoordinates() as [number, number][];
+
+        // Vertices
+        coords.forEach(coord => {
+            const vertex = new Feature(new Point(coord));
+            vertex.setStyle(lm.styleService.getLayerStyle({
+                type: 'point',
+                baseColor: this.color,   // <--- ensure color is applied here
+                shape: this.shape
+            }));
+            featuresToSave.push(vertex);
+        });
+
+        // Distance labels
+        for (let i = 1; i < coords.length; i++) {
+            const [c1, c2] = [coords[i - 1], coords[i]];
+            const midpoint: [number, number] = [(c1[0] + c2[0]) / 2, (c1[1] + c2[1]) / 2];
+            const distanceMeters = getLength(new LineString([c1, c2]), { radius: PLANETS[this.planet].radius });
+            const distanceText = distanceMeters >= 1000
+                ? `${(distanceMeters / 1000).toFixed(2)} km`
+                : `${distanceMeters.toFixed(1)} m`;
+
+            // Add the line feature with explicit color
+            const lineFeature = new Feature(new LineString([c1, c2]));
+            lineFeature.setStyle(lm.styleService.getLayerStyle({
+                type: 'line',
+                baseColor: this.color  // <--- this fixes the invisible lines
+            }));
+            featuresToSave.push(lineFeature);
+
             const textFeature = new Feature(new Point(midpoint));
+            textFeature.set('isDistanceLabel', true);
+            textFeature.set('text', distanceText);
             textFeature.setStyle(lm.styleService.getLayerStyle({
                 type: 'label',
-                baseColor: lineColor,
+                baseColor: this.color,
                 text: distanceText
             }));
             featuresToSave.push(textFeature);
@@ -168,43 +204,45 @@ export class DistanceToolPlugin implements ToolPlugin {
     }
 
     save(name: string) {
-        if (!this.tempSource?.getFeatures().length || !this.tempLayerConfig) return;
+        if (!this.tempSource?.getFeatures().length || !this.tempLayer) return;
 
+        // Remove temporary labels
+        this.tempSource.getFeatures()
+            .filter(f => f.get('isDistanceLabel'))
+            .forEach(f => this.tempSource?.removeFeature(f));
+
+        // Build all features
         const allFeatures: Feature[] = [];
         this.tempSource.getFeatures().forEach(f => allFeatures.push(...this.buildStyledFeatures(f)));
 
-        const savedLayer = this.mapFacade['layerManager'].addLayer(
-            this.planet,
-            name,
-            allFeatures,
-            this.tempLayerConfig.color,
-            this.tempLayerConfig.styleFn
-        );
+        // Remove temp layers/interactions
+        this.cancel();
 
-        // Mark as distance layer and store vertex shape
+        // ===== FIX: enforce valid shape when saving =====
+        const validShape = (this.shape && SHAPES.includes(this.shape) && this.shape !== 'line') ? this.shape : 'circle';
+
+        const savedLayer = this.mapFacade['layerManager'].addLayer(this.planet, name, allFeatures, this.color);
         if (savedLayer) {
             savedLayer.isDistanceLayer = true;
-            savedLayer.shape = this.tempLayerConfig.shape;
+            savedLayer.shape = validShape;
         }
-
-        this.cancel();
     }
 
     cancel() {
         const map = this.mapFacade['map'];
-        if (this.tempLayerConfig) this.mapFacade['layerManager'].remove(this.tempLayerConfig);
+        if (this.tempLayer) map.removeLayer(this.tempLayer);
         if (this.drawInteraction) map.removeInteraction(this.drawInteraction);
         if (this.vertexLayer) map.removeLayer(this.vertexLayer);
         if (this.pointerMoveHandler) map.un('pointermove', this.pointerMoveHandler);
         if (this.rightClickHandler) map.getTargetElement().removeEventListener('contextmenu', this.rightClickHandler);
 
         this.drawInteraction = undefined;
+        this.tempLayer = undefined;
         this.vertexLayer = undefined;
         this.vertexSource = undefined;
         this.pointerMoveHandler = undefined;
         this.rightClickHandler = undefined;
         this.currentFeature = undefined;
-        this.tempLayerConfig = undefined;
         this.tempSource = undefined;
     }
 }

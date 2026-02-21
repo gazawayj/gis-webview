@@ -2,8 +2,7 @@ import { Injectable, NgZone } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
-import { LayerManagerService, LayerConfig } from './layer-manager.service';
-import type { FeatureLike } from 'ol/Feature';
+import { LayerManagerService } from './layer-manager.service';
 
 export interface ToolPlugin {
   name: string;
@@ -16,7 +15,6 @@ export interface ToolPlugin {
 export class MapFacadeService {
   map!: Map;
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
-
   private activePlugin?: ToolPlugin;
 
   constructor(private zone: NgZone, private layerManager: LayerManagerService) {}
@@ -62,10 +60,8 @@ export class MapFacadeService {
 
   activateTool(plugin: ToolPlugin) {
     this.cancelActivePlugin();
-    if (plugin) {
-      this.activePlugin = plugin;
-      plugin.activate();
-    }
+    this.activePlugin = plugin;
+    plugin.activate();
   }
 
   saveActivePlugin(name: string) {

@@ -11,7 +11,7 @@ export class StyleService {
   private usedColors: Set<string> = new Set();
   private usedShapes: Set<ShapeType> = new Set();
 
-  constructor() {}
+  constructor() { }
 
   /** ================= RANDOM GENERATORS ================= */
   getRandomColor(): string {
@@ -35,7 +35,7 @@ export class StyleService {
     switch (options.type) {
       case 'point': {
         const color = options.baseColor || this.getRandomColor();
-        const shape = options.shape || this.getRandomShape();
+        const shape = (options.shape && options.shape !== 'none') ? options.shape : 'circle';
         return new Style({ image: this.createShapeImage(shape, color) });
       }
       case 'line': {
@@ -63,7 +63,7 @@ export class StyleService {
   /** ==================== PRIVATE HELPERS ==================== */
   private createShapeImage(shape: ShapeType, color: string) {
     const lower = shape.toLowerCase();
-    if (['square','triangle','diamond','pentagon','hexagon','star'].includes(lower)) {
+    if (['square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star'].includes(lower)) {
       const pointsMap: Record<string, number> = { square: 4, triangle: 3, diamond: 4, pentagon: 5, hexagon: 6, star: 5 };
       const radius2 = lower === 'star' ? 3 : undefined;
       const angle = lower === 'square' ? Math.PI / 4 : 0;

@@ -2,7 +2,7 @@ import {
   Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy,
   ChangeDetectorRef, TemplateRef, ViewContainerRef
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgForOf } from '@angular/common'; // <-- add NgIf, NgForOf
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
@@ -18,14 +18,14 @@ import { DistanceToolPlugin } from './tools/distance-tool.plugin';
   selector: 'app-map',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DragDropModule, LayerItemComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, LayerItemComponent, NgIf, NgForOf], // <-- fix structural directives
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })
 export class MapComponent implements AfterViewInit {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
-  @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>; // renamed generic modal
+  @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   zoomDisplay = '2';
@@ -60,10 +60,8 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
 
-    // Generic plugin save request
     this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
 
-    // Subscribe to tool changes
     this.toolService.activeTool$.subscribe(tool => {
       if (tool === 'distance') {
         const plugin = new DistanceToolPlugin(this.mapFacade);
@@ -73,7 +71,6 @@ export class MapComponent implements AfterViewInit {
       }
     });
 
-    // Track pointer coordinates
     this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
       this.currentLat = lat;
@@ -194,10 +191,10 @@ export class MapComponent implements AfterViewInit {
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
-  layer.color = color;               // <--- update the LayerConfig
-  this.layerManager.updateStyle(layer);
-  this.cdr.detectChanges();
-}
+    layer.color = color;               // <--- update the LayerConfig
+    this.layerManager.updateStyle(layer);
+    this.cdr.detectChanges();
+  }
 
   selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
     layer.shape = shape;

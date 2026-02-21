@@ -8,7 +8,7 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
 import { StyleService } from './style.service';
-import { ShapeType } from './symbol-constants';
+import { SHAPES, ShapeType } from './symbol-constants';
 import { HttpClient } from '@angular/common/http';
 import Papa from 'papaparse';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -111,9 +111,14 @@ export class LayerManagerService {
 
     if (this.registry.has(layerId)) return this.registry.get(layerId)!;
 
-    // Fixed color + shape per layer
     const layerColor = color || this.styleService.getRandomColor();
-    const layerShape = shape || this.styleService.getRandomShape();
+    // Ensure shape is always valid
+let layerShape: ShapeType;
+if (shape && SHAPES.includes(shape) && shape !== 'line') {
+  layerShape = shape as ShapeType;
+} else {
+  layerShape = this.styleService.getRandomShape() || 'circle';
+}
 
     const layerStyleFn = styleFn || ((f: FeatureLike) => {
       const type = layerShape === 'line' ? 'line' : 'point';
@@ -149,61 +154,60 @@ export class LayerManagerService {
   }
 
   updateStyle(layer: LayerConfig) {
-  if (!(layer.olLayer instanceof VectorLayer)) return;
+    if (!(layer.olLayer instanceof VectorLayer)) return;
 
-  // Distance layer: update all features individually
-  if (layer.isDistanceLayer) {
-    const features = layer.olLayer.getSource()?.getFeatures();
-    if (!features) return;
+    // Distance layer: update all features individually
+    if (layer.isDistanceLayer) {
+      const features = layer.olLayer.getSource()?.getFeatures();
+      if (!features) return;
 
-    features.forEach(f => {
-      const geom = f.getGeometry();
-      if (!geom) return;
+      features.forEach(f => {
+        const geom = f.getGeometry();
+        if (!geom) return;
 
-      const type = geom.getType();
+        const type = geom.getType();
 
-      if (type === 'LineString') {
-        // line
-        f.setStyle(this.styleService.getLayerStyle({
-          type: 'line',
-          baseColor: layer.color
-        }));
-      } else if (type === 'Point') {
-        const isLabel = !!f.get('text');
-        if (isLabel) {
-          // label
-          const text = f.get('text') as string;
+        if (type === 'LineString') {
+          // line
           f.setStyle(this.styleService.getLayerStyle({
-            type: 'label',
-            baseColor: layer.color,
-            text
+            type: 'line',
+            baseColor: layer.color
           }));
-        } else {
-          // vertex
-          const shape: ShapeType | undefined = layer.shape === 'none' ? this.styleService.getRandomShape() : (layer.shape as ShapeType);
-          f.setStyle(this.styleService.getLayerStyle({
-            type: 'point',
-            baseColor: layer.color,
-            shape
-          }));
+        } else if (type === 'Point') {
+          const isLabel = !!f.get('text');
+          if (isLabel) {
+            // label
+            const text = f.get('text') as string;
+            f.setStyle(this.styleService.getLayerStyle({
+              type: 'label',
+              baseColor: layer.color,
+              text
+            }));
+          } else {
+            // vertex
+            const shape: ShapeType = (layer.shape && layer.shape !== 'none') ? (layer.shape as ShapeType) : 'circle';
+            f.setStyle(this.styleService.getLayerStyle({
+              type: 'point',
+              baseColor: layer.color,
+              shape
+            }));
+          }
         }
+      });
+
+      return;
+    }
+
+    // Regular layer
+    const defaultShape: ShapeType = (layer.shape && layer.shape !== 'none') ? (layer.shape as ShapeType) : 'circle';
+    layer.olLayer.setStyle((feature) => {
+      if (layer.shape === 'line') {
+        return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
+      } else {
+        return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: defaultShape })];
       }
     });
-
-    return;
   }
-
-  // Regular layer
-  layer.olLayer.setStyle((feature) => {
-    if (layer.shape === 'line') {
-      return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
-    } else if (layer.shape === 'none') {
-      return undefined;
-    } else {
-      return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape as ShapeType })];
-    }
-  });
-}
 
   // ================= DISTANCE LAYER =================
   addLayer(planet: 'earth' | 'moon' | 'mars', name: string, features: Feature[], color?: string, styleFn?: (f: FeatureLike) => Style[]): LayerConfig | null {
@@ -270,7 +274,7 @@ export class LayerManagerService {
         if (!isNaN(lat) && !isNaN(lon)) features.push(new Feature(new Point(fromLonLat([lon, lat]))));
       });
       const color = this.styleService.getRandomColor();
-      const shape = this.styleService.getRandomShape();
+      const shape = this.styleService.getRandomShape() || 'circle';
       this.createLayer({ planet, name: 'FIRMS Fires', features, shape, color, cache: true });
     });
 
@@ -278,7 +282,7 @@ export class LayerManagerService {
     this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
       const features = new GeoJSON().readFeatures(g, { featureProjection: 'EPSG:3857' });
       const color = this.styleService.getRandomColor();
-      const shape = this.styleService.getRandomShape();
+      const shape = this.styleService.getRandomShape() || 'circle';
       this.createLayer({ planet, name: 'Earthquakes', features, shape, color, cache: true });
     });
   }
@@ -296,9 +300,28 @@ export class LayerManagerService {
     this.applyZOrder();
   }
 
-  addManualLayer(planet: 'earth' | 'moon' | 'mars', name: string, description: string, fileContent?: string, sourceType: 'CSV' | 'GeoJSON' = 'CSV', latField?: string, lonField?: string) {
-    const color = this.styleService.getRandomColor();
-    const shape = this.styleService.getRandomShape();
-    return this.createLayer({ planet, name, shape, color, cache: true });
-  }
+addManualLayer(
+  planet: 'earth' | 'moon' | 'mars',
+  name: string,
+  description: string,
+  fileContent?: string,
+  sourceType: 'CSV' | 'GeoJSON' = 'CSV',
+  latField?: string,
+  lonField?: string
+) {
+  const color = this.styleService.getRandomColor();
+
+  const randomShape = this.styleService.getRandomShape();
+  const shape: ShapeType = (randomShape && SHAPES.includes(randomShape) && randomShape !== 'line')
+    ? randomShape
+    : 'circle';
+
+  return this.createLayer({
+    planet,
+    name,
+    shape,
+    color,
+    cache: true
+  });
+}
 }
