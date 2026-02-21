@@ -180,7 +180,7 @@ export class LayerManagerService {
           }));
         } else {
           // vertex
-          const shape: ShapeType | undefined = layer.shape === 'none' ? undefined : (layer.shape as ShapeType);
+          const shape: ShapeType | undefined = layer.shape === 'none' ? this.styleService.getRandomShape() : (layer.shape as ShapeType);
           f.setStyle(this.styleService.getLayerStyle({
             type: 'point',
             baseColor: layer.color,
@@ -206,7 +206,7 @@ export class LayerManagerService {
 }
 
   // ================= DISTANCE LAYER =================
-  addDistanceLayer(planet: 'earth' | 'moon' | 'mars', name: string, features: Feature[], color?: string, styleFn?: (f: FeatureLike) => Style[]): LayerConfig | null {
+  addLayer(planet: 'earth' | 'moon' | 'mars', name: string, features: Feature[], color?: string, styleFn?: (f: FeatureLike) => Style[]): LayerConfig | null {
     return this.createLayer({
       planet,
       name,
@@ -298,7 +298,7 @@ export class LayerManagerService {
 
   addManualLayer(planet: 'earth' | 'moon' | 'mars', name: string, description: string, fileContent?: string, sourceType: 'CSV' | 'GeoJSON' = 'CSV', latField?: string, lonField?: string) {
     const color = this.styleService.getRandomColor();
-    const shape = 'circle' as ShapeType;
+    const shape = this.styleService.getRandomShape();
     return this.createLayer({ planet, name, shape, color, cache: true });
   }
 }

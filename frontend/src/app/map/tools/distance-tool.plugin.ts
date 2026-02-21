@@ -1,4 +1,3 @@
-// src/app/map/tools/distance-tool.plugin.ts
 import { MapFacadeService, ToolPlugin } from '../services/map-facade.service';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -21,7 +20,7 @@ export class DistanceToolPlugin implements ToolPlugin {
     rightClickHandler?: (evt: MouseEvent) => void;
 
     color: string;
-    shape: ShapeType | 'none';
+    shape: ShapeType;
     private mapFacade: MapFacadeService;
     private planet: 'earth' | 'moon' | 'mars';
 
@@ -29,7 +28,7 @@ export class DistanceToolPlugin implements ToolPlugin {
         this.mapFacade = mapFacade;
         this.planet = this.mapFacade['currentPlanet'];
         this.color = this.mapFacade['layerManager'].styleService.getRandomColor();
-        this.shape = 'circle'; // default vertex shape
+        this.shape = this.mapFacade['layerManager'].styleService.getRandomShape();; 
     }
 
     activate() {
@@ -50,8 +49,7 @@ export class DistanceToolPlugin implements ToolPlugin {
         if (!createdLayer) return;
 
         this.tempLayerConfig = createdLayer;
-        // Ensure vertex shape defaults to circle
-        this.tempLayerConfig.shape = 'circle';
+        this.tempLayerConfig.shape = this.mapFacade['layerManager'].styleService.getRandomShape();
 
         this.drawInteraction = new Draw({
             source: this.tempSource,
@@ -95,7 +93,7 @@ export class DistanceToolPlugin implements ToolPlugin {
         // Line style
         styles.push(lm.styleService.getLayerStyle({
             type: 'line',
-            baseColor: this.tempLayerConfig?.color
+            baseColor: this.color
         }));
 
         // Vertices
@@ -175,7 +173,7 @@ export class DistanceToolPlugin implements ToolPlugin {
         const allFeatures: Feature[] = [];
         this.tempSource.getFeatures().forEach(f => allFeatures.push(...this.buildStyledFeatures(f)));
 
-        const savedLayer = this.mapFacade['layerManager'].addDistanceLayer(
+        const savedLayer = this.mapFacade['layerManager'].addLayer(
             this.planet,
             name,
             allFeatures,
@@ -186,7 +184,7 @@ export class DistanceToolPlugin implements ToolPlugin {
         // Mark as distance layer and store vertex shape
         if (savedLayer) {
             savedLayer.isDistanceLayer = true;
-            savedLayer.shape = this.tempLayerConfig.shape ?? 'circle';
+            savedLayer.shape = this.tempLayerConfig.shape;
         }
 
         this.cancel();

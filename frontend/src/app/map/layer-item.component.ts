@@ -18,7 +18,7 @@ export interface LayerItem {
   name: string;
   visible: boolean;
   color: string;
-  shape: ShapeType | 'none';
+  shape: ShapeType;
 }
 
 @Component({
@@ -34,13 +34,13 @@ export class LayerItemComponent {
 
   @Output() visibilityChange = new EventEmitter<boolean>();
   @Output() colorChange = new EventEmitter<string>();
-  @Output() shapeChange = new EventEmitter<ShapeType | 'none'>();
+  @Output() shapeChange = new EventEmitter<ShapeType>();
   @Output() remove = new EventEmitter<void>();
 
   @ViewChild('shapeDropdown', { static: true })
   shapeDropdown!: TemplateRef<any>;
 
-  shapes: (ShapeType | 'none')[] = ['none', ...SHAPES.filter(s => s && s !== 'line')];
+  shapes: (ShapeType)[] = [...SHAPES.filter(s => s && s !== 'line')];
 
   private overlayRef!: OverlayRef;
 
@@ -94,7 +94,7 @@ export class LayerItemComponent {
   }
 
   // ===== Shape Selection =====
-  selectShape(shape: ShapeType | 'none') {
+  selectShape(shape: ShapeType) {
     this.shapeChange.emit(shape);
     if (this.overlayRef) this.overlayRef.dispose();
   }
