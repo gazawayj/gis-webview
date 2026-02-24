@@ -35,7 +35,7 @@ body {
 .page,
 :host {
   display: flex;
-  height: 100vh;
+  height: 98%;
   width: 100vw;
   overflow: hidden;
 }
@@ -100,7 +100,7 @@ body {
 
 /* ===================== LAYER LIST ===================== */
 .layer-list {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column-reverse;
@@ -245,8 +245,7 @@ body {
   height: 32px;
   cursor: pointer;
   transition: transform 0.15s ease;
-  color: var(--primary-color);
-  /* sets line and points color */
+  color: var(--primary-color); /* sets line and points color */
   background: #cacaca;
 }
 
@@ -261,7 +260,7 @@ body {
   border-radius: 8px;
   padding: 16px;
   width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -540,55 +539,12 @@ body {
 .measure-segment {
   padding: 2px 4px;
   background-color: white;
-  color: var(--primary-color);
-  /* text color */
-  border: 1px solid var(--primary-color);
-  /* black border */
+  color: var(--primary-color);                 /* text color */
+  border: 1px solid var(--primary-color);      /* black border */
   border-radius: 3px;
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-  pointer-events: none;
-  /* so it doesn’t block map interaction */
+  pointer-events: none;        /* so it doesn’t block map interaction */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* PHONE MODE */
-@media (max-width: 768px) {
-
-  .sidebar {
-    position: absolute;
-    z-index: 1000;
-    width: 40vw;
-    /* takes 80% of screen */
-    max-width: 320px;
-    height: 100vh;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    font-size: 10px;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .map-container {
-    width: 100vw;
-    height: 100vh;
-  }
-
-    button {
-    padding: 6px 8px;
-  }
-
-  .layer-item {
-    padding: 4px;
-  }
-
-  .menu-button {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1100;
-  }
 }

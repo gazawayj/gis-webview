@@ -47,6 +47,8 @@ export class MapComponent implements AfterViewInit {
   private overlayRef!: OverlayRef;
   private pluginOverlayRef!: OverlayRef;
   toolList: string[] = [];
+  activePanel: 'layers' | 'stats' | null = null;
+  panelOpen = false;
 
   constructor(
     private mapFacade: MapFacadeService,
@@ -118,6 +120,7 @@ export class MapComponent implements AfterViewInit {
 
   // ================= TOOLBOX =================
   activateTool(tool: 'distance') {
+    this.closeSidebar();
     if (tool === 'distance') {
       const plugin = new DistanceToolPlugin(this.mapFacade);
       this.mapFacade.activateTool(plugin);
@@ -165,6 +168,19 @@ export class MapComponent implements AfterViewInit {
     return this.layerManager.layers;
   }
 
+  togglePanel() {
+  this.panelOpen = !this.panelOpen;
+}
+
+  openPanel(type: 'layers' | 'stats') {
+  this.activePanel = type;
+  this.panelOpen = true;
+}
+
+  closeSidebar(): void {
+    this.panelOpen = false;
+  }
+
   trackLayer(index: number, layer: LayerConfig) {
     return layer.id;
   }
@@ -207,6 +223,7 @@ export class MapComponent implements AfterViewInit {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
     this.mapFacade.setPlanet(planet);
+    this.closeSidebar();
     this.updateLabels();
     this.closeToolbox();
     this.cdr.detectChanges();

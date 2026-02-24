@@ -15,11 +15,18 @@
     </div>
 
     <!-- Layer list -->
-    <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
+    <div class="layer-list"
+         cdkDropList
+         [cdkDropListData]="sidebarLayers"
+         (cdkDropListDropped)="onLayerDropped($event)">
       <ng-container *ngFor="let layer of sidebarLayers; let i = index; trackBy: trackLayer">
-        <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
-          <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
-            (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
+        <div class="layer-item-wrapper"
+             cdkDrag
+             (cdkDragMoved)="onLayerDragMoved()">
+          <app-layer-item [layer]="layer"
+            (visibilityChange)="toggleLayer(layer)"
+            (colorChange)="onColorPicked(layer, $event)"
+            (shapeChange)="selectShape(layer, $event)"
             (remove)="removeLayer(layer)">
           </app-layer-item>
         </div>
@@ -50,18 +57,17 @@
     <div class="toolbar-wrapper">
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
-        <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
-          (click)="activateTool('distance')" />
+        <img src="assets/icons/distance-tool.svg"
+             alt="Distance Tool"
+             class="tool-icon"
+             title="Distance Tool"
+             (click)="activateTool('distance')" />
       </div>
     </div>
   </aside>
 
-  <button class="menu-button" (click)="toggleSidebar()">☰</button>
-
   <!-- Map -->
-  <div #mapContainer class="map-container">
-
-  </div>
+  <div #mapContainer class="map-container"></div>
 
   <!-- Add Layer Modal -->
   <ng-template #addLayerModal>
