@@ -1,6 +1,7 @@
  # GIS WebView
 
 Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
+> If non-earth basemaps are not loading, I've ran into data limits on the backend server.
 
 **Live Demo:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
