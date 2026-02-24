@@ -549,4 +549,25 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* PHONE MODE */
+@media (max-width: 768px) {
 
+  .sidebar {
+    position: absolute;
+    z-index: 1000;
+    width: 80vw;        /* takes 80% of screen */
+    max-width: 320px;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .map-container {
+    width: 100vw;
+    height: 100vh;
+  }
+}
