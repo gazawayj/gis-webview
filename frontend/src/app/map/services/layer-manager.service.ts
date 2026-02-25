@@ -113,12 +113,12 @@ export class LayerManagerService {
 
     const layerColor = color || this.styleService.getRandomColor();
     // Ensure shape is always valid
-let layerShape: ShapeType;
-if (shape && SHAPES.includes(shape) && shape !== 'line') {
-  layerShape = shape as ShapeType;
-} else {
-  layerShape = this.styleService.getRandomShape() || 'circle';
-}
+    let layerShape: ShapeType;
+    if (shape && SHAPES.includes(shape) && shape !== 'line') {
+      layerShape = shape as ShapeType;
+    } else {
+      layerShape = this.styleService.getRandomShape() || 'circle';
+    }
 
     const layerStyleFn = styleFn || ((f: FeatureLike) => {
       const type = layerShape === 'line' ? 'line' : 'point';
@@ -300,28 +300,28 @@ if (shape && SHAPES.includes(shape) && shape !== 'line') {
     this.applyZOrder();
   }
 
-addManualLayer(
-  planet: 'earth' | 'moon' | 'mars',
-  name: string,
-  description: string,
-  fileContent?: string,
-  sourceType: 'CSV' | 'GeoJSON' = 'CSV',
-  latField?: string,
-  lonField?: string
-) {
-  const color = this.styleService.getRandomColor();
+  addManualLayer(
+    planet: 'earth' | 'moon' | 'mars',
+    name: string,
+    description: string,
+    fileContent?: string,
+    sourceType: 'CSV' | 'GeoJSON' = 'CSV',
+    latField?: string,
+    lonField?: string
+  ) {
+    const color = this.styleService.getRandomColor();
 
-  const randomShape = this.styleService.getRandomShape();
-  const shape: ShapeType = (randomShape && SHAPES.includes(randomShape) && randomShape !== 'line')
-    ? randomShape
-    : 'circle';
+    const randomShape = this.styleService.getRandomShape();
+    const shape: ShapeType = (randomShape && SHAPES.includes(randomShape) && randomShape !== 'line')
+      ? randomShape
+      : 'circle';
 
-  return this.createLayer({
-    planet,
-    name,
-    shape,
-    color,
-    cache: true
-  });
-}
+    return this.createLayer({
+      planet,
+      name,
+      shape,
+      color,
+      cache: true
+    });
+  }
 }
