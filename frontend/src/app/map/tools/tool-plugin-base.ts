@@ -5,10 +5,9 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
 import type { Style } from 'ol/style';
-
 import { LayerManagerService } from '../services/layer-manager.service';
 import { SHAPES, ShapeType } from '../services/symbol-constants';
-import { ToolPlugin } from '../services/map-facade.service';
+import { ToolPlugin } from '../tools/tool-plugin';
 
 export abstract class ToolPluginBase implements ToolPlugin {
   abstract name: string;

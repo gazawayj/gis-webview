@@ -8,13 +8,14 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { LayerItemComponent } from './layer-item.component';
-import { MapFacadeService, ToolPlugin } from './services/map-facade.service';
+import { MapFacadeService } from './services/map-facade.service';
 import { CoordinateCapturePlugin } from './tools/coordinate-capture.plugin';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
 import { ToolService } from './services/tool.service';
 import { ShapeType } from './services/symbol-constants';
 import { DistanceToolPlugin } from './tools/distance-tool.plugin';
 import { inject } from '@angular/core';
+import { ToolPlugin } from './tools/tool-plugin';
 
 type ToolType = 'distance' | 'coordinate' | 'none';
 

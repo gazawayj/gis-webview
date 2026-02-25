@@ -5,16 +5,7 @@ import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
 import { FeatureLike } from 'ol/Feature';
 import { Style } from 'ol/style';
-
-export interface ToolPlugin {
-  name: string;
-  activate(map: Map): void;
-  cancel(): void;
-  deactivate(): void;
-  save?(name: string): void;
-  getFeatures?(): FeatureLike[];
-  getStyle?(feature: FeatureLike): Style[];
-}
+import { ToolPlugin } from '../tools/tool-plugin';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
