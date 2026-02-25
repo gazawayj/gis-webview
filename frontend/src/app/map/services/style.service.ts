@@ -54,9 +54,16 @@ export class StyleService {
           })
         });
       }
-      default:
+      default: {
         const color = options.baseColor || this.getRandomColor();
-        return new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) }) });
+        return new Style({
+          image: new CircleStyle({
+            radius: 5,
+            fill: new Fill({ color }),
+            stroke: new Stroke({ color: '#000', width: 1 })
+          })
+        });
+      }
     }
   }
 
