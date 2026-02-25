@@ -1,4 +1,3 @@
-import type Map from 'ol/Map';
 import type { FeatureLike } from 'ol/Feature';
 import type { Style } from 'ol/style';
 

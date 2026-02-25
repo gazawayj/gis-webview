@@ -67,11 +67,6 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
-
-    /* ---------- Optional snapping ---------- */
-    // Uncomment to enable snapping to all layers
-    // this.snapInteraction = new Snap({ map: this.map });
-    // this.registerInteraction(this.snapInteraction);
   }
 
   protected override onDeactivate(): void {
