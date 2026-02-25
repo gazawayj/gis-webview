@@ -9,11 +9,14 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService, ToolPlugin } from './services/map-facade.service';
+import { CoordinateCapturePlugin } from './tools/coordinate-capture.plugin';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
 import { ToolService } from './services/tool.service';
 import { ShapeType } from './services/symbol-constants';
 import { DistanceToolPlugin } from './tools/distance-tool.plugin';
 import { inject } from '@angular/core';
+
+type ToolType = 'distance' | 'coordinate' | 'none';
 
 @Component({
   selector: 'app-map',
@@ -45,6 +48,7 @@ export class MapComponent implements AfterViewInit {
   consoleInput = '';
   pluginLayerName = '';
 
+
   private overlayRef!: OverlayRef;
   private pluginOverlayRef!: OverlayRef;
   toolList: string[] = [];
@@ -61,15 +65,12 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
 
+    // Listen for plugin-save events
     this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
 
-    this.toolService.activeTool$.subscribe(tool => {
-      if (tool === 'distance') {
-        const plugin = new DistanceToolPlugin(this.mapFacade);
-        this.mapFacade.activateTool(plugin);
-      } else {
-        this.mapFacade.activateTool(undefined as any);
-      }
+    // Subscribe to active tool changes in a type-safe way
+    this.toolService.activeTool$.subscribe((tool: ToolType) => {
+      this.activateTool(tool);
     });
 
     this.mapFacade.trackPointer((lon, lat, zoom) => {
@@ -85,46 +86,66 @@ export class MapComponent implements AfterViewInit {
 
   // ================= PLUGIN SAVE MODAL =================
   openPluginSaveModal() {
-    this.pluginLayerName = `Distance-${Date.now()}`; // default name
-    this.pluginOverlayRef = this.overlay.create({
-      hasBackdrop: true,
-      backdropClass: 'cdk-overlay-dark-backdrop',
-      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
-      scrollStrategy: this.overlay.scrollStrategies.block(),
-    });
+  const activePlugin = this.mapFacade.getActivePlugin();
+  const pluginName = activePlugin?.name || 'Plugin';
 
-    const portal = new TemplatePortal(this.pluginSaveModal, this.vcr);
-    this.pluginOverlayRef.attach(portal);
+  this.pluginLayerName = `${pluginName}-${Date.now()}`; // default name
 
-    this.pluginOverlayRef.backdropClick().subscribe(() => this.cancelPluginSave());
-    this.cdr.detectChanges();
-  }
+  this.pluginOverlayRef = this.overlay.create({
+    hasBackdrop: true,
+    backdropClass: 'cdk-overlay-dark-backdrop',
+    positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+    scrollStrategy: this.overlay.scrollStrategies.block(),
+  });
+
+  const portal = new TemplatePortal(this.pluginSaveModal, this.vcr);
+  this.pluginOverlayRef.attach(portal);
+
+  this.pluginOverlayRef.backdropClick().subscribe(() => this.cancelPluginSave());
+  this.cdr.detectChanges();
+}
 
   closePluginSaveModal() {
     this.pluginOverlayRef?.dispose();
   }
 
   confirmSavePlugin(name?: string) {
-    const layerName = name?.trim() || `Distance-${Date.now()}`;
-    this.mapFacade.saveActivePlugin(layerName);
-    this.closePluginSaveModal();
-    this.cdr.detectChanges();
-  }
+  const layerName = name?.trim() || this.pluginLayerName;
+  this.mapFacade.saveActivePlugin(layerName);
+  this.closePluginSaveModal();
+  this.cdr.detectChanges();
+}
 
-  cancelPluginSave() {
-    this.mapFacade.cancelActivePlugin();
-    this.closePluginSaveModal();
-    this.cdr.detectChanges();
-  }
+cancelPluginSave() {
+  this.mapFacade.cancelActivePlugin();
+  this.closePluginSaveModal();
+  this.cdr.detectChanges();
+}
 
   // ================= TOOLBOX =================
-  activateTool(tool: 'distance') {
+  activateTool(tool: ToolType) {
     this.closeSidebar();
-    if (tool === 'distance') {
-      const plugin = new DistanceToolPlugin(this.mapFacade);
-      this.mapFacade.activateTool(plugin);
+
+    switch (tool) {
+      case 'distance': {
+        const plugin = new DistanceToolPlugin(this.layerManager);
+        this.mapFacade.activateTool(plugin);
+        this.toolList = ['distance'];
+        break;
+      }
+      case 'coordinate': {
+        const plugin = new CoordinateCapturePlugin(this.layerManager);
+        this.mapFacade.activateTool(plugin);
+        this.toolList = ['coordinate'];
+        break;
+      }
+      case 'none':
+      default: {
+        this.mapFacade.activateTool(undefined as any);
+        this.toolList = [];
+        break;
+      }
     }
-    this.toolList = [tool];
   }
 
   closeToolbox() {

@@ -1,0 +1,19 @@
+<svg
+  width="32"
+  height="32"
+  viewBox="0 0 100 100"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Crosshair Circle -->
+  <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="4"/>
+  
+  <!-- Horizontal Line -->
+  <line x1="20" y1="50" x2="80" y2="50" stroke="currentColor" stroke-width="3"/>
+  
+  <!-- Vertical Line -->
+  <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" stroke-width="3"/>
+  
+  <!-- Center Dot -->
+  <circle cx="50" cy="50" r="6" fill="currentColor"/>
+</svg>

@@ -3,12 +3,17 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
+import { FeatureLike } from 'ol/Feature';
+import { Style } from 'ol/style';
 
 export interface ToolPlugin {
   name: string;
-  activate(): void;
-  save?(name: string): void;
+  activate(map: Map): void;
   cancel(): void;
+  deactivate(): void;
+  save?(name: string): void;
+  getFeatures?(): FeatureLike[];
+  getStyle?(feature: FeatureLike): Style[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +24,9 @@ export class MapFacadeService {
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   private activePlugin?: ToolPlugin;
 
+  getActivePlugin(): ToolPlugin | undefined {
+    return this.activePlugin;
+  }
 
   initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars') {
     this.currentPlanet = planet;
@@ -62,7 +70,7 @@ export class MapFacadeService {
   activateTool(plugin: ToolPlugin) {
     this.cancelActivePlugin();
     this.activePlugin = plugin;
-    plugin.activate();
+    plugin.activate(this.map);
   }
 
   saveActivePlugin(name: string) {

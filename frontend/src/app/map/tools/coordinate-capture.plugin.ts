@@ -1,0 +1,118 @@
+import Feature from 'ol/Feature';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Point } from 'ol/geom';
+import { toLonLat } from 'ol/proj';
+
+import { LayerManagerService } from '../services/layer-manager.service';
+import { ToolPluginBase } from './tool-plugin-base';
+
+export class CoordinateCapturePlugin extends ToolPluginBase {
+  name = 'coordinate-capture';
+
+  private hoverLayer?: VectorLayer<VectorSource>;
+  private hoverFeature?: Feature;
+  private capturedFeatures: Feature[] = [];
+
+  constructor(layerManager: LayerManagerService) {
+    super(layerManager);
+  }
+
+  protected override onActivate(): void {
+    if (!this.map) return;
+
+    // Hover layer (preview only)
+    const hoverSource = new VectorSource();
+    this.hoverFeature = new Feature(new Point([0, 0]));
+    this.hoverFeature.set('featureType', 'hover');
+    hoverSource.addFeature(this.hoverFeature);
+
+    this.hoverLayer = new VectorLayer({
+      source: hoverSource,
+      style: (f) => this.getFeatureStyle(f as Feature),
+    });
+    this.map.addLayer(this.hoverLayer);
+
+    // Hover moves with pointer
+    this.registerMapListener('pointermove', (evt: any) => {
+      this.hoverFeature?.setGeometry(new Point(evt.coordinate));
+    });
+
+    // Left click → capture
+    this.registerMapListener('singleclick', (evt: any) => {
+      if (evt.originalEvent?.button !== 0) return;
+
+      const coord = evt.coordinate as [number, number];
+
+      // Determine style from activeLayer if present
+      const shape = this.activeLayer?.shape || this.tempShape;
+      const color = this.activeLayer?.color || this.tempColor;
+
+      // Point feature
+      const pointFeature = new Feature(new Point(coord));
+      pointFeature.set('featureType', 'point');
+      this.tempSource?.addFeature(pointFeature);
+      this.capturedFeatures.push(pointFeature);
+
+      // Label
+      const [lon, lat] = toLonLat(coord);
+      const labelFeature = new Feature(new Point(coord));
+      labelFeature.set('featureType', 'label');
+      labelFeature.set('text', `${lon.toFixed(4)}, ${lat.toFixed(4)}`);
+      this.tempSource?.addFeature(labelFeature);
+      this.capturedFeatures.push(labelFeature);
+
+      // Apply style immediately
+      pointFeature.setStyle(
+        this.layerManager.styleService.getLayerStyle({
+          type: 'point',
+          shape,
+          baseColor: color,
+        })
+      );
+      labelFeature.setStyle(
+        this.layerManager.styleService.getLayerStyle({
+          type: 'label',
+          baseColor: color,
+          text: labelFeature.get('text'),
+        })
+      );
+    });
+
+    // Right click → save
+    this.registerDomListener(this.map.getViewport(), 'contextmenu', (evt: MouseEvent) => {
+      evt.preventDefault();
+      this.map
+        ?.getTargetElement()
+        .dispatchEvent(new CustomEvent('plugin-save-request', { bubbles: true }));
+    });
+
+    // ESC → cancel
+    this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
+      if (evt.key === 'Escape') this.cancel();
+    });
+  }
+
+  protected override onDeactivate(): void {
+    if (this.map && this.hoverLayer) {
+      this.map.removeLayer(this.hoverLayer);
+    }
+    this.hoverLayer = undefined;
+    this.hoverFeature = undefined;
+    this.capturedFeatures = [];
+  }
+
+  protected override onSave(layer: any): void {
+    // Only captured features are saved
+    layer.isDistanceLayer = true;
+
+    // Apply final style to all features
+    this.capturedFeatures.forEach((f) => {
+      f.setStyle(this.getFeatureStyle(f));
+    });
+  }
+
+  override getFeatures(): Feature[] {
+    return this.capturedFeatures;
+  }
+}

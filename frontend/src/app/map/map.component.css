@@ -12,6 +12,7 @@
   --button-color-highlight: rgba(107, 91, 123, 0.1);
   --panel-bg: #e2e2e2;
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --tool-active-bg: #d6b78f; /* background for active tool */
 }
 
 /* ===================== GLOBAL ===================== */
@@ -216,13 +217,10 @@ body {
 }
 
 /* ===================== TOOLBAR ===================== */
-
 .toolbar-wrapper {
   flex-shrink: 0;
   margin-top: 1rem;
-  padding-left: 16px;
-  padding-right: 16px;
-  padding-bottom: 8px;
+  padding: 0 16px 8px 16px;
   background: var(--panel-bg);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 8px;
@@ -240,21 +238,33 @@ body {
   width: 100%;
 }
 
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .tool-icon {
   width: 32px;
   height: 32px;
   cursor: pointer;
-  transition: transform 0.15s ease;
-  color: var(--primary-color); /* sets line and points color */
+  transition: transform 0.15s ease, background 0.2s;
+  color: var(--primary-color);
   background: #cacaca;
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .tool-icon:hover {
   transform: scale(1.1);
 }
 
-/* ================= DISTANCE TOOL ================= */
+/* Highlight active tool */
+.tool-icon.active {
+  background: var(--tool-active-bg);
+  border: 1.5px solid var(--primary-color);
+}
 
+/* ===================== PLUGIN MODAL ===================== */
 .plugin-save-modal {
   background: white;
   border-radius: 8px;
@@ -305,86 +315,49 @@ body {
   color: #333;
 }
 
-
-/* ===================== MODAL ===================== */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 70vw;
-  height: 80vh;
-  transform: translate(-50%, -50%) scale(0.95);
-  background: #fff;
-  border-radius: 12px;
+/* ===================== MODAL & LAYER MODAL ===================== */
+.modal,
+.layer-modal {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   font-family: var(--font-sans);
-  z-index: 10000;
 }
 
-.modal-content {
-  flex: 1;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow: hidden;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border-color-light);
-  background: var(--background-color-extra-light);
-}
-
-/* ===================== LAYER MODAL ===================== */
 .layer-modal {
   width: 440px;
   height: 620px;
-  /* taller for file preview */
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  font-family: var(--font-sans);
 }
 
-.layer-modal-title {
-  font-size: 1rem;
-  color: var(--primary-color);
-  margin: 0;
-  /* remove extra spacing */
-  font-weight: 600;
-}
-
+/* Layer modal header */
 .layer-modal-header {
   display: flex;
-  /* enable flex layout */
   justify-content: space-between;
-  /* title left, button right */
   align-items: center;
-  /* vertically center */
   padding: 0.5rem 0.75rem;
   background: var(--background-color-medium-light);
   border-bottom: 1px solid var(--border-color-light);
 }
 
+.layer-modal-title {
+  font-size: 1rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin: 0;
+}
+
 .close-btn {
   background: none;
-  /* remove button background */
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
   color: var(--primary-color);
 }
 
-/* Body with scrollable content */
+/* Body scroll */
 .layer-modal-body {
   flex: 1;
   padding: 0.75rem 1rem;
@@ -394,137 +367,12 @@ body {
   overflow-y: auto;
 }
 
-/* ===================== MODAL TABS ===================== */
-.modal-tab-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  flex-shrink: 0;
-}
-
-.modal-tab-buttons button {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  margin: .2rem;
-  cursor: pointer;
-  background: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 6px;
-  font-weight: 600;
-  color: var(--background-color-medium-light);
-  transition: all 0.2s;
-}
-
-.modal-tab-buttons button.active {
-  background: var(--primary-color);
-  color: var(--text-color-light);
-  border-color: var(--primary-color);
-}
-
-/* ===================== MANUAL INPUTS ===================== */
-.manual-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  overflow-y: auto;
-  flex: 1 1 auto;
-}
-
-.manual-inputs label {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.9rem;
-}
-
-.manual-inputs input,
-.manual-inputs select {
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color-light);
-}
-
-.file-preview {
-  flex: 1 1 auto;
-  background: #f0f0f0;
-  padding: 0.5rem;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 0.85rem;
-  overflow: auto;
-  max-height: 200px;
-}
-
-
-/* ===================== CONSOLE ===================== */
-.console {
-  flex: 0 0 auto;
-}
-
-.console-input {
-  flex: 1 1 auto;
-  background: #111;
-  color: #0f0;
-  padding: 0.5rem;
-  font-family: monospace;
-  font-size: 0.85rem;
-  border-radius: 4px;
-  overflow-y: auto;
-}
-
-.console .terminal {
-  background: #111;
-  color: #0f0;
-  font-family: monospace;
-  font-size: 0.9rem;
-  line-height: 1.2em;
-  padding: 0.75rem;
-  border-radius: 4px;
-  flex: none;
-  height: auto;
-  min-height: calc(1.2em * 10 + 1.5rem);
-  /* 10 lines + padding buffer */
-  overflow-y: hidden;
-  /* hide scrollbar until needed */
-  white-space: pre-wrap;
-}
-
-/* ===================== MODAL ACTION BUTTONS ===================== */
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--background-color-extra-light);
-}
-
-.modal-actions button {
-  padding: 0.45rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--primary-color);
-  background: var(--background-color-medium-light);
-  color: var(--primary-color);
-  transition: all 0.2s;
-}
-
-.modal-actions button:hover {
-  background: var(--button-color-highlight);
-}
-
-.modal-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ===================== TOOLS ===================== */
-
+/* ===================== TOOLTIP & MEASURE ===================== */
 .measure-tooltip {
   position: relative;
   background: rgba(0, 0, 0, 0.75);
   color: white;
   padding: 4px 8px;
-  border: 1px solid black;
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;
@@ -539,12 +387,36 @@ body {
 .measure-segment {
   padding: 2px 4px;
   background-color: white;
-  color: var(--primary-color);                 /* text color */
-  border: 1px solid var(--primary-color);      /* black border */
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   border-radius: 3px;
   font-size: 0.8rem;
   font-weight: 600;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ===================== TOOL VERTEX POINTS ===================== */
+.tool-vertex {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  border: 1px solid white;
+  pointer-events: none; /* so it doesn’t block map interaction */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ===================== COORDINATE LABELS ===================== */
+.coordinate-label {
+  padding: 2px 4px;
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  pointer-events: none; /* allow clicks through label */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   white-space: nowrap;
-  pointer-events: none;        /* so it doesn’t block map interaction */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
