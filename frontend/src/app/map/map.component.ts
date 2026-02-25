@@ -2,7 +2,7 @@ import {
   Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy,
   ChangeDetectorRef, TemplateRef, ViewContainerRef
 } from '@angular/core';
-import { CommonModule, NgIf, NgForOf } from '@angular/common'; // <-- add NgIf, NgForOf
+import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
@@ -19,7 +19,7 @@ import { inject } from '@angular/core';
   selector: 'app-map',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DragDropModule, LayerItemComponent, NgIf, NgForOf], // <-- fix structural directives
+  imports: [CommonModule, FormsModule, DragDropModule, LayerItemComponent],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css']
 })

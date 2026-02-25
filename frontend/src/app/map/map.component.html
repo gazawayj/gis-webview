@@ -2,60 +2,9 @@
   <aside class="sidebar">
     <h1>GIS Web Viewer</h1>
 
-    <!-- Planet buttons -->
-    <div class="planet-buttons">
-      <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
-      <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
-      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
-    </div>
+    <!-- Planet buttons --> <div class="planet-buttons"> <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button> <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button> <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button> </div> <!-- Add Layer button --> <div class="add-layer"> <button (click)="onAddLayer()">Add Layer</button> </div> <!-- Layer list --> <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)"> @for (layer of sidebarLayers; track trackLayer($index, layer)) { <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()"> <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)" (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)" (remove)="removeLayer(layer)"> </app-layer-item> </div> } @if (sidebarLayers.length === 0) { <div class="no-layers-tooltip"> No layers added. </div> } </div> <!-- ✅ layer-list CLOSED HERE --> <!-- Stats --> <div class="map-stats"> <div class="stat-item"> <span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span> </div> <div class="stat-item"> <span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span> </div> <div class="stat-item"> <span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span> </div> </div> <!-- Toolbox --> <div class="toolbar-wrapper"> <div class="toolbar-label">Toolbox</div> <div class="toolbar-buttons"> <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool" (click)="activateTool('distance')" /> </div> </div>
 
-    <!-- Add Layer button -->
-    <div class="add-layer">
-      <button (click)="onAddLayer()">Add Layer</button>
-    </div>
-
-    <!-- Layer list -->
-    <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
-      @for (layer of sidebarLayers; track trackLayer($index, layer)) {
-      <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
-        <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
-          (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
-          (remove)="removeLayer(layer)">
-        </app-layer-item>
-      </div>
-      }
-
-      @if (sidebarLayers.length === 0) {
-      <div class="no-layers-tooltip">
-        No layers added.
-      </div>
-      }
-
-      <!-- Stats -->
-      <div class="map-stats">
-        <div class="stat-item">
-          <span class="stat-label">{{ latLabel }}:</span>
-          <span class="stat-value">{{ formattedLat }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">{{ lonLabel }}:</span>
-          <span class="stat-value">{{ formattedLon }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Zoom:</span>
-          <span class="stat-value">{{ zoomDisplay }}</span>
-        </div>
-      </div>
-
-      <!-- Toolbox -->
-      <div class="toolbar-wrapper">
-        <div class="toolbar-label">Toolbox</div>
-        <div class="toolbar-buttons">
-          <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
-            (click)="activateTool('distance')" />
-        </div>
-      </div>
-
+    </aside>
       <!-- Map -->
       <div #mapContainer class="map-container"></div>
 

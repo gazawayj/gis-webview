@@ -9,7 +9,7 @@ import {
   ViewContainerRef,
   CUSTOM_ELEMENTS_SCHEMA
 } from '@angular/core';
-import { CommonModule, NgIf, NgForOf } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { SHAPES, ShapeType } from './services/symbol-constants';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
@@ -25,10 +25,10 @@ export interface LayerItem {
 @Component({
   selector: 'app-layer-item',
   standalone: true,
-  imports: [CommonModule, NgIf, NgForOf],
+  imports: [CommonModule ],
   templateUrl: './layer-item.component.html',
   styleUrls: ['./layer-item.component.css'],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA] // <-- allow SVG elements like circle, rect, polygon, line
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class LayerItemComponent {
   @Input() layer!: LayerItem;
@@ -41,7 +41,7 @@ export class LayerItemComponent {
   @ViewChild('shapeDropdown', { static: true })
   shapeDropdown!: TemplateRef<any>;
 
-  shapes: ShapeType[] = [...SHAPES]; // include 'line'
+  shapes: ShapeType[] = [...SHAPES]; 
 
   private overlayRef!: OverlayRef;
 
