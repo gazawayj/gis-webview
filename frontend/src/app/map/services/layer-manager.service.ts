@@ -31,7 +31,7 @@ export interface LayerConfig {
 
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
-  private styleService = inject(StyleService);
+  styleService = inject(StyleService);
   private http = inject(HttpClient);
 
   private _map?: OlMap;
@@ -121,7 +121,7 @@ export class LayerManagerService {
       layerShape = this.styleService.getRandomShape() || 'circle';
     }
 
-    const layerStyleFn = styleFn || ((f: FeatureLike) => {
+    const layerStyleFn = styleFn || ((_f: FeatureLike) => {
       const type = layerShape === 'line' ? 'line' : 'point';
       return [this.styleService.getLayerStyle({ type, baseColor: layerColor, shape: layerShape })];
     });
@@ -140,7 +140,7 @@ export class LayerManagerService {
       styleFn: layerStyleFn
     };
 
-    if (features?.length) vectorLayer.getSource()?.addFeatures(features.map(f => f.clone()));
+    if (features?.length) vectorLayer.getSource()?.addFeatures(features.map(_f => _f.clone()));
 
     this.registry.set(layerId, config);
 
@@ -201,7 +201,7 @@ export class LayerManagerService {
 
     // Regular layer
     const defaultShape: ShapeType = (layer.shape && layer.shape !== 'none') ? (layer.shape as ShapeType) : 'circle';
-    layer.olLayer.setStyle((feature) => {
+    layer.olLayer.setStyle((_feature) => {
       if (layer.shape === 'line') {
         return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
       } else {
@@ -304,11 +304,11 @@ export class LayerManagerService {
   addManualLayer(
     planet: 'earth' | 'moon' | 'mars',
     name: string,
-    description: string,
-    fileContent?: string,
-    sourceType: 'CSV' | 'GeoJSON' = 'CSV',
-    latField?: string,
-    lonField?: string
+    _description: string,
+    _fileContent?: string,
+    _sourceType: 'CSV' | 'GeoJSON' = 'CSV',
+    _latField?: string,
+    _lonField?: string
   ) {
     const color = this.styleService.getRandomColor();
 
