@@ -23,105 +23,102 @@
           (remove)="removeLayer(layer)">
         </app-layer-item>
       </div>
-      </ng-container>
+      }
 
       @if (sidebarLayers.length === 0) {
       <div class="no-layers-tooltip">
         No layers added.
       </div>
       }
-    </div>
 
-    <!-- Stats -->
-    <div class="map-stats">
-      <div class="stat-item">
-        <span class="stat-label">{{ latLabel }}:</span>
-        <span class="stat-value">{{ formattedLat }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ lonLabel }}:</span>
-        <span class="stat-value">{{ formattedLon }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Zoom:</span>
-        <span class="stat-value">{{ zoomDisplay }}</span>
-      </div>
-    </div>
-
-    <!-- Toolbox -->
-    <div class="toolbar-wrapper">
-      <div class="toolbar-label">Toolbox</div>
-      <div class="toolbar-buttons">
-        <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
-          (click)="activateTool('distance')" />
-      </div>
-    </div>
-  </aside>
-
-  <!-- Map -->
-  <div #mapContainer class="map-container"></div>
-
-  <!-- Add Layer Modal -->
-  <ng-template #addLayerModal>
-    <div class="layer-modal">
-      <div class="layer-modal-header">
-        <span class="layer-modal-title">{{ modalTitle }}</span>
-        <button class="close-btn" (click)="cancelAddLayer()">×</button>
+      <!-- Stats -->
+      <div class="map-stats">
+        <div class="stat-item">
+          <span class="stat-label">{{ latLabel }}:</span>
+          <span class="stat-value">{{ formattedLat }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">{{ lonLabel }}:</span>
+          <span class="stat-value">{{ formattedLon }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Zoom:</span>
+          <span class="stat-value">{{ zoomDisplay }}</span>
+        </div>
       </div>
 
-      <div class="modal-tab-buttons">
-        <button [class.active]="modalMode==='manual'" (click)="switchModalMode('manual')">Manual</button>
-        <button [class.active]="modalMode==='console'" (click)="switchModalMode('console')">Console</button>
+      <!-- Toolbox -->
+      <div class="toolbar-wrapper">
+        <div class="toolbar-label">Toolbox</div>
+        <div class="toolbar-buttons">
+          <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
+            (click)="activateTool('distance')" />
+        </div>
       </div>
 
-      <div class="layer-modal-body">
-        @if (modalMode==='manual') {
-          <label>
-            Name:
-            <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
-          </label>
-          <label>
-            Description:
-            <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
-          </label>
-          <label>
-            File:
-            <input type="file" (change)="handleFileInput($event)" />
-          </label>
-          <label>
-            Latitude Field:
-            <input type="text" [(ngModel)]="latField" placeholder="latitude" />
-          </label>
-          <label>
-            Longitude Field:
-            <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
-          </label>
-        }
+      <!-- Map -->
+      <div #mapContainer class="map-container"></div>
 
-        @if (modalMode==='console') {
-          <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
-        }
-      </div>
+      <!-- Add Layer Modal -->
+      <ng-template #addLayerModal>
+        <div class="layer-modal">
+          <div class="layer-modal-header">
+            <span class="layer-modal-title">{{ modalTitle }}</span>
+            <button class="close-btn" (click)="cancelAddLayer()">×</button>
+          </div>
 
-      <div class="modal-actions">
-        <button (click)="confirmAddLayer()" [disabled]="
+          <div class="modal-tab-buttons">
+            <button [class.active]="modalMode==='manual'" (click)="switchModalMode('manual')">Manual</button>
+            <button [class.active]="modalMode==='console'" (click)="switchModalMode('console')">Console</button>
+          </div>
+
+          <div class="layer-modal-body">
+            @if (modalMode==='manual') {
+            <label>
+              Name:
+              <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
+            </label>
+            <label>
+              Description:
+              <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
+            </label>
+            <label>
+              File:
+              <input type="file" (change)="handleFileInput($event)" />
+            </label>
+            <label>
+              Latitude Field:
+              <input type="text" [(ngModel)]="latField" placeholder="latitude" />
+            </label>
+            <label>
+              Longitude Field:
+              <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
+            </label>
+            }
+
+            @if (modalMode==='console') {
+            <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
+            }
+          </div>
+
+          <div class="modal-actions">
+            <button (click)="confirmAddLayer()" [disabled]="
           (modalMode==='manual' && (!newLayerName || !fileContent)) ||
           (modalMode==='console' && !consoleInput)
         ">Add</button>
-        <button (click)="cancelAddLayer()">Cancel</button>
-      </div>
-    </div>
-  </ng-template>
+            <button (click)="cancelAddLayer()">Cancel</button>
+          </div>
+        </div>
+      </ng-template>
 
-  <!-- Generic Plugin Save Modal -->
-  <ng-template #pluginSaveModal>
-    <div class="plugin-save-modal">
-      <h3>Save Layer</h3>
-      <input type="text" placeholder="Layer name" [(ngModel)]="pluginLayerName" />
-      <div class="buttons">
-        <button (click)="confirmSavePlugin(pluginLayerName)">Save</button>
-        <button (click)="cancelPluginSave()">Cancel</button>
-      </div>
-    </div>
-  </ng-template>
-</div>
+      <!-- Generic Plugin Save Modal -->
+      <ng-template #pluginSaveModal>
+        <div class="plugin-save-modal">
+          <h3>Save Layer</h3>
+          <input type="text" placeholder="Layer name" [(ngModel)]="pluginLayerName" />
+          <div class="buttons">
+            <button (click)="confirmSavePlugin(pluginLayerName)">Save</button>
+            <button (click)="cancelPluginSave()">Cancel</button>
+          </div>
+        </div>
+      </ng-template>
