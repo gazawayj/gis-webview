@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
@@ -21,7 +21,7 @@ export interface LayerConfig {
   color: string;
   visible: boolean;
   shape: ShapeType | 'none';
-  olLayer: TileLayer<XYZ> | VectorLayer<VectorSource>;
+  olLayer: TileLayer | VectorLayer;
   isBasemap?: boolean;
   isTemporary?: boolean;
   isDistanceLayer?: boolean;
@@ -31,6 +31,9 @@ export interface LayerConfig {
 
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
+  private styleService = inject(StyleService);
+  private http = inject(HttpClient);
+
   private _map?: OlMap;
 
   public layers: LayerConfig[] = [];
@@ -48,8 +51,6 @@ export class LayerManagerService {
     moon: null!,
     mars: null!
   };
-
-  constructor(public styleService: StyleService, private http: HttpClient) { }
 
   attachMap(map: OlMap) {
     this._map = map;

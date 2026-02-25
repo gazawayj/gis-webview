@@ -13,6 +13,7 @@ import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { SHAPES, ShapeType } from './services/symbol-constants';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
+import { inject } from '@angular/core';
 
 export interface LayerItem {
   name: string;
@@ -44,11 +45,9 @@ export class LayerItemComponent {
 
   private overlayRef!: OverlayRef;
 
-  constructor(
-    private overlay: Overlay,
-    private vcr: ViewContainerRef,
-    private elRef: ElementRef
-  ) {}
+  private overlay = inject(Overlay);
+  private vcr = inject(ViewContainerRef);
+  private elRef = inject(ElementRef);
 
   toggleVisibility(event: MouseEvent) {
     event.stopPropagation();

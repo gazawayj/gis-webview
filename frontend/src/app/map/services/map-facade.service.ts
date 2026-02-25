@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
@@ -13,11 +13,12 @@ export interface ToolPlugin {
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
+  private zone = inject(NgZone);
+  private layerManager = inject(LayerManagerService);
   map!: Map;
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   private activePlugin?: ToolPlugin;
 
-  constructor(private zone: NgZone, private layerManager: LayerManagerService) {}
 
   initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars') {
     this.currentPlanet = planet;

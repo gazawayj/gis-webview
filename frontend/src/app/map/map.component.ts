@@ -13,6 +13,7 @@ import { LayerManagerService, LayerConfig } from './services/layer-manager.servi
 import { ToolService } from './services/tool.service';
 import { ShapeType } from './services/symbol-constants';
 import { DistanceToolPlugin } from './tools/distance-tool.plugin';
+import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-map',
@@ -50,14 +51,12 @@ export class MapComponent implements AfterViewInit {
   activePanel: 'layers' | 'stats' | null = null;
   panelOpen = false;
 
-  constructor(
-    private mapFacade: MapFacadeService,
-    private layerManager: LayerManagerService,
-    private toolService: ToolService,
-    private cdr: ChangeDetectorRef,
-    private overlay: Overlay,
-    private vcr: ViewContainerRef
-  ) { }
+  private mapFacade = inject(MapFacadeService);
+  private layerManager = inject(LayerManagerService);
+  private toolService = inject(ToolService);
+  private cdr = inject(ChangeDetectorRef);
+  private overlay = inject(Overlay);
+  private vcr = inject(ViewContainerRef);
 
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
@@ -169,13 +168,13 @@ export class MapComponent implements AfterViewInit {
   }
 
   togglePanel() {
-  this.panelOpen = !this.panelOpen;
-}
+    this.panelOpen = !this.panelOpen;
+  }
 
   openPanel(type: 'layers' | 'stats') {
-  this.activePanel = type;
-  this.panelOpen = true;
-}
+    this.activePanel = type;
+    this.panelOpen = true;
+  }
 
   closeSidebar(): void {
     this.panelOpen = false;
