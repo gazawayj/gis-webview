@@ -48,13 +48,13 @@ export class MapComponent implements AfterViewInit {
   consoleInput = '';
   pluginLayerName = '';
 
-
   private overlayRef!: OverlayRef;
   private pluginOverlayRef!: OverlayRef;
   toolList: string[] = [];
   activePanel: 'layers' | 'stats' | null = null;
   panelOpen = false;
 
+  // ---------- COMPONENT INJECTS ----------
   private mapFacade = inject(MapFacadeService);
   private layerManager = inject(LayerManagerService);
   private toolService = inject(ToolService);
@@ -62,17 +62,22 @@ export class MapComponent implements AfterViewInit {
   private overlay = inject(Overlay);
   private vcr = inject(ViewContainerRef);
 
+  // ---------- SIDEBAR DRAG ORDER ----------
+  private dragOrder: LayerConfig[] = [];
+
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
+
+    // Initialize drag order
+    this.dragOrder = this.layerManager.layers.filter(l => !l.isBasemap);
 
     // Listen for plugin-save events
     this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
 
-    // Subscribe to active tool changes in a type-safe way
-    this.toolService.activeTool$.subscribe((tool: ToolType) => {
-      this.activateTool(tool);
-    });
+    // Subscribe to active tool changes
+    this.toolService.activeTool$.subscribe((tool: ToolType) => this.activateTool(tool));
 
+    // Track pointer
     this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
       this.currentLat = lat;
@@ -84,48 +89,74 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  // ================= PLUGIN SAVE MODAL =================
-  openPluginSaveModal() {
-  const activePlugin = this.mapFacade.getActivePlugin();
-  const pluginName = activePlugin?.name || 'Plugin';
-
-  this.pluginLayerName = `${pluginName}-${Date.now()}`; // default name
-
-  this.pluginOverlayRef = this.overlay.create({
-    hasBackdrop: true,
-    backdropClass: 'cdk-overlay-dark-backdrop',
-    positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
-    scrollStrategy: this.overlay.scrollStrategies.block(),
-  });
-
-  const portal = new TemplatePortal(this.pluginSaveModal, this.vcr);
-  this.pluginOverlayRef.attach(portal);
-
-  this.pluginOverlayRef.backdropClick().subscribe(() => this.cancelPluginSave());
-  this.cdr.detectChanges();
-}
-
-  closePluginSaveModal() {
-    this.pluginOverlayRef?.dispose();
+  // ================= SIDEBAR GETTER =================
+  get sidebarLayers(): LayerConfig[] {
+    // Always reflect drag order; initialize if empty
+    if (!this.dragOrder.length) {
+      this.dragOrder = this.layerManager.layers.filter(l => !l.isBasemap);
+    }
+    return this.dragOrder;
   }
 
-  confirmSavePlugin(name?: string) {
-  const layerName = name?.trim() || this.pluginLayerName;
-  this.mapFacade.saveActivePlugin(layerName);
-  this.closePluginSaveModal();
-  this.cdr.detectChanges();
-}
+  // ================= DRAG/DROP =================
+  onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
+    moveItemInArray(this.dragOrder, event.previousIndex, event.currentIndex);
+    this.layerManager.reorderLayers(this.dragOrder);
+    this.cdr.detectChanges();
+  }
 
-cancelPluginSave() {
-  this.mapFacade.cancelActivePlugin();
-  this.closePluginSaveModal();
-  this.cdr.detectChanges();
-}
+  onLayerDragMoved(): void { } // placeholder for CDK event
+
+  trackLayer(index: number, layer: LayerConfig): string {
+    return layer.id;
+  }
+
+  // ================= PLUGIN SAVE MODAL =================
+  openPluginSaveModal() {
+    const activePlugin = this.mapFacade.getActivePlugin();
+    const pluginName = activePlugin?.name || 'Plugin';
+    this.pluginLayerName = `${pluginName}-${Date.now()}`;
+
+    this.pluginOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-dark-backdrop',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+    });
+
+    const portal = new TemplatePortal(this.pluginSaveModal, this.vcr);
+    this.pluginOverlayRef.attach(portal);
+    this.pluginOverlayRef.backdropClick().subscribe(() => this.cancelPluginSave());
+    this.cdr.detectChanges();
+  }
+
+  closePluginSaveModal() { this.pluginOverlayRef?.dispose(); }
+
+  confirmSavePlugin(name?: string) {
+    const layerName = name?.trim() || this.pluginLayerName;
+
+    // Save plugin layer and get resulting LayerConfig
+    const newLayer = this.mapFacade.saveActivePlugin(layerName); // now returns LayerConfig
+
+    if (newLayer) {
+      this.dragOrder.unshift(newLayer); // add saved distance or coordinate layer to sidebar
+    }
+
+    this.closePluginSaveModal();
+    this.cdr.detectChanges();
+  }
+
+  cancelPluginSave() {
+    this.mapFacade.cancelActivePlugin();
+    this.closePluginSaveModal();
+    this.cdr.detectChanges();
+  }
+
+  closeSidebar(): void { this.panelOpen = false; }
 
   // ================= TOOLBOX =================
   activateTool(tool: ToolType) {
     this.closeSidebar();
-
     switch (tool) {
       case 'distance': {
         const plugin = new DistanceToolPlugin(this.layerManager);
@@ -139,95 +170,35 @@ cancelPluginSave() {
         this.toolList = ['coordinate'];
         break;
       }
-      case 'none':
-      default: {
+      default:
         this.mapFacade.activateTool(undefined as any);
         this.toolList = [];
-        break;
-      }
     }
   }
-
-  closeToolbox() {
-    this.toolList = [];
-    this.mapFacade.activateTool(undefined as any);
-    this.cdr.detectChanges();
-  }
+  closeToolbox() { this.toolList = []; this.mapFacade.activateTool(undefined as any); this.cdr.detectChanges(); }
 
   // ================= COORD LABELS =================
   private updateLabels() {
     switch (this.currentPlanet) {
-      case 'moon':
-        this.lonLabel = 'Selenographic Longitude';
-        this.latLabel = 'Selenographic Latitude';
-        break;
-      case 'mars':
-        this.lonLabel = 'Areographic Longitude';
-        this.latLabel = 'Areographic Latitude';
-        break;
-      default:
-        this.lonLabel = 'Longitude';
-        this.latLabel = 'Latitude';
+      case 'moon': this.lonLabel = 'Selenographic Longitude'; this.latLabel = 'Selenographic Latitude'; break;
+      case 'mars': this.lonLabel = 'Areographic Longitude'; this.latLabel = 'Areographic Latitude'; break;
+      default: this.lonLabel = 'Longitude'; this.latLabel = 'Latitude';
     }
   }
+  get formattedLon(): string { const abs = Math.abs(this.currentLon).toFixed(4); const dir = this.currentLon >= 0 ? 'E' : 'W'; return `${abs}° ${dir}`; }
+  get formattedLat(): string { const abs = Math.abs(this.currentLat).toFixed(4); const dir = this.currentLat >= 0 ? 'N' : 'S'; return `${abs}° ${dir}`; }
 
-  get formattedLon(): string {
-    const abs = Math.abs(this.currentLon).toFixed(4);
-    const dir = this.currentLon >= 0 ? 'E' : 'W';
-    return `${abs}° ${dir}`;
-  }
-
-  get formattedLat(): string {
-    const abs = Math.abs(this.currentLat).toFixed(4);
-    const dir = this.currentLat >= 0 ? 'N' : 'S';
-    return `${abs}° ${dir}`;
-  }
-
-  // ================= SIDEBAR =================
-  get sidebarLayers(): LayerConfig[] {
-    return this.layerManager.layers;
-  }
-
-  togglePanel() {
-    this.panelOpen = !this.panelOpen;
-  }
-
-  openPanel(type: 'layers' | 'stats') {
-    this.activePanel = type;
-    this.panelOpen = true;
-  }
-
-  closeSidebar(): void {
-    this.panelOpen = false;
-  }
-
-  trackLayer(index: number, layer: LayerConfig) {
-    return layer.id;
-  }
-
-  onLayerDragMoved() {
-    this.layerManager.applyZOrder();
-  }
-
-  onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
-    const reordered = [...this.sidebarLayers];
-    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
-    this.layerManager.reorderLayers(reordered);
-    this.cdr.detectChanges();
-  }
-
-  toggleLayer(layer: LayerConfig) {
-    this.layerManager.toggle(layer);
-    this.cdr.detectChanges();
-  }
+  // ================= LAYER ACTIONS =================
+  toggleLayer(layer: LayerConfig) { this.layerManager.toggle(layer); this.cdr.detectChanges(); }
 
   removeLayer(layer: LayerConfig) {
     this.layerManager.remove(layer);
+    this.dragOrder = this.dragOrder.filter(l => l.id !== layer.id);
     this.cdr.detectChanges();
   }
 
   onColorPicked(layer: LayerConfig, color: string) {
-    layer.color = color;               // <--- update the LayerConfig
+    layer.color = color;
     this.layerManager.updateStyle(layer);
     this.cdr.detectChanges();
   }
@@ -246,6 +217,7 @@ cancelPluginSave() {
     this.closeSidebar();
     this.updateLabels();
     this.closeToolbox();
+    this.dragOrder = this.layerManager.layers.filter(l => !l.isBasemap);
     this.cdr.detectChanges();
   }
 
@@ -261,7 +233,6 @@ cancelPluginSave() {
     this.consoleInput = '';
     this.openModal();
   }
-
   openModal() {
     this.overlayRef = this.overlay.create({
       hasBackdrop: true,
@@ -269,15 +240,11 @@ cancelPluginSave() {
       positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
       scrollStrategy: this.overlay.scrollStrategies.block()
     });
-
     this.overlayRef.backdropClick().subscribe(() => this.closeModal());
     this.overlayRef.attach(new TemplatePortal(this.addLayerModal, this.vcr));
     this.cdr.detectChanges();
   }
-
-  closeModal() {
-    this.overlayRef?.dispose();
-  }
+  closeModal() { this.overlayRef?.dispose(); }
 
   switchModalMode(mode: 'manual' | 'console') {
     this.modalMode = mode;
@@ -288,25 +255,18 @@ cancelPluginSave() {
   handleFileInput(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
-
     const file = input.files[0];
     const reader = new FileReader();
-
-    reader.onload = e => {
-      this.fileContent = e.target?.result as string;
-      this.cdr.detectChanges();
-    };
+    reader.onload = e => { this.fileContent = e.target?.result as string; this.cdr.detectChanges(); };
     reader.readAsText(file);
   }
 
-  cancelAddLayer() {
-    this.closeModal();
-  }
+  cancelAddLayer() { this.closeModal(); }
 
   confirmAddLayer() {
     if (!this.newLayerName.trim()) return;
 
-    this.layerManager.addManualLayer(
+    const newLayer = this.layerManager.addManualLayer(
       this.currentPlanet,
       this.newLayerName,
       this.newLayerDescription,
@@ -316,6 +276,7 @@ cancelPluginSave() {
       this.lonField
     );
 
+    if (newLayer) this.dragOrder.unshift(newLayer); // add to sidebar + maintain order
     this.closeModal();
     this.cdr.detectChanges();
   }

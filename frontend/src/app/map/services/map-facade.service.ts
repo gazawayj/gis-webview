@@ -2,7 +2,7 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
-import { LayerManagerService } from './layer-manager.service';
+import { LayerConfig, LayerManagerService } from './layer-manager.service';
 import { FeatureLike } from 'ol/Feature';
 import { Style } from 'ol/style';
 import { Tool } from '../tools/tool';
@@ -64,8 +64,12 @@ export class MapFacadeService {
     plugin.activate(this.map);
   }
 
-  saveActivePlugin(name: string) {
-    this.activePlugin?.save?.(name);
+  saveActivePlugin(name: string): any {
+    if (!this.activePlugin?.save) return undefined;
+
+    const layer = this.activePlugin.save(name); // now save() returns LayerConfig
+    this.activePlugin = undefined; // deactivate tool
+    return layer; // <-- return layer to caller
   }
 
   cancelActivePlugin() {

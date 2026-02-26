@@ -17,18 +17,15 @@
     <!-- Layer list -->
     <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
       @for (layer of sidebarLayers; track trackLayer($index, layer)) {
-        <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
-          <app-layer-item
-            [layer]="layer"
-            (visibilityChange)="toggleLayer(layer)"
-            (colorChange)="onColorPicked(layer, $event)"
-            (shapeChange)="selectShape(layer, $event)"
-            (remove)="removeLayer(layer)">
-          </app-layer-item>
-        </div>
+      <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
+        <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
+          (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
+          (remove)="removeLayer(layer)">
+        </app-layer-item>
+      </div>
       }
       @if (sidebarLayers.length === 0) {
-        <div class="no-layers-tooltip">No layers added.</div>
+      <div class="no-layers-tooltip">No layers added.</div>
       }
     </div>
 
@@ -54,22 +51,12 @@
       <div class="toolbar-buttons">
 
         <!-- Coordinate Capture Tool -->
-        <img
-          src="assets/icons/coordinate-tool.svg"
-          alt="Coordinate Tool"
-          class="tool-icon"
-          title="Coordinate Capture Tool"
-          (click)="activateTool('coordinate')"
-        />
-        
+        <img src="assets/icons/coordinate-tool.svg" alt="Coordinate Tool" class="tool-icon"
+          title="Coordinate Capture Tool" (click)="activateTool('coordinate')" />
+
         <!-- Distance Tool -->
-        <img
-          src="assets/icons/distance-tool.svg"
-          alt="Distance Tool"
-          class="tool-icon"
-          title="Distance Tool"
-          (click)="activateTool('distance')"
-        />
+        <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
+          (click)="activateTool('distance')" />
       </div>
     </div>
 
@@ -93,30 +80,30 @@
 
       <div class="layer-modal-body">
         @if (modalMode==='manual') {
-          <label>
-            Name:
-            <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
-          </label>
-          <label>
-            Description:
-            <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
-          </label>
-          <label>
-            File:
-            <input type="file" (change)="handleFileInput($event)" />
-          </label>
-          <label>
-            Latitude Field:
-            <input type="text" [(ngModel)]="latField" placeholder="latitude" />
-          </label>
-          <label>
-            Longitude Field:
-            <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
-          </label>
+        <label>
+          Name:
+          <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
+        </label>
+        <label>
+          Description:
+          <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
+        </label>
+        <label>
+          File:
+          <input type="file" (change)="handleFileInput($event)" />
+        </label>
+        <label>
+          Latitude Field:
+          <input type="text" [(ngModel)]="latField" placeholder="latitude" />
+        </label>
+        <label>
+          Longitude Field:
+          <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
+        </label>
         }
 
         @if (modalMode==='console') {
-          <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
+        <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
         }
       </div>
 

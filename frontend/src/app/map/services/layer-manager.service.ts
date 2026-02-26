@@ -35,17 +35,13 @@ export class LayerManagerService {
   private http = inject(HttpClient);
 
   private _map?: OlMap;
-
-  public layers: LayerConfig[] = [];
   public currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
-
   private registry = new Map<string, LayerConfig>();
   private planetCache: Record<'earth' | 'moon' | 'mars', LayerConfig[]> = {
     earth: [],
     moon: [],
     mars: []
   };
-
   private basemapRegistry: Record<'earth' | 'moon' | 'mars', LayerConfig> = {
     earth: null!,
     moon: null!,
@@ -56,13 +52,20 @@ export class LayerManagerService {
     this._map = map;
   }
 
+  // ========================= LAYER LIST GETTER =========================
+  get layers(): LayerConfig[] {
+    if (!this._map) return [];
+    return this._map.getLayers().getArray()
+      .map(l => Array.from(this.registry.values()).find(c => c.olLayer === l))
+      .filter((c): c is LayerConfig => !!c);
+  }
+
   // ================= PLANET LOADING =================
   loadPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (!this._map) return;
     this.saveCurrentMapLayersToCache();
 
     this._map.getLayers().clear();
-    this.layers = [];
     this.currentPlanet = planet;
 
     const basemap = this.createBasemap(planet);
@@ -73,7 +76,6 @@ export class LayerManagerService {
     this.planetCache[planet].forEach(layer => {
       this._map!.addLayer(layer.olLayer);
       layer.olLayer.setVisible(layer.visible);
-      if (!layer.isBasemap) this.layers.push(layer);
     });
 
     this.applyZOrder();
@@ -81,10 +83,9 @@ export class LayerManagerService {
 
   private saveCurrentMapLayersToCache() {
     if (!this._map) return;
-    const layersOnMap = this._map.getLayers().getArray();
     const persistent: LayerConfig[] = [];
 
-    layersOnMap.forEach(l => {
+    this._map.getLayers().getArray().forEach(l => {
       const cfg = Array.from(this.registry.values()).find(c => c.olLayer === l);
       if (!cfg || cfg.isBasemap || cfg.isTemporary || cfg._planet !== this.currentPlanet) return;
       persistent.push(cfg);
@@ -113,13 +114,9 @@ export class LayerManagerService {
     if (this.registry.has(layerId)) return this.registry.get(layerId)!;
 
     const layerColor = color || this.styleService.getRandomColor();
-    // Ensure shape is always valid
-    let layerShape: ShapeType;
-    if (shape && SHAPES.includes(shape) && shape !== 'line') {
-      layerShape = shape as ShapeType;
-    } else {
-      layerShape = this.styleService.getRandomShape() || 'circle';
-    }
+    const layerShape: ShapeType = (shape && SHAPES.includes(shape) && shape !== 'line')
+      ? shape
+      : this.styleService.getRandomShape() || 'circle';
 
     const layerStyleFn = styleFn || ((_f: FeatureLike) => {
       const type = layerShape === 'line' ? 'line' : 'point';
@@ -140,24 +137,29 @@ export class LayerManagerService {
       styleFn: layerStyleFn
     };
 
-    if (features?.length) vectorLayer.getSource()?.addFeatures(features.map(_f => _f.clone()));
+    if (features?.length) vectorLayer.getSource()?.addFeatures(features.map(f => f.clone()));
 
     this.registry.set(layerId, config);
 
-    if (cache && !isTemporary) this.planetCache[planet].push(config);
-    if (planet === this.currentPlanet) {
-      this._map.addLayer(config.olLayer);
-      if (!config.isBasemap) this.layers.push(config);
-    }
+    if (cache && !isTemporary) this.planetCache[planet].unshift(config);
+
+    const layersArray = this._map.getLayers().getArray();
+    const basemapCount = layersArray.filter(l => {
+      const cfg = Array.from(this.registry.values()).find(c => c.olLayer === l);
+      return cfg?.isBasemap;
+    }).length;
+
+    this._map.getLayers().insertAt(basemapCount, vectorLayer);
 
     this.applyZOrder();
+
     return config;
   }
 
+  // ================= STYLE / DISTANCE =================
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
 
-    // Distance layer: update all features individually
     if (layer.isDistanceLayer) {
       const features = layer.olLayer.getSource()?.getFeatures();
       if (!features) return;
@@ -167,70 +169,34 @@ export class LayerManagerService {
         if (!geom) return;
 
         const type = geom.getType();
-
         if (type === 'LineString') {
-          // line
-          f.setStyle(this.styleService.getLayerStyle({
-            type: 'line',
-            baseColor: layer.color
-          }));
+          f.setStyle(this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color }));
         } else if (type === 'Point') {
           const isLabel = !!f.get('text');
           if (isLabel) {
-            // label
             const text = f.get('text') as string;
-            f.setStyle(this.styleService.getLayerStyle({
-              type: 'label',
-              baseColor: layer.color,
-              text
-            }));
+            f.setStyle(this.styleService.getLayerStyle({ type: 'label', baseColor: layer.color, text }));
           } else {
-            // vertex
-            const shape: ShapeType = (layer.shape && layer.shape !== 'none') ? (layer.shape as ShapeType) : 'circle';
-            f.setStyle(this.styleService.getLayerStyle({
-              type: 'point',
-              baseColor: layer.color,
-              shape
-            }));
+            const shape: ShapeType = layer.shape && layer.shape !== 'none' ? layer.shape : 'circle';
+            f.setStyle(this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape }));
           }
         }
       });
-
       return;
     }
 
-    // Regular layer
-    const defaultShape: ShapeType = (layer.shape && layer.shape !== 'none') ? (layer.shape as ShapeType) : 'circle';
-    layer.olLayer.setStyle((_feature) => {
-      if (layer.shape === 'line') {
-        return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
-      } else {
-        return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: defaultShape })];
-      }
-    });
-  }
-
-  // ================= DISTANCE LAYER =================
-  addLayer(planet: 'earth' | 'moon' | 'mars', name: string, features: Feature[], color?: string, styleFn?: (f: FeatureLike) => Style[]): LayerConfig | null {
-    return this.createLayer({
-      planet,
-      name,
-      features,
-      shape: 'line',
-      color,
-      cache: true,
-      isTemporary: false,
-      styleFn
+    const defaultShape: ShapeType = (layer.shape && layer.shape !== 'none') ? layer.shape : 'circle';
+    layer.olLayer.setStyle((_f) => {
+      if (layer.shape === 'line') return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
+      return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: defaultShape })];
     });
   }
 
   // ================= REMOVE / TOGGLE =================
   remove(layer?: LayerConfig) {
     if (!layer || !this._map) return;
-
     this._map.removeLayer(layer.olLayer);
     this.registry.delete(layer.id);
-    this.layers = this.layers.filter(l => l.id !== layer.id);
 
     Object.keys(this.planetCache).forEach(p => {
       this.planetCache[p as 'earth' | 'moon' | 'mars'] =
@@ -243,7 +209,7 @@ export class LayerManagerService {
     layer.olLayer.setVisible(layer.visible);
   }
 
-  // ================= BASEMAP / BUILT-IN LAYERS =================
+  // ================= BASEMAP =================
   private createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
     if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
 
@@ -263,10 +229,8 @@ export class LayerManagerService {
   }
 
   private initBuiltInLayers(planet: 'earth' | 'moon' | 'mars') {
-    if (planet !== 'earth') return;
-    if (this.planetCache.earth.length) return;
+    if (planet !== 'earth' || this.planetCache.earth.length) return;
 
-    // FIRMS
     this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe(csv => {
       const features: Feature[] = [];
       const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
@@ -276,10 +240,9 @@ export class LayerManagerService {
       });
       const color = this.styleService.getRandomColor();
       const shape = this.styleService.getRandomShape() || 'circle';
-      this.createLayer({ planet, name: 'FIRMS Fires', features, shape, color, cache: true });
+      this.createLayer({ planet, name: 'FIRMS Fires', features, shape, color, cache: true, isTemporary: false });
     });
 
-    // Earthquakes
     this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
       const features = new GeoJSON().readFeatures(g, { featureProjection: 'EPSG:3857' });
       const color = this.styleService.getRandomColor();
@@ -288,17 +251,29 @@ export class LayerManagerService {
     });
   }
 
-  // ================= UTILITIES =================
+  // ================= Z-ORDER =================
   applyZOrder() {
     if (!this._map) return;
-    let z = 0;
-    this._map.getLayers().forEach(l => l.setZIndex(z++));
+
+    const nonBasemap = this.layers.filter(l => !l.isBasemap);
+    // Reverse so top of sidebar = highest zIndex
+    nonBasemap.slice().reverse().forEach((layer, idx) => {
+      layer.olLayer.setZIndex(idx + 1);
+    });
+
+    this.layers.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
   }
 
   reorderLayers(sidebarOrder: LayerConfig[]) {
     if (!this._map) return;
-    this.layers = sidebarOrder;
-    this.applyZOrder();
+
+    const basemapLayers = this.layers.filter(l => l.isBasemap);
+    // Reverse sidebarOrder so top of sidebar = top zIndex
+    sidebarOrder.slice().reverse().forEach((cfg, idx) => {
+      cfg.olLayer.setZIndex(idx + 1);
+    });
+
+    basemapLayers.forEach(l => l.olLayer.setZIndex(0));
   }
 
   addManualLayer(
@@ -311,18 +286,11 @@ export class LayerManagerService {
     _lonField?: string
   ) {
     const color = this.styleService.getRandomColor();
-
     const randomShape = this.styleService.getRandomShape();
     const shape: ShapeType = (randomShape && SHAPES.includes(randomShape) && randomShape !== 'line')
       ? randomShape
       : 'circle';
 
-    return this.createLayer({
-      planet,
-      name,
-      shape,
-      color,
-      cache: true
-    });
+    return this.createLayer({ planet, name, shape, color, cache: true });
   }
 }

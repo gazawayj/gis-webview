@@ -129,7 +129,7 @@ export abstract class ToolPluginBase implements Tool {
      Save pipeline (unchanged)
      ========================= */
 
-  save(name: string): void {
+  save(name: string): any | undefined {
     if (!this.tempSource || !this.tempSource.getFeatures().length) return;
 
     const clonedFeatures: Feature[] = [];
@@ -137,31 +137,34 @@ export abstract class ToolPluginBase implements Tool {
     this.tempSource.getFeatures().forEach((f) => {
       const geom = f.getGeometry();
       if (!geom) return;
-
       const clone = f.clone() as Feature;
-
       clone.set('featureType', f.get('featureType'));
       clone.set('text', f.get('text'));
-
       clonedFeatures.push(clone);
     });
 
-    this.activeLayer = this.layerManager.addLayer(
-      this.planet,
+    this.activeLayer = this.layerManager.createLayer({
+      planet: this.planet,
       name,
-      clonedFeatures,
-      this.tempColor
-    );
+      features: clonedFeatures,
+      shape: 'line',
+      color: this.tempColor,
+      cache: true,
+      isTemporary: false,
+      styleFn: undefined,
+    });
 
     if (this.activeLayer) {
       this.activeLayer.shape = this.tempShape;
       this.activeLayer.color = this.tempColor;
-
       this.applyLayerStyles();
       this.onSave(this.activeLayer);
     }
 
+    const savedLayer = this.activeLayer; // capture before deactivate
     this.deactivate();
+
+    return savedLayer; // <-- return the layer
   }
 
   updateLayerStyle(shape?: ShapeType, color?: string): void {
@@ -188,8 +191,8 @@ export abstract class ToolPluginBase implements Tool {
               type === 'label'
                 ? 'label'
                 : type === 'line'
-                ? 'line'
-                : 'point',
+                  ? 'line'
+                  : 'point',
             baseColor: this.activeLayer.color,
             shape: type === 'vertex' ? this.activeLayer.shape : undefined,
             text: f.get('text'),
@@ -232,8 +235,8 @@ export abstract class ToolPluginBase implements Tool {
      ========================= */
 
   protected abstract onActivate(): void;
-  protected onDeactivate(): void {}
-  protected onSave(_layer: any): void {}
+  protected onDeactivate(): void { }
+  protected onSave(_layer: any): void { }
 
   getFeatures?(): FeatureLike[] {
     return this.tempSource?.getFeatures() ?? [];
