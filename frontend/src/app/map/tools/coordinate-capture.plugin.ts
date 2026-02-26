@@ -95,7 +95,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
 
   protected override onSave(layer: any): void {
     // Mark for styling
-    layer.isDistanceLayer = false;
+    layer.isDistanceLayer = true;
 
     // Apply final style to all features in tempSource
     this.tempSource?.getFeatures().forEach((f) => {
