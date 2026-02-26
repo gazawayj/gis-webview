@@ -12,10 +12,9 @@ import { MapFacadeService } from './services/map-facade.service';
 import { CoordinateCapturePlugin } from './tools/coordinate-capture.plugin';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
 import { ToolService } from './services/tool.service';
-import { ShapeType } from './services/symbol-constants';
+import { ShapeType } from './constants/symbol-constants';
 import { DistanceToolPlugin } from './tools/distance-tool.plugin';
 import { inject } from '@angular/core';
-import { ToolPlugin } from './tools/tool-plugin';
 
 type ToolType = 'distance' | 'coordinate' | 'none';
 

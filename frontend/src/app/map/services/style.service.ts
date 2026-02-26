@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon, Text } from 'ol/style';
-import { SHAPES, COLOR_PALETTE, ShapeType } from './symbol-constants';
+import { SHAPES, COLOR_PALETTE, ShapeType } from '../constants/symbol-constants';
 
 @Injectable({ providedIn: 'root' })
 export class StyleService {

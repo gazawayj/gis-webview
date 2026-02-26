@@ -2,7 +2,7 @@ import type { FeatureLike } from 'ol/Feature';
 import type { Style } from 'ol/style';
 import Map from 'ol/Map';
 
-export interface ToolPlugin {
+export interface Tool {
   name: string;
 
   activate(map: Map): void;

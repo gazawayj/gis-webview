@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SHAPES, COLOR_PALETTE } from './symbol-constants';
+import { SHAPES, COLOR_PALETTE } from '../constants/symbol-constants';
 
 @Injectable({ providedIn: 'root' })
 export class UniqueSymbolService {

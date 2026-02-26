@@ -3,9 +3,9 @@ import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { getLength } from 'ol/sphere';
 
-import { PLANETS } from '../map-constants';
+import { PLANETS } from '../constants/map-constants';
 import { LayerManagerService } from '../services/layer-manager.service';
-import { ToolPluginBase } from './tool-plugin-base';
+import { ToolPluginBase } from './tool-base.plugin';
 import Snap from 'ol/interaction/Snap';
 
 export class DistanceToolPlugin extends ToolPluginBase {

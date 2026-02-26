@@ -3,25 +3,23 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
-
 import { LayerManagerService } from '../services/layer-manager.service';
-import { ToolPluginBase } from './tool-plugin-base';
+import { ToolPluginBase } from './tool-base.plugin';
 
 export class CoordinateCapturePlugin extends ToolPluginBase {
   name = 'coordinate-capture';
 
   private hoverLayer?: VectorLayer<VectorSource>;
   private hoverFeature?: Feature;
-  private capturedFeatures: Feature[] = [];
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
   }
 
   protected override onActivate(): void {
-    if (!this.map) return;
+    if (!this.map || !this.tempSource) return;
 
-    // Hover layer (preview only)
+    // ---------- Hover layer ----------
     const hoverSource = new VectorSource();
     this.hoverFeature = new Feature(new Point([0, 0]));
     this.hoverFeature.set('featureType', 'hover');
@@ -33,26 +31,22 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
     });
     this.map.addLayer(this.hoverLayer);
 
-    // Hover moves with pointer
+    // ---------- Hover moves with pointer ----------
     this.registerMapListener('pointermove', (evt: any) => {
       this.hoverFeature?.setGeometry(new Point(evt.coordinate));
     });
 
-    // Left click → capture
+    // ---------- Left click → capture point ----------
     this.registerMapListener('singleclick', (evt: any) => {
       if (evt.originalEvent?.button !== 0) return;
-
       const coord = evt.coordinate as [number, number];
-
-      // Determine style from activeLayer if present
       const shape = this.activeLayer?.shape || this.tempShape;
       const color = this.activeLayer?.color || this.tempColor;
 
-      // Point feature
+      // Point
       const pointFeature = new Feature(new Point(coord));
       pointFeature.set('featureType', 'point');
       this.tempSource?.addFeature(pointFeature);
-      this.capturedFeatures.push(pointFeature);
 
       // Label
       const [lon, lat] = toLonLat(coord);
@@ -60,9 +54,8 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
       labelFeature.set('featureType', 'label');
       labelFeature.set('text', `${lon.toFixed(4)}, ${lat.toFixed(4)}`);
       this.tempSource?.addFeature(labelFeature);
-      this.capturedFeatures.push(labelFeature);
 
-      // Apply style immediately
+      // Apply immediate style
       pointFeature.setStyle(
         this.layerManager.styleService.getLayerStyle({
           type: 'point',
@@ -73,13 +66,14 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
       labelFeature.setStyle(
         this.layerManager.styleService.getLayerStyle({
           type: 'label',
+          shape,
           baseColor: color,
           text: labelFeature.get('text'),
         })
       );
     });
 
-    // Right click → save
+    // ---------- Right click → request save ----------
     this.registerDomListener(this.map.getViewport(), 'contextmenu', (evt: MouseEvent) => {
       evt.preventDefault();
       this.map
@@ -87,32 +81,29 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
         .dispatchEvent(new CustomEvent('plugin-save-request', { bubbles: true }));
     });
 
-    // ESC → cancel
+    // ---------- ESC → cancel ----------
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
   }
 
   protected override onDeactivate(): void {
-    if (this.map && this.hoverLayer) {
-      this.map.removeLayer(this.hoverLayer);
-    }
+    if (this.map && this.hoverLayer) this.map.removeLayer(this.hoverLayer);
     this.hoverLayer = undefined;
     this.hoverFeature = undefined;
-    this.capturedFeatures = [];
   }
 
   protected override onSave(layer: any): void {
-    // Only captured features are saved
+    // Mark for styling
     layer.isDistanceLayer = true;
 
-    // Apply final style to all features
-    this.capturedFeatures.forEach((f) => {
+    // Apply final style to all features in tempSource
+    this.tempSource?.getFeatures().forEach((f) => {
       f.setStyle(this.getFeatureStyle(f));
     });
   }
 
   override getFeatures(): Feature[] {
-    return this.capturedFeatures;
+    return this.tempSource?.getFeatures() ?? [];
   }
 }

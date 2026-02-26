@@ -10,7 +10,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SHAPES, ShapeType } from './services/symbol-constants';
+import { SHAPES, ShapeType } from './constants/symbol-constants';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { inject } from '@angular/core';

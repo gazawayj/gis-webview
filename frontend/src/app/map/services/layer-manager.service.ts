@@ -8,11 +8,11 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
 import { StyleService } from './style.service';
-import { SHAPES, ShapeType } from './symbol-constants';
+import { SHAPES, ShapeType } from '../constants/symbol-constants';
 import { HttpClient } from '@angular/common/http';
 import Papa from 'papaparse';
 import GeoJSON from 'ol/format/GeoJSON';
-import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL } from '../map-constants';
+import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL } from '../constants/map-constants';
 import { Style } from 'ol/style';
 
 export interface LayerConfig {

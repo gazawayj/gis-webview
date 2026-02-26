@@ -5,7 +5,7 @@ import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
 import { FeatureLike } from 'ol/Feature';
 import { Style } from 'ol/style';
-import { ToolPlugin } from '../tools/tool-plugin';
+import { Tool } from '../tools/tool';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
@@ -13,9 +13,9 @@ export class MapFacadeService {
   private layerManager = inject(LayerManagerService);
   map!: Map;
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
-  private activePlugin?: ToolPlugin;
+  private activePlugin?: Tool;
 
-  getActivePlugin(): ToolPlugin | undefined {
+  getActivePlugin(): Tool | undefined {
     return this.activePlugin;
   }
 
@@ -58,7 +58,7 @@ export class MapFacadeService {
     view.setZoom(2);
   }
 
-  activateTool(plugin: ToolPlugin) {
+  activateTool(plugin: Tool) {
     this.cancelActivePlugin();
     this.activePlugin = plugin;
     plugin.activate(this.map);

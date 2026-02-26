@@ -6,10 +6,10 @@ import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
 import type { Style } from 'ol/style';
 import { LayerManagerService } from '../services/layer-manager.service';
-import { SHAPES, ShapeType } from '../services/symbol-constants';
-import { ToolPlugin } from '../tools/tool-plugin';
+import { SHAPES, ShapeType } from '../constants/symbol-constants';
+import { Tool } from './tool';
 
-export abstract class ToolPluginBase implements ToolPlugin {
+export abstract class ToolPluginBase implements Tool {
   abstract name: string;
 
   protected map?: Map;
@@ -207,6 +207,7 @@ export abstract class ToolPluginBase implements ToolPlugin {
       return this.layerManager.styleService.getLayerStyle({
         type: 'label',
         baseColor: color,
+        shape,
         text: feature.get('text'),
       });
     }
@@ -214,6 +215,7 @@ export abstract class ToolPluginBase implements ToolPlugin {
     if (type === 'line') {
       return this.layerManager.styleService.getLayerStyle({
         type: 'line',
+        shape,
         baseColor: color,
       });
     }
