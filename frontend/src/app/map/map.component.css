@@ -12,7 +12,8 @@
   --button-color-highlight: rgba(107, 91, 123, 0.1);
   --panel-bg: #e2e2e2;
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --tool-active-bg: #d6b78f; /* background for active tool */
+  --tool-active-bg: #d6b78f;
+  /* background for active tool */
 }
 
 /* ===================== GLOBAL ===================== */
@@ -265,13 +266,51 @@ body {
   border: 1.5px solid var(--primary-color);
 }
 
+.horizontal-toolbar {
+  display: flex;
+  flex-direction: column;
+  /* label on top, buttons below */
+  margin-bottom: 12px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-direction: row;
+  /* buttons in a row */
+  gap: 4px;
+  /* small spacing between buttons */
+  margin-top: 4px;
+}
+
+.tool-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-btn:hover {
+  transform: scale(1.1);
+}
+
+.tool-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
 /* ===================== PLUGIN MODAL ===================== */
 .plugin-save-modal {
   background: white;
   border-radius: 8px;
   padding: 16px;
   width: 280px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -394,7 +433,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* ===================== TOOL VERTEX POINTS ===================== */
@@ -404,8 +443,9 @@ body {
   border-radius: 50%;
   background-color: var(--primary-color);
   border: 1px solid white;
-  pointer-events: none; /* so it doesn’t block map interaction */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  pointer-events: none;
+  /* so it doesn’t block map interaction */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* ===================== COORDINATE LABELS ===================== */
@@ -417,7 +457,8 @@ body {
   border-radius: 3px;
   font-size: 0.8rem;
   font-weight: 600;
-  pointer-events: none; /* allow clicks through label */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  pointer-events: none;
+  /* allow clicks through label */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
 }

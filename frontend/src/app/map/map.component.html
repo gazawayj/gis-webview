@@ -1,4 +1,5 @@
 <div class="page">
+
   <aside class="sidebar">
     <h1>GIS Web Viewer</h1>
 
@@ -16,17 +17,43 @@
 
     <!-- Layer list -->
     <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers" (cdkDropListDropped)="onLayerDropped($event)">
-      @for (layer of sidebarLayers; track trackLayer($index, layer)) {
-      <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
-        <app-layer-item [layer]="layer" (visibilityChange)="toggleLayer(layer)"
-          (colorChange)="onColorPicked(layer, $event)" (shapeChange)="selectShape(layer, $event)"
-          (remove)="removeLayer(layer)">
-        </app-layer-item>
-      </div>
+      @for (layer of sidebarLayers; track layer.id) {
+        <div class="layer-item-wrapper" cdkDrag (cdkDragMoved)="onLayerDragMoved()">
+          <app-layer-item [layer]="layer"
+            (visibilityChange)="toggleLayer(layer)"
+            (colorChange)="onColorPicked(layer, $event)"
+            (shapeChange)="selectShape(layer, $event)"
+            (remove)="removeLayer(layer)">
+          </app-layer-item>
+        </div>
       }
       @if (sidebarLayers.length === 0) {
-      <div class="no-layers-tooltip">No layers added.</div>
+        <div class="no-layers-tooltip">No layers added.</div>
       }
+    </div>
+
+        <!-- Regular Toolbox -->
+    <div class="toolbar-wrapper horizontal-toolbar">
+      <div class="toolbar-label">Toolbox</div>
+      <div class="toolbar-buttons">
+        @for (tool of regularTools; track tool.type) {
+          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32"/>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- AI Toolbox -->
+    <div class="toolbar-wrapper horizontal-toolbar">
+      <div class="toolbar-label">AI Toolbox</div>
+      <div class="toolbar-buttons">
+        @for (tool of aiTools; track tool.type) {
+          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32"/>
+          </button>
+        }
+      </div>
     </div>
 
     <!-- Stats -->
@@ -45,28 +72,8 @@
       </div>
     </div>
 
-    <!-- Toolbox -->
-    <div class="toolbar-wrapper">
-      <div class="toolbar-label">Toolbox</div>
-      <div class="toolbar-buttons">
-
-        <!-- Coordinate Capture Tool -->
-        <img src="assets/icons/coordinate-tool.svg" alt="Coordinate Tool" class="tool-icon"
-          title="Coordinate Capture Tool" (click)="activateTool('coordinate')" />
-
-        <!-- Distance Tool -->
-        <img src="assets/icons/distance-tool.svg" alt="Distance Tool" class="tool-icon" title="Distance Tool"
-          (click)="activateTool('distance')" />
-
-        <!-- Area Tool -->
-        <img src="assets/icons/area-tool.svg" alt="Area Tool" class="tool-icon" title="Area Measurement Tool"
-          (click)="activateTool('area')" />
-      </div>
-    </div>
-
   </aside>
 
-  <!-- Map -->
   <div #mapContainer class="map-container"></div>
 
   <!-- Add Layer Modal -->
@@ -76,41 +83,22 @@
         <span class="layer-modal-title">{{ modalTitle }}</span>
         <button class="close-btn" (click)="cancelAddLayer()">×</button>
       </div>
-
       <div class="modal-tab-buttons">
         <button [class.active]="modalMode==='manual'" (click)="switchModalMode('manual')">Manual</button>
         <button [class.active]="modalMode==='console'" (click)="switchModalMode('console')">Console</button>
       </div>
-
       <div class="layer-modal-body">
         @if (modalMode==='manual') {
-        <label>
-          Name:
-          <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" />
-        </label>
-        <label>
-          Description:
-          <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" />
-        </label>
-        <label>
-          File:
-          <input type="file" (change)="handleFileInput($event)" />
-        </label>
-        <label>
-          Latitude Field:
-          <input type="text" [(ngModel)]="latField" placeholder="latitude" />
-        </label>
-        <label>
-          Longitude Field:
-          <input type="text" [(ngModel)]="lonField" placeholder="longitude" />
-        </label>
+          <label>Name: <input type="text" [(ngModel)]="newLayerName" placeholder="Layer name" /></label>
+          <label>Description: <input type="text" [(ngModel)]="newLayerDescription" placeholder="Optional description" /></label>
+          <label>File: <input type="file" (change)="handleFileInput($event)" /></label>
+          <label>Latitude Field: <input type="text" [(ngModel)]="latField" placeholder="latitude" /></label>
+          <label>Longitude Field: <input type="text" [(ngModel)]="lonField" placeholder="longitude" /></label>
         }
-
         @if (modalMode==='console') {
-        <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
+          <div class="console-input" contenteditable="true" [(ngModel)]="consoleInput" spellcheck="false"></div>
         }
       </div>
-
       <div class="modal-actions">
         <button (click)="confirmAddLayer()" [disabled]="
           (modalMode==='manual' && (!newLayerName || !fileContent)) ||
@@ -121,7 +109,7 @@
     </div>
   </ng-template>
 
-  <!-- Generic Plugin Save Modal -->
+  <!-- Plugin Save Modal -->
   <ng-template #pluginSaveModal>
     <div class="plugin-save-modal">
       <h3>Save Layer</h3>
@@ -132,4 +120,5 @@
       </div>
     </div>
   </ng-template>
+
 </div>
