@@ -58,16 +58,16 @@ export class MapFacadeService {
     view.setZoom(2);
   }
 
-  activateTool(plugin: Tool) {
+  activateTool(plugin?: Tool) {
     this.cancelActivePlugin();
+    if (!plugin) return; // <-- prevent calling activate on undefined
     this.activePlugin = plugin;
     plugin.activate(this.map);
   }
 
-  saveActivePlugin(name: string): any {
+  saveByActivePlugin(name: string): any {
     if (!this.activePlugin?.save) return undefined;
-
-    const layer = this.activePlugin.save(name); // now save() returns LayerConfig
+    const layer = this.activePlugin.save(name);
     this.activePlugin = undefined; // deactivate tool
     return layer; // <-- return layer to caller
   }
