@@ -1,3 +1,4 @@
+// frontend/src/app/map/tools/coordinate-capture.plugin.ts
 import Feature from 'ol/Feature';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -5,6 +6,9 @@ import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
+import Style from 'ol/style/Style';
+import Text from 'ol/style/Text';
+import Fill from 'ol/style/Fill';
 
 export class CoordinateCapturePlugin extends ToolPluginBase {
   name = 'coordinate-capture';
@@ -48,7 +52,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
       pointFeature.set('featureType', 'point');
       this.tempSource?.addFeature(pointFeature);
 
-      // Label
+      // Coordinate label
       const [lon, lat] = toLonLat(coord);
       const labelFeature = new Feature(new Point(coord));
       labelFeature.set('featureType', 'label');
@@ -93,14 +97,52 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
     this.hoverFeature = undefined;
   }
 
+  /**
+   * Called when the save modal triggers saving the layer
+   * `layer.title` is the name from the modal (user-entered or default)
+   */
   protected override onSave(layer: any): void {
-    // Mark for styling
     layer.isDistanceLayer = true;
 
-    // Apply final style to all features in tempSource
-    this.tempSource?.getFeatures().forEach((f) => {
-      f.setStyle(this.getFeatureStyle(f));
-    });
+    const features = this.tempSource?.getFeatures() ?? [];
+
+    // Style existing features
+    features.forEach((f) => f.setStyle(this.getFeatureStyle(f)));
+
+    // Add layer-name label for each point into the same source that will persist
+    if (layer.title) {
+      features.forEach((f) => {
+        if (f.get('featureType') === 'point') {
+          const coord = (f.getGeometry() as Point).getCoordinates();
+
+          // Create label feature slightly below the point
+          const nameLabel = new Feature(new Point([coord[0], coord[1]]));
+          nameLabel.set('featureType', 'label');
+          nameLabel.set('text', layer.title);
+
+          // Use a dedicated OpenLayers Style for the layer name label
+          const style = new Style({
+            text: new Text({
+              text: layer.title,
+              fill: new Fill({ color: '#000' }),
+              font: 'bold 12px Arial',
+              offsetY: 20, // 20 pixels below the point
+              textAlign: 'center',
+            }),
+          });
+
+          nameLabel.setStyle(style);
+
+          // Add the label directly to the layer’s vector source (not tempSource)
+          if (layer.getSource) {
+            layer.getSource().addFeature(nameLabel);
+          } else {
+            // fallback if layer is plain object
+            this.tempSource?.addFeature(nameLabel);
+          }
+        }
+      });
+    }
   }
 
   override getFeatures(): Feature[] {

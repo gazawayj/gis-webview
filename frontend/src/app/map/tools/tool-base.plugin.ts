@@ -125,10 +125,6 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
-  /* =========================
-     Save pipeline (unchanged)
-     ========================= */
-
   save(name: string): any | undefined {
     if (!this.tempSource || !this.tempSource.getFeatures().length) return;
 
