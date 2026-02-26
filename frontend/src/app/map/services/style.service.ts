@@ -35,7 +35,7 @@ export class StyleService {
     switch (options.type) {
       case 'point': {
         const color = options.baseColor || this.getRandomColor();
-        const shape = (options.shape && options.shape !== 'none') ? options.shape : 'circle';
+        const shape = options.shape || this.getRandomShape();
         return new Style({ image: this.createShapeImage(shape, color) });
       }
       case 'line': {
