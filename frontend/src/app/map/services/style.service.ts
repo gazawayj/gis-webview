@@ -31,7 +31,8 @@ export class StyleService {
   }
 
   /** ==================== MAIN STYLE GETTER ==================== */
-  getLayerStyle(options: { type: 'point' | 'line' | 'label', baseColor?: string, shape?: ShapeType, text?: string }): Style {
+  getLayerStyle(options: { type: 'point' | 'line' | 'label' | 'polygon', baseColor?: string, shape?: ShapeType, text?: string }): Style {
+    const color = options.baseColor || this.getRandomColor();
     switch (options.type) {
       case 'point': {
         const color = options.baseColor || this.getRandomColor();
@@ -52,6 +53,13 @@ export class StyleService {
             stroke: new Stroke({ color: '#000', width: 3 }),
             offsetY: -15
           })
+        });
+      }
+
+      case 'polygon': {
+        return new Style({
+          stroke: new Stroke({ color, width: 2 }),
+          fill: new Fill({ color: color + '33' }), // semi-transparent
         });
       }
       default: {

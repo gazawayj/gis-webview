@@ -4,7 +4,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
-import type { Style } from 'ol/style';
+import { Fill, Stroke, Style } from 'ol/style';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { SHAPES, ShapeType } from '../constants/symbol-constants';
 import { Tool } from './tool';
@@ -21,17 +21,12 @@ export abstract class ToolPluginBase implements Tool {
   protected tempShape: ShapeType;
   protected planet: 'earth' | 'moon' | 'mars';
 
-  /* =========================
-     Auto-cleanup registries
-     ========================= */
-
   private interactions: Interaction[] = [];
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
   protected constructor(protected layerManager: LayerManagerService) {
     this.planet = layerManager.currentPlanet;
-
     this.tempColor = layerManager.styleService.getRandomColor();
 
     const randomShape = layerManager.styleService.getRandomShape();
@@ -41,13 +36,8 @@ export abstract class ToolPluginBase implements Tool {
         : 'circle';
   }
 
-  /* =========================
-     Public lifecycle
-     ========================= */
-
   activate(map: Map): void {
     this.map = map;
-
     this.tempSource = new VectorSource();
 
     this.tempLayer = new VectorLayer({
@@ -56,18 +46,13 @@ export abstract class ToolPluginBase implements Tool {
     });
 
     this.map.addLayer(this.tempLayer);
-
     this.onActivate();
   }
 
   deactivate(): void {
     this.onDeactivate();
-
     this.cleanupRegisteredResources();
-
-    if (this.map && this.tempLayer) {
-      this.map.removeLayer(this.tempLayer);
-    }
+    if (this.map && this.tempLayer) this.map.removeLayer(this.tempLayer);
 
     this.map = undefined;
     this.tempLayer = undefined;
@@ -78,10 +63,6 @@ export abstract class ToolPluginBase implements Tool {
   cancel(): void {
     this.deactivate();
   }
-
-  /* =========================
-     Registration helpers
-     ========================= */
 
   protected registerInteraction(interaction: Interaction): void {
     if (!this.map) return;
@@ -95,55 +76,40 @@ export abstract class ToolPluginBase implements Tool {
     this.mapListeners.push({ type, handler });
   }
 
-  protected registerDomListener(
-    target: EventTarget,
-    type: string,
-    handler: any
-  ): void {
+  protected registerDomListener(target: EventTarget, type: string, handler: any): void {
     target.addEventListener(type, handler);
     this.domListeners.push({ target, type, handler });
   }
 
-  /* =========================
-     Cleanup
-     ========================= */
-
   private cleanupRegisteredResources(): void {
-    if (!this.map) return;
-
     this.interactions.forEach((i) => this.map?.removeInteraction(i));
     this.interactions = [];
 
-    this.mapListeners.forEach(({ type, handler }) =>
-      this.map?.un(type as any, handler)
-    );
+    this.mapListeners.forEach(({ type, handler }) => this.map?.un(type as any, handler));
     this.mapListeners = [];
 
-    this.domListeners.forEach(({ target, type, handler }) =>
-      target.removeEventListener(type, handler)
-    );
+    this.domListeners.forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
     this.domListeners = [];
   }
 
   save(name: string): any | undefined {
     if (!this.tempSource || !this.tempSource.getFeatures().length) return;
 
-    const clonedFeatures: Feature[] = [];
-
-    this.tempSource.getFeatures().forEach((f) => {
-      const geom = f.getGeometry();
-      if (!geom) return;
-      const clone = f.clone() as Feature;
-      clone.set('featureType', f.get('featureType'));
-      clone.set('text', f.get('text'));
-      clonedFeatures.push(clone);
-    });
+    // Clone features (skip pointerVertex)
+    const clonedFeatures = this.tempSource.getFeatures()
+      .filter(f => f.get('featureType') !== 'pointerVertex')
+      .map(f => {
+        const clone = f.clone() as Feature;
+        clone.set('featureType', f.get('featureType'));
+        clone.set('text', f.get('text'));
+        return clone;
+      });
 
     this.activeLayer = this.layerManager.createLayer({
       planet: this.planet,
       name,
       features: clonedFeatures,
-      shape: 'line',
+      shape: this.tempShape,      // dynamically use tool shape
       color: this.tempColor,
       cache: true,
       isTemporary: false,
@@ -157,18 +123,15 @@ export abstract class ToolPluginBase implements Tool {
       this.onSave(this.activeLayer);
     }
 
-    const savedLayer = this.activeLayer; // capture before deactivate
+    const savedLayer = this.activeLayer;
     this.deactivate();
-
-    return savedLayer; // <-- return the layer
+    return savedLayer;
   }
 
   updateLayerStyle(shape?: ShapeType, color?: string): void {
     if (!this.activeLayer) return;
-
     if (shape) this.activeLayer.shape = shape;
     if (color) this.activeLayer.color = color;
-
     this.applyLayerStyles();
   }
 
@@ -181,19 +144,25 @@ export abstract class ToolPluginBase implements Tool {
       .forEach((f: Feature) => {
         const type = f.get('featureType');
 
-        f.setStyle(
-          this.layerManager.styleService.getLayerStyle({
-            type:
-              type === 'label'
-                ? 'label'
-                : type === 'line'
-                  ? 'line'
-                  : 'point',
-            baseColor: this.activeLayer.color,
-            shape: type === 'vertex' ? this.activeLayer.shape : undefined,
-            text: f.get('text'),
-          })
-        );
+        if (type === 'polygon') {
+          // Explicit polygon fill + stroke
+          f.setStyle(
+            new Style({
+              stroke: new Stroke({ color: this.activeLayer.color, width: 2 }),
+              fill: new Fill({ color: this.activeLayer.color + '33' }) // semi-transparent fill
+            })
+          );
+        } else {
+          // vertex, line, label handled via StyleService
+          f.setStyle(
+            this.layerManager.styleService.getLayerStyle({
+              type: type === 'label' ? 'label' : type === 'line' ? 'line' : 'point',
+              baseColor: this.activeLayer.color,
+              shape: type === 'vertex' ? this.activeLayer.shape : undefined,
+              text: f.get('text'),
+            })
+          );
+        }
       });
   }
 
@@ -219,6 +188,23 @@ export abstract class ToolPluginBase implements Tool {
       });
     }
 
+    if (type === 'vertex' || type === 'point') {
+      return this.layerManager.styleService.getLayerStyle({
+        type: 'point',
+        baseColor: color,
+        shape,
+      });
+    }
+
+    // For polygons, return a Style directly instead of passing to StyleService
+    if (type === 'polygon') {
+      return new Style({
+        stroke: new Stroke({ color, width: 2 }),
+        fill: new Fill({ color: color + '33' }),
+      });
+    }
+
+    // fallback
     return this.layerManager.styleService.getLayerStyle({
       type: 'point',
       baseColor: color,
@@ -226,13 +212,9 @@ export abstract class ToolPluginBase implements Tool {
     });
   }
 
-  /* =========================
-     Hooks for tools
-     ========================= */
-
   protected abstract onActivate(): void;
   protected onDeactivate(): void { }
-  protected onSave(_layer: any): void { }
+  protected onSave(layer: any): void { }
 
   getFeatures?(): FeatureLike[] {
     return this.tempSource?.getFeatures() ?? [];

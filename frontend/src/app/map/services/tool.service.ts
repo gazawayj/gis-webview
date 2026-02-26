@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-export type ToolType = 'none' | 'distance';
-
+export type ToolType = 'none' |'coordinate' | 'distance' | 'area';
 @Injectable({ providedIn: 'root' })
 export class ToolService {
 

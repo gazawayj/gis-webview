@@ -15,8 +15,9 @@ import { ToolService } from './services/tool.service';
 import { ShapeType } from './constants/symbol-constants';
 import { DistanceToolPlugin } from './tools/distance-tool.plugin';
 import { inject } from '@angular/core';
+import { AreaToolPlugin } from './tools/area-tool.plugin';
 
-type ToolType = 'distance' | 'coordinate' | 'none';
+type ToolType = 'coordinate' | 'distance' | 'area' | 'none';
 
 @Component({
   selector: 'app-map',
@@ -170,11 +171,18 @@ export class MapComponent implements AfterViewInit {
         this.toolList = ['coordinate'];
         break;
       }
+      case 'area': {
+        const plugin = new AreaToolPlugin(this.layerManager);
+        this.mapFacade.activateTool(plugin);
+        this.toolList = ['area'];
+        break;
+      }
       default:
         this.mapFacade.activateTool(undefined as any);
         this.toolList = [];
     }
   }
+
   closeToolbox() { this.toolList = []; this.mapFacade.activateTool(undefined as any); this.cdr.detectChanges(); }
 
   // ================= COORD LABELS =================
