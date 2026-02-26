@@ -32,12 +32,15 @@
       }
     </div>
 
-        <!-- Regular Toolbox -->
+    <!-- Regular Toolbox -->
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of regularTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name">
+          <button class="tool-btn" 
+                  (click)="activateTool(tool.type)" 
+                  [title]="tool.name"
+                  [class.active]="toolList.includes(tool.type)">
             <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32"/>
           </button>
         }
@@ -49,7 +52,10 @@
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of aiTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name">
+          <button class="tool-btn" 
+                  (click)="activateTool(tool.type)" 
+                  [title]="tool.name"
+                  [class.active]="toolList.includes(tool.type)">
             <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32"/>
           </button>
         }

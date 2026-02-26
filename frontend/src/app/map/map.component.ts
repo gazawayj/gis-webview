@@ -7,16 +7,10 @@ import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService } from './services/map-facade.service';
 import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
 import { ToolService } from './services/tool.service';
-
-import { CoordinateCapturePlugin } from './tools/coordinate-capture.plugin';
-import { DistanceToolPlugin } from './tools/distance-tool.plugin';
-import { AreaToolPlugin } from './tools/area-tool.plugin';
-import { AIAnalysisPlugin } from './tools/ai-analysis.plugin';
 import { ToolType, ToolDefinition } from './models/tool-definition.model';
 import { ShapeType } from './constants/symbol-constants';
 
@@ -65,22 +59,19 @@ export class MapComponent implements AfterViewInit {
 
   // ---------- TOOL GETTERS ----------
   get regularTools(): ToolDefinition[] {
-    return this.toolService.tools.filter(t => !t.type.startsWith('ai-'));
+    return this.toolService.regularTools;
   }
 
   get aiTools(): ToolDefinition[] {
-    return this.toolService.tools.filter(t => t.type.startsWith('ai-'));
+    return this.toolService.aiTools;
   }
 
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
     this.dragOrder = this.layerManager.layers.filter(l => !l.isBasemap);
-
     this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
-
     // subscribe to the ToolService (single source of truth)
     this.toolService.activeTool$.subscribe(tool => this.activateTool(tool));
-
     this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
       this.currentLat = lat;
@@ -92,16 +83,12 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
+  /** Activate a tool using its plugin factory */
   activateTool(tool: ToolType) {
     this.closeSidebar();
-    switch (tool) {
-      case 'coordinate': this.mapFacade.activateTool(new CoordinateCapturePlugin(this.layerManager)); break;
-      case 'distance': this.mapFacade.activateTool(new DistanceToolPlugin(this.layerManager)); break;
-      case 'area': this.mapFacade.activateTool(new AreaToolPlugin(this.layerManager)); break;
-      default:
-        if (tool.startsWith('ai-')) this.mapFacade.activateTool(new AIAnalysisPlugin(this.layerManager));
-        else this.mapFacade.activateTool(undefined as any);
-    }
+    const toolDef = this.toolService.tools.find(t => t.type === tool);
+    const plugin = toolDef?.pluginFactory?.(this.layerManager);
+    this.mapFacade.activateTool(plugin ?? undefined as any);
     this.toolList = tool !== 'none' ? [tool] : [];
   }
 
