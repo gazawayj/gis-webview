@@ -62,7 +62,7 @@ body {
 .planet-buttons {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
 .planet-buttons button {
@@ -99,8 +99,8 @@ body {
   border-radius: 8px;
   padding: 8px;
   gap: 4px;
+  padding-top: 5px;
   overflow: visible;
-  /* no scrollbars */
 }
 
 .layer-list * {
@@ -115,7 +115,7 @@ body {
 
 .add-layer button {
   width: 100%;
-  padding: 0.4rem 0.8rem;
+  padding: 0.1rem 0.1rem;
   color: var(--primary-color);
   border: 1.5px dashed var(--primary-color);
   border-radius: 6px;
@@ -180,7 +180,7 @@ body {
 .map-stats {
   flex-shrink: 0;
   margin-top: var(--sidebar-gap);
-  padding: 0.5rem 1rem;
+  padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -265,18 +265,18 @@ body {
 .cdk-drag-preview,
 .cdk-drag-dragging {
   width: 100%;
-  display: flex;
+  display: end;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 8px;                    /* matches .layer-item */
   border-radius: 6px;
-  background-color: var(--text-color-light);
   color: var(--primary-color);
   cursor: grab;
   user-select: none;
-  box-sizing: border-box;
-  overflow: visible;                    /* no scrollbars */
-  pointer-events: none;                 /* allow smooth drag */
+  overflow: visible;
+}
+
+.cdk-drag-preview {
+  background-color: var(--text-color-dark);
 }
 
 /* Drag handle inside preview */
@@ -286,11 +286,12 @@ body {
   user-select: none;
   padding-right: 6px;
   font-size: 18px;
-  color: #666;
+  color: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;                       /* keep handle size fixed */
+  flex-shrink: 0;
+  /* keep handle size fixed */
 }
 
 /* Layer content inside preview (everything except drag handle) */
@@ -298,15 +299,19 @@ body {
 .cdk-drag-dragging .layer-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;       /* same spacing as normal .layer-item */
+  justify-content: space-between;
+  /* same spacing as normal .layer-item */
   flex-grow: 1;
-  gap: 4px;                             /* match internal spacing of .layer-item */
+  gap: 4px;
+  /* match internal spacing of .layer-item */
 }
 
 /* Close button / selectors inside preview */
 .cdk-drag-preview .close-btn,
 .cdk-drag-dragging .close-btn {
-  margin-left: 4px;                      /* spacing matches regular layer item */
+  margin-left: 4px;
+  justify-content: space-between;
+  /* spacing matches regular layer item */
   flex-shrink: 0;
 }
 
@@ -321,17 +326,6 @@ body {
 }
 
 /* ===================== MODALS ===================== */
-.plugin-save-modal {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .layer-modal,
 .layer-modal-header,
 .layer-modal-body,
@@ -342,22 +336,19 @@ body {
 .layer-modal {
   display: flex;
   flex-direction: column;
-  width: 440px;
-  max-width: 90vw;
   height: 220px;
   max-height: 80vh;
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.45);
   position: relative;
-  /* Important for click stacking */
   z-index: 1000;
-  /* Ensure it’s above backdrop */
 }
 
 .layer-modal-header {
   display: flex;
+  color: var(--primary-color);
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
@@ -369,6 +360,7 @@ body {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+  color: var(--primary-color);
 }
 
 .layer-modal-footer {

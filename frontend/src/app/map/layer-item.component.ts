@@ -28,9 +28,9 @@ import { TemplatePortal } from '@angular/cdk/portal';
 export class LayerItemComponent implements OnDestroy {
   @Input() layer!: LayerConfig;
 
-  @Output() toggle = new EventEmitter<void>();
+  @Output() toggles = new EventEmitter<void>();
   @Output() colorPicked = new EventEmitter<string>();
-  @Output() shapeSelected = new EventEmitter<ShapeType | 'none'>();
+  @Output() shapeSelected = new EventEmitter<ShapeType>();
   @Output() remove = new EventEmitter<void>();
 
   @ViewChild('shapeDropdown', { static: true }) shapeDropdown!: TemplateRef<any>;
@@ -46,7 +46,7 @@ export class LayerItemComponent implements OnDestroy {
   /** Toggle layer visibility */
   toggleVisibility(event: MouseEvent): void {
     event.stopPropagation();
-    this.toggle.emit();
+    this.toggles.emit();
   }
 
   /** Emit color picked */
@@ -96,13 +96,13 @@ export class LayerItemComponent implements OnDestroy {
     }
   }
 
-  /** Dropdown options including 'none' */
-  get dropdownShapes(): (ShapeType | 'none')[] {
-    return [...this.shapes, 'none'];
+  /** Dropdown options */
+  get dropdownShapes(): (ShapeType)[] {
+    return this.shapes.filter(t => !t.includes('line'));
   }
 
   /** Emit selected shape and close overlay */
-  selectShape(shape: ShapeType | 'none'): void {
+  selectShape(shape: ShapeType): void {
     this.shapeSelected.emit(shape);
     this.disposeOverlay();
   }
