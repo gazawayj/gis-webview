@@ -1,15 +1,14 @@
 import Feature from 'ol/Feature';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
+import { LayerConfig } from '../models/layer-config.model';
 
 export class CoordinateCapturePlugin extends ToolPluginBase {
   name = 'coordinate-capture';
 
-  private hoverLayer?: VectorLayer<VectorSource<Feature>>;
+  private hoverLayer?: LayerConfig;
   private hoverFeature?: Feature;
 
   constructor(layerManager: LayerManagerService) {
@@ -19,17 +18,18 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
-    // Hover indicator
-    const hoverSource = new VectorSource();
-    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point');
-    this.hoverFeature.set('featureType', 'hover');
-    hoverSource.addFeature(this.hoverFeature);
-
-    this.hoverLayer = new VectorLayer({
-      source: hoverSource,
+    // Create a temporary hover layer via LayerManager
+    this.hoverLayer = this.layerManager.createLayer({
+      planet: this.layerManager.currentPlanet,
+      name: '__hover_temp__',
+      isTemporary: true,
+      features: [],
     });
 
-    this.map.addLayer(this.hoverLayer);
+    // Hover feature is a point type
+    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point');
+
+    this.hoverLayer.olLayer.getSource()?.addFeature(this.hoverFeature);
 
     // Move hover point
     this.registerMapListener('pointermove', (evt: any) => {
@@ -39,7 +39,6 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
     // Left click — add point + label
     this.registerMapListener('singleclick', (evt: any) => {
       if (evt.originalEvent?.button !== 0) return;
-
       const coord = evt.coordinate as [number, number];
 
       const pointFeature = this.createFeature(new Point(coord), 'point');
@@ -48,14 +47,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
 
-      const labelFeature = this.createFeature(
-        new Point(coord),
-        'label',
-        labelText,
-        pointFeature,
-        true
-      );
-
+      const labelFeature = this.createFeature(new Point(coord), 'label', labelText, pointFeature, true);
       this.tempSource?.addFeature(labelFeature);
     });
 
@@ -66,7 +58,9 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   }
 
   protected override onDeactivate(): void {
-    if (this.map && this.hoverLayer) this.map.removeLayer(this.hoverLayer);
+    if (this.hoverLayer) {
+      this.layerManager.remove(this.hoverLayer);
+    }
     this.hoverLayer = undefined;
     this.hoverFeature = undefined;
   }
