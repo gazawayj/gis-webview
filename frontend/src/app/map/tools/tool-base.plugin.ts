@@ -1,4 +1,4 @@
-import type Map from 'ol/Map';
+import OlMap from 'ol/Map';
 import type { Interaction } from 'ol/interaction';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -11,7 +11,7 @@ import { LayerConfig } from '../models/layer-config.model';
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;
 
-  protected map?: Map;
+  protected map?: OlMap;
   protected tempSource?: VectorSource<Feature>;
   protected activeLayer?: LayerConfig;
 
@@ -19,17 +19,16 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  protected constructor(protected layerManager: LayerManagerService) { }
+  protected constructor(protected layerManager: LayerManagerService) {}
 
   // ------------------- ACTIVATE / DEACTIVATE -------------------
-  activate(map: Map): void {
+  activate(map: OlMap): void {
     this.map = map;
 
-    // Create temporary layer through LayerManager
     this.activeLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name: '__tool_temp__',
-      isTemporary: true
+      isTemporary: true,
     });
 
     const olLayer = this.activeLayer.olLayer as VectorLayer<VectorSource<Feature>>;
@@ -37,7 +36,6 @@ export abstract class ToolPluginBase implements Tool {
     if (!source) return;
     this.tempSource = source;
 
-    // Apply dynamic style function for all tool features
     olLayer.setStyle((feature) => {
       const f = feature as Feature;
       const fType = f.get('featureType') || 'point';
@@ -46,7 +44,7 @@ export abstract class ToolPluginBase implements Tool {
         type: fType,
         baseColor: this.activeLayer?.color,
         shape: this.activeLayer?.shape,
-        text
+        text,
       });
     });
 
@@ -95,9 +93,7 @@ export abstract class ToolPluginBase implements Tool {
     this.mapListeners.forEach(({ type, handler }) => this.map?.un(type as any, handler));
     this.mapListeners = [];
 
-    this.domListeners.forEach(({ target, type, handler }) =>
-      target.removeEventListener(type, handler)
-    );
+    this.domListeners.forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
     this.domListeners = [];
   }
 
@@ -106,23 +102,33 @@ export abstract class ToolPluginBase implements Tool {
     if (!this.tempSource) return null;
     const features = this.tempSource.getFeatures();
     if (!features.length) return null;
-    // Clone each feature and ensure independent IDs for persistent storage
-    const clonedFeatures = features.map(f => {
+
+    const featureMap = new Map<string, Feature>();
+
+    const clonedFeatures = features.map((f) => {
       const clone = f.clone();
-      // Ensure persistent ID
-      if (!clone.getId()) clone.setId(crypto.randomUUID());
-      // Remove parentFeature for vertex/label persistence
-      const type = clone.get('featureType');
-      if (type === 'vertex' || type === 'label') clone.set('parentFeature', undefined);
+      const id = String(f.getId() ?? crypto.randomUUID());
+      clone.setId(id);
+      featureMap.set(id, clone);
       clone.set('isToolFeature', false);
       return clone;
     });
+
+    clonedFeatures.forEach((f) => {
+      const parent = f.get('parentFeature');
+      if (parent && parent.getId) {
+        f.set('parentFeatureId', String(parent.getId()));
+        f.unset('parentFeature');
+      }
+    });
+
     const newLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name,
       features: clonedFeatures,
-      isTemporary: false
+      isTemporary: false,
     });
+
     return newLayer ?? null;
   }
 
@@ -138,7 +144,6 @@ export abstract class ToolPluginBase implements Tool {
 
     if (!f.getId()) f.setId(crypto.randomUUID());
 
-    // METADATA ONLY — styling is handled by layer's style function
     f.set('featureType', featureType);
     f.set('isToolFeature', isToolFeature);
     if (text) f.set('text', text);
@@ -153,6 +158,6 @@ export abstract class ToolPluginBase implements Tool {
 
   // ------------------- ABSTRACT HOOKS -------------------
   protected abstract onActivate(): void;
-  protected onDeactivate(): void { }
-  protected onSave?(layer: LayerConfig): void { }
+  protected onDeactivate(): void {}
+  protected onSave?(layer: LayerConfig): void {}
 }

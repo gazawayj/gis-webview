@@ -5,6 +5,7 @@ import { getLength } from 'ol/sphere';
 import { PLANETS } from '../constants/map-constants';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
+import VectorSource from 'ol/source/Vector';
 
 export class DistanceToolPlugin extends ToolPluginBase {
   name = 'distance';
@@ -12,6 +13,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
   private drawInteraction?: Draw;
   private currentFeature?: Feature;
   private liveSegmentLabels: Feature[] = [];
+  private vertexCoords: [number, number][] = []; // store vertices for save
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
@@ -27,44 +29,37 @@ export class DistanceToolPlugin extends ToolPluginBase {
 
     this.registerInteraction(this.drawInteraction);
 
+    // Start drawing
     this.drawInteraction.on('drawstart', (evt: any) => {
       this.currentFeature = evt.feature as Feature;
       if (!this.currentFeature.getId()) this.currentFeature.setId(crypto.randomUUID());
       this.liveSegmentLabels = [];
+      this.vertexCoords = [];
     });
 
+    // Finish drawing
     this.drawInteraction.on('drawend', () => {
-      if (!this.currentFeature || !this.tempSource) return;
+      if (!this.currentFeature) return;
 
       const geom = this.currentFeature.getGeometry() as LineString;
       const coords = geom.getCoordinates() as [number, number][];
-
-      // Add vertices as persistent features
-      coords.forEach(c => {
-        const vertex = this.createFeature(
-          new Point(c),
-          'vertex',
-          undefined,
-          undefined, // independent
-          false // persistent
-        );
-        this.tempSource?.addFeature(vertex);
-      });
+      this.vertexCoords = coords;
+      this.currentFeature.set('featureType', 'line');
 
       // Add labels as persistent features
-      this.addSegmentLabels(this.currentFeature, coords, false);
+      this.addSegmentLabels(coords, false, this.currentFeature);
 
-      // Clear live labels
       this.clearLiveLabels();
       this.currentFeature = undefined;
     });
 
-    // Update live line and labels
+    // Live line update
     this.registerMapListener('pointermove', (evt: any) => {
       if (!this.currentFeature) return;
       this.updateLiveLine(this.currentFeature, evt.coordinate as [number, number]);
     });
 
+    // ESC cancels
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
@@ -76,8 +71,8 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.clearLiveLabels();
   }
 
-  /** Add segment labels */
-  private addSegmentLabels(feature: Feature, coords: [number, number][], isTemporary: boolean) {
+  /** Add segment labels along the line */
+  private addSegmentLabels(coords: [number, number][], isTemporary: boolean, parentFeature?: Feature) {
     const planet = this.layerManager.currentPlanet;
     const radius = PLANETS[planet].radius;
 
@@ -90,36 +85,51 @@ export class DistanceToolPlugin extends ToolPluginBase {
         ? `${(distanceMeters / 1000).toFixed(2)} km`
         : `${distanceMeters.toFixed(1)} m`;
 
-      const label = this.createFeature(
-        new Point(midpoint),
-        'label',
-        text,
-        undefined, // independent
-        isTemporary
-      );
+      const label = this.createFeature(new Point(midpoint), 'label', text, parentFeature, isTemporary);
 
-      this.tempSource?.addFeature(label);
       if (isTemporary) this.liveSegmentLabels.push(label);
+      this.tempSource?.addFeature(label);
     }
   }
 
-  /** Update live line while drawing */
+  /** Update live line and temporary labels */
   private updateLiveLine(feature: Feature, pointer?: [number, number]) {
+    if (!pointer) return;
+
     const geom = feature.getGeometry() as LineString;
-    if (!geom || !this.tempSource) return;
+    if (!geom) return;
 
     const coords = geom.getCoordinates() as [number, number][];
-    if (!pointer || coords.length < 1) return;
-
     geom.setCoordinates([...coords, pointer]);
     feature.set('featureType', 'line');
 
     this.clearLiveLabels();
-    this.addSegmentLabels(feature, coords, true);
+    if (coords.length >= 1) this.addSegmentLabels(coords, true, feature);
   }
 
   private clearLiveLabels() {
     this.liveSegmentLabels.forEach(l => this.tempSource?.removeFeature(l));
     this.liveSegmentLabels = [];
+  }
+
+  /** Called by LayerManager save to add vertices to saved layer */
+  protected override onSave(layer: import('../models/layer-config.model').LayerConfig) {
+    const lineFeature = layer.features?.find(
+      (f) => (f as Feature).get('featureType') === 'line'
+    ) as Feature | undefined;
+
+    if (!lineFeature || !this.vertexCoords.length) return;
+
+    this.vertexCoords.forEach((c) => {
+      const vertex = this.createFeature(
+        new Point(c),
+        'vertex',
+        undefined,
+        lineFeature,
+        false
+      );
+      layer.features?.push(vertex);
+      (layer.olLayer.getSource() as VectorSource<Feature>).addFeature(vertex);
+    });
   }
 }
