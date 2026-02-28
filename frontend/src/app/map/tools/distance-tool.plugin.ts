@@ -13,7 +13,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
   private drawInteraction?: Draw;
   private currentFeature?: Feature;
   private liveSegmentLabels: Feature[] = [];
-  private vertexCoords: [number, number][] = []; // store vertices for save
+  private vertexCoords: [number, number][] = [];
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
@@ -71,7 +71,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.clearLiveLabels();
   }
 
-  /** Add segment labels along the line */
+  // Add segment labels along the line 
   private addSegmentLabels(coords: [number, number][], isTemporary: boolean, parentFeature?: Feature) {
     const planet = this.layerManager.currentPlanet;
     const radius = PLANETS[planet].radius;
@@ -92,7 +92,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
     }
   }
 
-  /** Update live line and temporary labels */
+  // Update live line and temporary labels 
   private updateLiveLine(feature: Feature, pointer?: [number, number]) {
     if (!pointer) return;
 
@@ -112,7 +112,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.liveSegmentLabels = [];
   }
 
-  /** Called by LayerManager save to add vertices to saved layer */
+  // Called by LayerManager save to add vertices to saved layer 
   protected override onSave(layer: import('../models/layer-config.model').LayerConfig) {
     const lineFeature = layer.features?.find(
       (f) => (f as Feature).get('featureType') === 'line'
