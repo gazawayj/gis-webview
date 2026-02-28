@@ -33,7 +33,7 @@ export class LayerManagerService {
 
   private layerFactory: LayerFactory;
 
-  /** Observable for UI to react to layers */
+  // Observable for UI to react to layers
   private layersSubject = new BehaviorSubject<LayerConfig[]>([]);
   layers$ = this.layersSubject.asObservable();
 
@@ -49,7 +49,7 @@ export class LayerManagerService {
     return this.planetCache[planet].slice();
   }
 
-  // ---------- CREATE VECTOR LAYER ----------
+  // CREATE VECTOR LAYER
   createLayer(params: {
     planet: 'earth' | 'moon' | 'mars';
     name?: string;
@@ -86,7 +86,7 @@ export class LayerManagerService {
       color,
       styleFn,
       isTemporary,
-      geometryType, // ✅ propagate here
+      geometryType,
     });
 
     const layerId = id || layerConfig.id;
@@ -105,7 +105,7 @@ export class LayerManagerService {
     return this.registry.get(layerId)!;
   }
 
-  // ---------- ADD CSV OR GEOJSON LAYER ----------
+  // ADD CSV OR GEOJSON LAYER
   addManualLayer(
     planet: 'earth' | 'moon' | 'mars',
     name: string,
@@ -144,7 +144,7 @@ export class LayerManagerService {
     return this.createLayer({ planet, name, features });
   }
 
-  // ---------- UPDATE STYLE ----------
+  // UPDATE STYLE
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
 
@@ -181,7 +181,7 @@ export class LayerManagerService {
     layer.olLayer.changed();
   }
 
-  // ---------- REMOVE LAYER ----------
+  // REMOVE LAYER
   remove(layer?: LayerConfig) {
     if (!layer || !this._map) return;
 
@@ -201,7 +201,6 @@ export class LayerManagerService {
     layer.olLayer.setVisible(layer.visible);
   }
 
-  // ---------- BASEMAP ----------
   private createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
     if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
     const layer = new TileLayer({ source: new XYZ({ url: BASEMAP_URLS[planet] }), zIndex: 0 });

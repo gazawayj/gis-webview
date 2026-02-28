@@ -41,7 +41,7 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: 'frontend/dist/frontend' # Path to your build output
+          source-directory: 'frontend/dist/frontend'
           destination-github-username: 'gazawayj'
           destination-repository-name: 'gazawayj.github.io'
           user-email: gazawayj@gmail.com

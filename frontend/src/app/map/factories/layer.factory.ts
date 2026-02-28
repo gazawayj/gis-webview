@@ -20,7 +20,7 @@ export type LayerFactory = (
   }>
 ) => LayerConfig;
 
-/** =================== FACTORY =================== */
+// FACTORY
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
   return (planet, options) => {
     const {
@@ -38,10 +38,8 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
       ? optGeometryType
       : detectGeometryType(features, shape);
 
-    // Placeholder reference to config so style function can read live values
     let configRef: LayerConfig;
 
-    // STYLE FUNCTION (LIVE — NOT FROZEN)
     const layerStyleFn: (f: FeatureLike) => Style | Style[] = styleFn
       ? styleFn
       : (f) => {
@@ -98,7 +96,7 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
   };
 }
 
-/** =================== HELPERS =================== */
+//  HELPERS
 function detectGeometryType(
   features: Feature[],
   shape?: ShapeType | 'line'

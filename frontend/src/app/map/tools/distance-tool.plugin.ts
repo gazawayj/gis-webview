@@ -14,6 +14,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
   private currentFeature?: Feature;
   private liveSegmentLabels: Feature[] = [];
   private vertexCoords: [number, number][] = [];
+  private vertexCoords: [number, number][] = [];
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
@@ -80,7 +81,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.clearLiveLabels();
   }
 
-  /** Add distance labels between vertices */
+  // Add segment labels along the line 
   private addSegmentLabels(coords: [number, number][], isTemporary: boolean, parentFeature?: Feature) {
     const planet = this.layerManager.currentPlanet;
     const radius = PLANETS[planet].radius;
@@ -101,7 +102,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
     }
   }
 
-  /** Update live line during drawing */
+  // Update live line and temporary labels 
   private updateLiveLine(feature: Feature, pointer?: [number, number]) {
     if (!pointer) return;
 
@@ -125,24 +126,24 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.liveSegmentLabels = [];
   }
 
-  /** Save the drawn line + vertices without cloning */
-  protected override onSave(layer: LayerConfig) {
-    if (!this.tempSource) return;
+  // Called by LayerManager save to add vertices to saved layer 
+  protected override onSave(layer: import('../models/layer-config.model').LayerConfig) {
+    const lineFeature = layer.features?.find(
+      (f) => (f as Feature).get('featureType') === 'line'
+    ) as Feature | undefined;
 
-    // Only save distance lines
-    const lineFeatures = this.tempSource.getFeatures().filter(f => f.get('isDistance') === true) as Feature[];
-    if (!lineFeatures.length) return;
+    if (!lineFeature || !this.vertexCoords.length) return;
 
-    lineFeatures.forEach(line => {
-      // Add main line
-      layer.features?.push(line);
-
-      // Add vertices
-      const coords = (line.getGeometry() as LineString).getCoordinates() as [number, number][];
-      coords.forEach(c => {
-        const vertex = this.createFeature(new Point(c), 'vertex', undefined, line, false);
-        layer.features?.push(vertex);
-      });
+    this.vertexCoords.forEach((c) => {
+      const vertex = this.createFeature(
+        new Point(c),
+        'vertex',
+        undefined,
+        lineFeature,
+        false
+      );
+      layer.features?.push(vertex);
+      (layer.olLayer.getSource() as VectorSource<Feature>).addFeature(vertex);
     });
   }
 }

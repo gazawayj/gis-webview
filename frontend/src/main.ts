@@ -20,7 +20,6 @@ if (environment.production) {
 
 bootstrapApplication(AppComponent, {
   providers: [
-    // Import modules for standalone components here
     importProvidersFrom(
       BrowserAnimationsModule,
       FormsModule,

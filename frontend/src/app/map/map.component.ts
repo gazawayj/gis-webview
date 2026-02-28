@@ -63,7 +63,7 @@ export class MapComponent implements AfterViewInit {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
     this.updateDragOrder();
 
-    // RIGHT CLICK HANDLED HERE ONLY
+    // RIGHT CLICK HANDLED HER
     const viewport = this.mapFacade.map.getViewport();
 
     viewport.addEventListener('contextmenu', (event: MouseEvent) => {
@@ -75,7 +75,6 @@ export class MapComponent implements AfterViewInit {
       }
     });
 
-    // SINGLE SOURCE OF TOOL ACTIVATION
     this.toolService.activeTool$.subscribe(tool => {
       this.activateToolFromService(tool);
     });
@@ -89,7 +88,6 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  // ACTIVATION ONLY FROM TOOL SERVICE
   private activateToolFromService(tool: ToolType) {
     this.closeSidebar();
 
@@ -115,7 +113,6 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  // BUTTON CLICK → ONLY UPDATE TOOL SERVICE
   activateTool(tool: ToolType) {
     this.toolService.setActiveTool(tool);
   }
@@ -125,7 +122,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
-    // Create a NEW array reference so OnPush detects the change
+    // Creat array reference so OnPush detects the change
     const newOrder = [...this.sidebarLayers];
     moveItemInArray(newOrder, event.previousIndex, event.currentIndex);
     // Update the dragOrder reference
@@ -265,19 +262,13 @@ export class MapComponent implements AfterViewInit {
     if (pluginLayer) {
       this.updateDragOrder();
     }
-
-    // CRITICAL: stop tool from reopening
     this.toolService.clearTool();
-
     this.closePluginSaveModal();
   }
 
   cancelPluginSave() {
     this.mapFacade.cancelActivePlugin();
-
-    // CRITICAL: also clear tool state
     this.toolService.clearTool();
-
     this.closePluginSaveModal();
   }
 

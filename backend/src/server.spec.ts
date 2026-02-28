@@ -1,4 +1,3 @@
-// backend/src/server.spec.ts
 import request from 'supertest';
 import express from 'express';
 import { describe, it, expect, beforeAll, vi } from 'vitest';

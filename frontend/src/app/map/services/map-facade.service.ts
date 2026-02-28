@@ -75,34 +75,23 @@ export class MapFacadeService {
   }
 
   activateTool(plugin?: Tool) {
-    // ALWAYS fully cancel previous tool first
     this.cancelActivePlugin();
-
     if (!plugin) return;
-
     this.activePlugin = plugin;
     plugin.activate(this.map);
   }
 
   saveByActivePlugin(name: string): LayerConfig | undefined {
     if (!this.activePlugin?.save) return undefined;
-
-    // SAVE FEATURES FIRST
     const layer = this.activePlugin.save(name);
     if (!layer) return undefined;
-
-    // 🔥 CRITICAL FIX:
-    // After saving, the tool must be cancelled to remove interactions
     this.activePlugin.cancel();
-
     this.activePlugin = undefined;
-
     return layer;
   }
 
   cancelActivePlugin() {
     if (!this.activePlugin) return;
-
     this.activePlugin.cancel();
     this.activePlugin = undefined;
   }
