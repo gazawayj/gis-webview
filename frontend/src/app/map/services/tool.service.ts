@@ -13,9 +13,7 @@ export class ToolService {
   private activeToolSubject = new BehaviorSubject<ToolType>('none');
   activeTool$ = this.activeToolSubject.asObservable();
 
-  constructor(private injector: Injector) {}
-
-  // Prevent duplicate emissions (CRITICAL)
+  // Prevent duplicate emissions
   setActiveTool(tool: ToolType) {
     if (this.activeToolSubject.value === tool) return;
     this.activeToolSubject.next(tool);
