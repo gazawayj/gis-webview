@@ -17,10 +17,6 @@ export interface ModalOptions {
 export class ModalFactoryService {
   private overlay = inject(Overlay);
 
-  /**
-   * Open a modal using an Overlay + TemplatePortal.
-   * Must pass the ViewContainerRef from the calling component.
-   */
   open(options: ModalOptions): OverlayRef {
     // Use provided panelClass or default to 'layer-modal' for modals
     const panelClass = options.panelClass ?? 'layer-modal';
