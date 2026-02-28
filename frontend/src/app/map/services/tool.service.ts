@@ -24,7 +24,7 @@ export class ToolService {
     this.activeToolSubject.next('none');
   }
 
-  // Centralized plugin creation
+  // Plugin creation
   createPlugin(
     tool: ToolType,
     layerManager: LayerManagerService
