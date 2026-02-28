@@ -6,6 +6,7 @@ import { PLANETS } from '../constants/map-constants';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
 import { LayerConfig } from '../models/layer-config.model';
+import VectorSource from 'ol/source/Vector';
 
 export class DistanceToolPlugin extends ToolPluginBase {
   name = 'distance';
@@ -13,7 +14,6 @@ export class DistanceToolPlugin extends ToolPluginBase {
   private drawInteraction?: Draw;
   private currentFeature?: Feature;
   private liveSegmentLabels: Feature[] = [];
-  private vertexCoords: [number, number][] = [];
   private vertexCoords: [number, number][] = [];
 
   constructor(layerManager: LayerManagerService) {
