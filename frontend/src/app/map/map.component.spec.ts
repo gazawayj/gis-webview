@@ -1,9 +1,6 @@
-// frontend/src/app/map/map.component.spec.ts
 import { describe, it, expect, beforeEach } from 'vitest';
 
-// ============================
-// Minimal Mock MapComponent
-// ============================
+// Mock MapComponent
 class MockMapComponent {
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   zoomDisplay = '2';
@@ -45,9 +42,7 @@ class MockMapComponent {
   }
 }
 
-// ============================
 // Tests
-// ============================
 describe('MapComponent (minimal)', () => {
   let component: MockMapComponent;
 
