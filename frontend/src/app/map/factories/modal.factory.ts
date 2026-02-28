@@ -1,4 +1,4 @@
-import { Injectable, TemplateRef, ViewContainerRef } from '@angular/core';
+import { inject, Injectable, TemplateRef, ViewContainerRef } from '@angular/core';
 import { Overlay, OverlayRef, OverlayConfig } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 
@@ -15,7 +15,7 @@ export interface ModalOptions {
 
 @Injectable({ providedIn: 'root' })
 export class ModalFactoryService {
-  constructor(private overlay: Overlay) { }
+  private overlay = inject(Overlay);
 
   /**
    * Open a modal using an Overlay + TemplatePortal.
