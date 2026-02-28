@@ -60,7 +60,7 @@ export class LayerManagerService {
     cache?: boolean;
     isTemporary?: boolean;
     styleFn?: (f: FeatureLike) => Style | Style[];
-    geometryType?: GeometryType; 
+    geometryType?: GeometryType;
   }): LayerConfig {
     const {
       planet,
@@ -147,25 +147,38 @@ export class LayerManagerService {
   // ---------- UPDATE STYLE ----------
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
+
     layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
       if (layer.styleFn) return layer.styleFn(feature);
 
-      // Use geometryType on layer for proper default styling
       switch (layer.geometryType) {
         case 'line':
-          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
+          return [
+            this.styleService.getLayerStyle({
+              type: 'line',
+              baseColor: layer.color
+            })
+          ];
+
         case 'polygon':
-          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
+          return [
+            this.styleService.getLayerStyle({
+              type: 'polygon',
+              baseColor: layer.color
+            })
+          ];
+
         default:
           return [
             this.styleService.getLayerStyle({
               type: 'point',
               baseColor: layer.color,
-              shape: layer.shape,
-            }),
+              shape: layer.shape
+            })
           ];
       }
     });
+    layer.olLayer.changed();
   }
 
   // ---------- REMOVE LAYER ----------

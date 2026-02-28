@@ -4,9 +4,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
-import { Fill, Stroke, Style } from 'ol/style';
 import { LayerManagerService } from '../services/layer-manager.service';
-import { SHAPES, ShapeType } from '../constants/symbol-constants';
 import { Tool } from './tool';
 import { LayerConfig } from '../models/layer-config.model';
 
@@ -15,46 +13,55 @@ export abstract class ToolPluginBase implements Tool {
 
   protected map?: Map;
   protected tempSource?: VectorSource<Feature>;
-  protected tempLayer?: VectorLayer<VectorSource<Feature>>;
   protected activeLayer?: LayerConfig;
-
-  protected tempColor: string;
-  protected tempShape: ShapeType;
 
   private interactions: Interaction[] = [];
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  protected constructor(protected layerManager: LayerManagerService) {
-    this.tempColor = layerManager.styleService.getRandomColor();
-    const randomShape = layerManager.styleService.getRandomShape();
-    this.tempShape =
-      randomShape && SHAPES.includes(randomShape) && randomShape !== 'line'
-        ? randomShape
-        : 'circle';
-  }
+  protected constructor(protected layerManager: LayerManagerService) { }
 
   // ------------------- ACTIVATE / DEACTIVATE -------------------
   activate(map: Map): void {
     this.map = map;
-    this.tempSource = new VectorSource();
 
-    this.tempLayer = new VectorLayer({
-      source: this.tempSource,
-      style: (f) => this.getFeatureStyle(f as Feature),
+    // Create temporary layer through LayerManager
+    this.activeLayer = this.layerManager.createLayer({
+      planet: this.layerManager.currentPlanet,
+      name: '__tool_temp__',
+      isTemporary: true
     });
 
-    this.map.addLayer(this.tempLayer);
+    const olLayer = this.activeLayer.olLayer as VectorLayer<VectorSource<Feature>>;
+    const source = olLayer.getSource();
+    if (!source) return;
+    this.tempSource = source;
+
+    // Apply dynamic style function for all tool features
+    olLayer.setStyle((feature) => {
+      const f = feature as Feature;
+      const fType = f.get('featureType') || 'point';
+      const text = f.get('text');
+      return this.layerManager.styleService.getLayerStyle({
+        type: fType,
+        baseColor: this.activeLayer?.color,
+        shape: this.activeLayer?.shape,
+        text
+      });
+    });
+
     this.onActivate();
   }
 
   deactivate(): void {
     this.onDeactivate();
     this.cleanupRegisteredResources();
-    if (this.map && this.tempLayer) this.map.removeLayer(this.tempLayer);
+
+    if (this.activeLayer) {
+      this.layerManager.remove(this.activeLayer);
+    }
 
     this.map = undefined;
-    this.tempLayer = undefined;
     this.tempSource = undefined;
     this.activeLayer = undefined;
   }
@@ -88,60 +95,56 @@ export abstract class ToolPluginBase implements Tool {
     this.mapListeners.forEach(({ type, handler }) => this.map?.un(type as any, handler));
     this.mapListeners = [];
 
-    this.domListeners.forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
+    this.domListeners.forEach(({ target, type, handler }) =>
+      target.removeEventListener(type, handler)
+    );
     this.domListeners = [];
   }
 
   // ------------------- SAVE -------------------
   save(name: string): LayerConfig | null {
-  if (!this.tempSource) return null;
-
-  const features = this.tempSource.getFeatures();
-  if (!features.length) return null;
-
-  // CLONE FEATURES FIRST — preserves labels
-  const clonedFeatures = features.map(f => f.clone());
-
-  const newLayer = this.layerManager.createLayer({
-    planet: this.layerManager.currentPlanet,
-    name,
-    features: clonedFeatures,
-    shape: this.tempShape,
-    color: this.tempColor,
-    styleFn: undefined,
-    isTemporary: false,
-  });
-
-  return newLayer ?? null;
-}
-
-  // ------------------- STYLING -------------------
-  updateLayerStyle(shape?: ShapeType, color?: string): void {
-    if (!this.activeLayer) return;
-    if (shape) this.activeLayer.shape = shape;
-    if (color) this.activeLayer.color = color;
-    this.applyLayerStyles();
+    if (!this.tempSource) return null;
+    const features = this.tempSource.getFeatures();
+    if (!features.length) return null;
+    // Clone each feature and ensure independent IDs for persistent storage
+    const clonedFeatures = features.map(f => {
+      const clone = f.clone();
+      // Ensure persistent ID
+      if (!clone.getId()) clone.setId(crypto.randomUUID());
+      // Remove parentFeature for vertex/label persistence
+      const type = clone.get('featureType');
+      if (type === 'vertex' || type === 'label') clone.set('parentFeature', undefined);
+      clone.set('isToolFeature', false);
+      return clone;
+    });
+    const newLayer = this.layerManager.createLayer({
+      planet: this.layerManager.currentPlanet,
+      name,
+      features: clonedFeatures,
+      isTemporary: false
+    });
+    return newLayer ?? null;
   }
 
-  protected applyLayerStyles(): void {
-    if (!this.activeLayer || !this.activeLayer.olLayer) return;
+  // ------------------- FEATURE CREATION -------------------
+  protected createFeature(
+    geom: import('ol/geom').Geometry,
+    featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
+    text?: string,
+    parentFeature?: Feature,
+    isToolFeature: boolean = true
+  ): Feature {
+    const f = new Feature(geom);
 
-    if (this.activeLayer.olLayer instanceof VectorLayer) {
-      const features = (this.activeLayer.olLayer.getSource() as VectorSource<Feature>)?.getFeatures() || [];
-      features.forEach(f => f.setStyle(this.getFeatureStyle(f)));
-    }
-  }
+    if (!f.getId()) f.setId(crypto.randomUUID());
 
-  protected getFeatureStyle(feature: Feature): Style[] {
-    const color = this.activeLayer?.color || this.tempColor;
-    const shape = this.activeLayer?.shape || this.tempShape;
-    const fType = feature.get('featureType');
+    // METADATA ONLY — styling is handled by layer's style function
+    f.set('featureType', featureType);
+    f.set('isToolFeature', isToolFeature);
+    if (text) f.set('text', text);
+    if (parentFeature) f.set('parentFeature', parentFeature);
 
-    if (fType === 'line') return [new Style({ stroke: new Stroke({ color, width: 3 }) })];
-    if (fType === 'polygon') return [new Style({ stroke: new Stroke({ color, width: 2 }), fill: new Fill({ color: color + '33' }) })];
-    if (fType === 'label') return [this.layerManager.styleService.getLayerStyle({ type: 'label', baseColor: color, text: feature.get('text') as string | undefined })];
-
-    return [this.layerManager.styleService.getLayerStyle({ type: 'point', baseColor: color, shape })];
+    return f;
   }
 
   getFeatures(): FeatureLike[] {
@@ -152,31 +155,4 @@ export abstract class ToolPluginBase implements Tool {
   protected abstract onActivate(): void;
   protected onDeactivate(): void { }
   protected onSave?(layer: LayerConfig): void { }
-
-  // ------------------- UTILITY -------------------
-  protected createStyledFeature(
-    geom: import('ol/geom').Geometry,
-    featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
-    text?: string,
-    parentFeature?: Feature,
-    isToolFeature: boolean = true
-  ): Feature {
-    const f = new Feature(geom);
-
-    if (!f.getId()) f.setId(crypto.randomUUID());
-    f.set('featureType', featureType);
-    f.set('isToolFeature', isToolFeature);
-    f.set('isDistanceTool', true);
-    if (parentFeature) f.set('parentFeature', parentFeature);
-
-    const styleOpts: any = {
-      type: featureType === 'label' ? 'label' : featureType === 'line' ? 'line' : 'point',
-      baseColor: this.activeLayer?.color || this.tempColor,
-      shape: this.activeLayer?.shape || this.tempShape
-    };
-    if (text) styleOpts.text = text;
-
-    f.setStyle(this.layerManager.styleService.getLayerStyle(styleOpts));
-    return f;
-  }
 }

@@ -16,7 +16,7 @@ export type LayerFactory = (
     shape: ShapeType | 'line';
     isTemporary: boolean;
     styleFn: (f: FeatureLike) => Style | Style[];
-    geometryType: GeometryType; // ✅ allow geometryType
+    geometryType: GeometryType;
   }>
 ) => LayerConfig;
 
@@ -33,35 +33,46 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
       geometryType: optGeometryType,
     } = options || {};
 
-    // Auto-detect geometry type from features if not provided
+    // Determine geometry type
     const geometryType: GeometryType = optGeometryType
       ? optGeometryType
       : detectGeometryType(features, shape);
 
-    // Ensure styleFn always returns Style or Style[]
+    // Placeholder reference to config so style function can read live values
+    let configRef: LayerConfig;
+
+    // STYLE FUNCTION (LIVE — NOT FROZEN)
     const layerStyleFn: (f: FeatureLike) => Style | Style[] = styleFn
       ? styleFn
       : (f) => {
           const feature = f as Feature;
           const fType = feature.get('featureType') as string | undefined;
 
+          // Label styling
           if (fType === 'label') {
             return styleService.getLayerStyle({
               type: 'label',
-              baseColor: color,
+              baseColor: configRef.color,
               text: feature.get('text') as string | undefined,
             });
           }
 
+          // Determine geometry styling type
           let type: GeometryType = 'point';
-          if (fType === 'line' || geometryType === 'line') type = 'line';
-          else if (fType === 'polygon' || geometryType === 'polygon') type = 'polygon';
+          if (fType === 'line' || configRef.geometryType === 'line') type = 'line';
+          else if (fType === 'polygon' || configRef.geometryType === 'polygon') type = 'polygon';
 
-          return styleService.getLayerStyle({ type, baseColor: color, shape });
+          return styleService.getLayerStyle({
+            type,
+            baseColor: configRef.color,
+            shape: configRef.shape,
+          });
         };
 
     const vectorLayer = new VectorLayer({
-      source: new VectorSource({ features: features.map(f => f.clone()) }),
+      source: new VectorSource({
+        features: features.map(f => f.clone())
+      }),
       style: (f) => {
         const result = layerStyleFn(f);
         return Array.isArray(result) ? result : [result];
@@ -81,13 +92,17 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
       features: features.map(f => f.clone()),
       geometryType,
     };
+    configRef = config;
 
     return config;
   };
 }
 
 /** =================== HELPERS =================== */
-function detectGeometryType(features: Feature[], shape?: ShapeType | 'line'): GeometryType {
+function detectGeometryType(
+  features: Feature[],
+  shape?: ShapeType | 'line'
+): GeometryType {
   if (features.length) {
     for (const f of features) {
       const geomType = f.getGeometry()?.getType();

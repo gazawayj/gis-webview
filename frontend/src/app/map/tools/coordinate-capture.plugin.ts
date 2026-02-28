@@ -21,13 +21,12 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
 
     // Hover indicator
     const hoverSource = new VectorSource();
-    this.hoverFeature = this.createStyledFeature(new Point([0, 0]), 'point');
+    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point');
     this.hoverFeature.set('featureType', 'hover');
     hoverSource.addFeature(this.hoverFeature);
 
     this.hoverLayer = new VectorLayer({
       source: hoverSource,
-      style: (f) => this.getFeatureStyle(f as Feature),
     });
 
     this.map.addLayer(this.hoverLayer);
@@ -43,13 +42,13 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
 
       const coord = evt.coordinate as [number, number];
 
-      const pointFeature = this.createStyledFeature(new Point(coord), 'point');
+      const pointFeature = this.createFeature(new Point(coord), 'point');
       this.tempSource?.addFeature(pointFeature);
 
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
 
-      const labelFeature = this.createStyledFeature(
+      const labelFeature = this.createFeature(
         new Point(coord),
         'label',
         labelText,

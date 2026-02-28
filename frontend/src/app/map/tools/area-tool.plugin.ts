@@ -23,7 +23,6 @@ export class AreaToolPlugin extends ToolPluginBase {
     this.drawInteraction = new Draw({
       source: this.tempSource,
       type: 'Polygon',
-      style: (f) => this.getFeatureStyle(f as Feature),
     });
 
     this.registerInteraction(this.drawInteraction);
@@ -74,7 +73,7 @@ export class AreaToolPlugin extends ToolPluginBase {
 
     const centroid = this.getPolygonCentroid(coords as [number, number][]);
 
-    const labelFeature = this.createStyledFeature(
+    const labelFeature = this.createFeature(
       new Point(centroid),
       'label',
       text,

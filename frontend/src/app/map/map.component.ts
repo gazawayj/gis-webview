@@ -144,8 +144,8 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.updateStyle(layer);
   }
 
-  selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
-    layer.shape = shape === 'none' ? 'circle' : shape;
+  selectShape(layer: LayerConfig, shape: ShapeType) {
+    layer.shape = shape;
     this.layerManager.updateStyle(layer);
   }
 

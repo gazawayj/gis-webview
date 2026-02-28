@@ -20,62 +20,51 @@ export class DistanceToolPlugin extends ToolPluginBase {
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
-    // Draw interaction
     this.drawInteraction = new Draw({
       source: this.tempSource,
       type: 'LineString',
-      style: (f) => this.getFeatureStyle(f as Feature),
     });
 
     this.registerInteraction(this.drawInteraction);
 
-    // DRAW START
     this.drawInteraction.on('drawstart', (evt: any) => {
       this.currentFeature = evt.feature as Feature;
-      this.currentFeature.set('isToolFeature', true);
-
-      if (!this.currentFeature.getId()) {
-        this.currentFeature.setId(crypto.randomUUID());
-      }
-
+      if (!this.currentFeature.getId()) this.currentFeature.setId(crypto.randomUUID());
       this.liveSegmentLabels = [];
     });
 
-    // DRAW END (double-click finishes)
     this.drawInteraction.on('drawend', () => {
       if (!this.currentFeature || !this.tempSource) return;
 
       const geom = this.currentFeature.getGeometry() as LineString;
       const coords = geom.getCoordinates() as [number, number][];
 
-      // Add vertices
+      // Add vertices as persistent features
       coords.forEach(c => {
-        const vertex = this.createStyledFeature(
+        const vertex = this.createFeature(
           new Point(c),
           'vertex',
           undefined,
-          this.currentFeature,
-          true
+          undefined, // independent
+          false // persistent
         );
         this.tempSource?.addFeature(vertex);
       });
 
-      // Add final segment labels
-      this.addFinalSegmentLabels(this.currentFeature, coords);
+      // Add labels as persistent features
+      this.addSegmentLabels(this.currentFeature, coords, false);
 
-      // Remove live labels
+      // Clear live labels
       this.clearLiveLabels();
-
       this.currentFeature = undefined;
     });
 
-    // POINTER MOVE — update live segment
+    // Update live line and labels
     this.registerMapListener('pointermove', (evt: any) => {
       if (!this.currentFeature) return;
       this.updateLiveLine(this.currentFeature, evt.coordinate as [number, number]);
     });
 
-    // ESC cancels drawing only
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
@@ -87,86 +76,46 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.clearLiveLabels();
   }
 
-  // FINAL LABELS
-  private addFinalSegmentLabels(feature: Feature, coords: [number, number][]) {
+  /** Add segment labels */
+  private addSegmentLabels(feature: Feature, coords: [number, number][], isTemporary: boolean) {
     const planet = this.layerManager.currentPlanet;
     const radius = PLANETS[planet].radius;
 
     for (let i = 1; i < coords.length; i++) {
       const [c1, c2] = [coords[i - 1], coords[i]];
-      const midpoint: [number, number] = [
-        (c1[0] + c2[0]) / 2,
-        (c1[1] + c2[1]) / 2
-      ];
+      const midpoint: [number, number] = [(c1[0] + c2[0]) / 2, (c1[1] + c2[1]) / 2];
 
-      const distanceMeters = getLength(
-        new LineString([c1, c2]),
-        { radius }
-      );
+      const distanceMeters = getLength(new LineString([c1, c2]), { radius });
+      const text = distanceMeters >= 1000
+        ? `${(distanceMeters / 1000).toFixed(2)} km`
+        : `${distanceMeters.toFixed(1)} m`;
 
-      const text =
-        distanceMeters >= 1000
-          ? `${(distanceMeters / 1000).toFixed(2)} km`
-          : `${distanceMeters.toFixed(1)} m`;
-
-      const label = this.createStyledFeature(
+      const label = this.createFeature(
         new Point(midpoint),
         'label',
         text,
-        feature,
-        true
+        undefined, // independent
+        isTemporary
       );
 
       this.tempSource?.addFeature(label);
+      if (isTemporary) this.liveSegmentLabels.push(label);
     }
   }
 
-  // LIVE LABELS
+  /** Update live line while drawing */
   private updateLiveLine(feature: Feature, pointer?: [number, number]) {
     const geom = feature.getGeometry() as LineString;
     if (!geom || !this.tempSource) return;
 
     const coords = geom.getCoordinates() as [number, number][];
-    const displayCoords = pointer ? [...coords, pointer] : coords;
+    if (!pointer || coords.length < 1) return;
 
-    geom.setCoordinates(displayCoords);
+    geom.setCoordinates([...coords, pointer]);
     feature.set('featureType', 'line');
 
     this.clearLiveLabels();
-
-    if (coords.length < 2 || !pointer) return;
-
-    const planet = this.layerManager.currentPlanet;
-    const radius = PLANETS[planet].radius;
-
-    for (let i = 1; i < coords.length; i++) {
-      const [c1, c2] = [coords[i - 1], coords[i]];
-      const midpoint: [number, number] = [
-        (c1[0] + c2[0]) / 2,
-        (c1[1] + c2[1]) / 2
-      ];
-
-      const distanceMeters = getLength(
-        new LineString([c1, c2]),
-        { radius }
-      );
-
-      const text =
-        distanceMeters >= 1000
-          ? `${(distanceMeters / 1000).toFixed(2)} km`
-          : `${distanceMeters.toFixed(1)} m`;
-
-      const label = this.createStyledFeature(
-        new Point(midpoint),
-        'label',
-        text,
-        feature,
-        true
-      );
-
-      this.tempSource.addFeature(label);
-      this.liveSegmentLabels.push(label);
-    }
+    this.addSegmentLabels(feature, coords, true);
   }
 
   private clearLiveLabels() {
