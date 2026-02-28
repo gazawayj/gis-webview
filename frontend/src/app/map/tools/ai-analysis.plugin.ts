@@ -10,7 +10,6 @@ export class AIAnalysisPlugin extends ToolPluginBase {
 
   protected onActivate(): void {
     console.log('AI Analysis tool activated');
-    // AI-specific activation logic here
   }
 
   protected override onDeactivate(): void {
