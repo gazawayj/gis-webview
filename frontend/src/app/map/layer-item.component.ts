@@ -7,61 +7,61 @@ import {
   TemplateRef,
   ViewChild,
   ViewContainerRef,
-  CUSTOM_ELEMENTS_SCHEMA
+  OnDestroy,
+  CUSTOM_ELEMENTS_SCHEMA,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SHAPES, ShapeType } from './constants/symbol-constants';
+import { LayerConfig } from './models/layer-config.model';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { inject } from '@angular/core';
-
-export interface LayerItem {
-  name: string;
-  visible: boolean;
-  color: string;
-  shape: ShapeType;
-}
 
 @Component({
   selector: 'app-layer-item',
   standalone: true,
-  imports: [CommonModule ],
+  imports: [CommonModule],
   templateUrl: './layer-item.component.html',
   styleUrls: ['./layer-item.component.css'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class LayerItemComponent {
-  @Input() layer!: LayerItem;
+export class LayerItemComponent implements OnDestroy {
+  @Input() layer!: LayerConfig;
 
-  @Output() visibilityChange = new EventEmitter<boolean>();
-  @Output() colorChange = new EventEmitter<string>();
-  @Output() shapeChange = new EventEmitter<ShapeType>();
+  @Output() toggle = new EventEmitter<void>();
+  @Output() colorPicked = new EventEmitter<string>();
+  @Output() shapeSelected = new EventEmitter<ShapeType | 'none'>();
   @Output() remove = new EventEmitter<void>();
 
-  @ViewChild('shapeDropdown', { static: true })
-  shapeDropdown!: TemplateRef<any>;
+  @ViewChild('shapeDropdown', { static: true }) shapeDropdown!: TemplateRef<any>;
 
-  shapes: ShapeType[] = [...SHAPES]; 
+  shapes: ShapeType[] = [...SHAPES];
 
-  private overlayRef!: OverlayRef;
+  private overlayRef?: OverlayRef;
 
   private overlay = inject(Overlay);
   private vcr = inject(ViewContainerRef);
   private elRef = inject(ElementRef);
 
-  toggleVisibility(event: MouseEvent) {
+  /** Toggle layer visibility */
+  toggleVisibility(event: MouseEvent): void {
     event.stopPropagation();
-    this.visibilityChange.emit(!this.layer.visible);
+    this.toggle.emit();
   }
 
-  onColorPicked(event: Event) {
+  /** Emit color picked */
+  onColorPicked(event: Event): void {
     const value = (event.target as HTMLInputElement)?.value;
-    if (value) this.colorChange.emit(value);
+    if (value) this.colorPicked.emit(value);
   }
 
-  openShapeDropdown() {
-    if (this.overlayRef) this.overlayRef.dispose();
-    const buttonEl = this.elRef.nativeElement.querySelector('.shape-selected-button');
+  /** Open shape dropdown overlay */
+  openShapeDropdown(): void {
+    // Dispose existing overlay
+    this.disposeOverlay();
+
+    const buttonEl: HTMLElement | null =
+      this.elRef.nativeElement.querySelector('.shape-selected-button');
     if (!buttonEl) return;
 
     const positionStrategy = this.overlay.position()
@@ -82,22 +82,32 @@ export class LayerItemComponent {
       scrollStrategy: this.overlay.scrollStrategies.reposition()
     });
 
-    this.overlayRef.backdropClick().subscribe(() => this.overlayRef.dispose());
+    this.overlayRef.backdropClick().subscribe(() => this.disposeOverlay());
 
     const portal = new TemplatePortal(this.shapeDropdown, this.vcr);
     this.overlayRef.attach(portal);
   }
 
-  get dropdownShapes(): ShapeType[] {
-    // exclude 'line' from normal layer dropdown
-    return this.shapes.filter(s => s !== 'line');
+  /** Dispose overlay safely */
+  private disposeOverlay(): void {
+    if (this.overlayRef) {
+      this.overlayRef.dispose();
+      this.overlayRef = undefined;
+    }
   }
 
-  selectShape(shape: ShapeType) {
-    this.shapeChange.emit(shape);
-    if (this.overlayRef) this.overlayRef.dispose();
+  /** Dropdown options including 'none' */
+  get dropdownShapes(): (ShapeType | 'none')[] {
+    return [...this.shapes, 'none'];
   }
 
+  /** Emit selected shape and close overlay */
+  selectShape(shape: ShapeType | 'none'): void {
+    this.shapeSelected.emit(shape);
+    this.disposeOverlay();
+  }
+
+  /** Map shape name to SVG points */
   getPoints(shape: string): string {
     const map: Record<string, string> = {
       triangle: '10,4 16,16 4,16',
@@ -108,5 +118,9 @@ export class LayerItemComponent {
       arrow: '10,2 16,10 12,10 12,18 8,18 8,10 4,10'
     };
     return map[shape.toLowerCase()] || '';
+  }
+
+  ngOnDestroy(): void {
+    this.disposeOverlay();
   }
 }

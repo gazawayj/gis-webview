@@ -8,27 +8,25 @@ import { Fill, Stroke, Style } from 'ol/style';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { SHAPES, ShapeType } from '../constants/symbol-constants';
 import { Tool } from './tool';
+import { LayerConfig } from '../models/layer-config.model';
 
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;
 
   protected map?: Map;
-  protected tempSource?: VectorSource;
-  protected tempLayer?: VectorLayer<VectorSource>;
-  protected activeLayer?: any;
+  protected tempSource?: VectorSource<Feature>;
+  protected tempLayer?: VectorLayer<VectorSource<Feature>>;
+  protected activeLayer?: LayerConfig;
 
   protected tempColor: string;
   protected tempShape: ShapeType;
-  protected planet: 'earth' | 'moon' | 'mars';
 
   private interactions: Interaction[] = [];
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
   protected constructor(protected layerManager: LayerManagerService) {
-    this.planet = layerManager.currentPlanet;
     this.tempColor = layerManager.styleService.getRandomColor();
-
     const randomShape = layerManager.styleService.getRandomShape();
     this.tempShape =
       randomShape && SHAPES.includes(randomShape) && randomShape !== 'line'
@@ -36,6 +34,7 @@ export abstract class ToolPluginBase implements Tool {
         : 'circle';
   }
 
+  // ------------------- ACTIVATE / DEACTIVATE -------------------
   activate(map: Map): void {
     this.map = map;
     this.tempSource = new VectorSource();
@@ -64,6 +63,7 @@ export abstract class ToolPluginBase implements Tool {
     this.deactivate();
   }
 
+  // ------------------- REGISTER / CLEANUP -------------------
   protected registerInteraction(interaction: Interaction): void {
     if (!this.map) return;
     this.map.addInteraction(interaction);
@@ -92,42 +92,30 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
-  save(name: string): any | undefined {
-    if (!this.tempSource || !this.tempSource.getFeatures().length) return;
+  // ------------------- SAVE -------------------
+  save(name: string): LayerConfig | null {
+  if (!this.tempSource) return null;
 
-    // Clone features (skip pointerVertex)
-    const clonedFeatures = this.tempSource.getFeatures()
-      .filter(f => f.get('featureType') !== 'pointerVertex')
-      .map(f => {
-        const clone = f.clone() as Feature;
-        clone.set('featureType', f.get('featureType'));
-        clone.set('text', f.get('text'));
-        return clone;
-      });
+  const features = this.tempSource.getFeatures();
+  if (!features.length) return null;
 
-    this.activeLayer = this.layerManager.createLayer({
-      planet: this.planet,
-      name,
-      features: clonedFeatures,
-      shape: this.tempShape,      // dynamically use tool shape
-      color: this.tempColor,
-      cache: true,
-      isTemporary: false,
-      styleFn: undefined,
-    });
+  // CLONE FEATURES FIRST — preserves labels
+  const clonedFeatures = features.map(f => f.clone());
 
-    if (this.activeLayer) {
-      this.activeLayer.shape = this.tempShape;
-      this.activeLayer.color = this.tempColor;
-      this.applyLayerStyles();
-      this.onSave(this.activeLayer);
-    }
+  const newLayer = this.layerManager.createLayer({
+    planet: this.layerManager.currentPlanet,
+    name,
+    features: clonedFeatures,
+    shape: this.tempShape,
+    color: this.tempColor,
+    styleFn: undefined,
+    isTemporary: false,
+  });
 
-    const savedLayer = this.activeLayer;
-    this.deactivate();
-    return savedLayer;
-  }
+  return newLayer ?? null;
+}
 
+  // ------------------- STYLING -------------------
   updateLayerStyle(shape?: ShapeType, color?: string): void {
     if (!this.activeLayer) return;
     if (shape) this.activeLayer.shape = shape;
@@ -136,92 +124,59 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   protected applyLayerStyles(): void {
-    if (!this.activeLayer) return;
+    if (!this.activeLayer || !this.activeLayer.olLayer) return;
 
-    this.activeLayer.olLayer
-      .getSource()
-      ?.getFeatures()
-      .forEach((f: Feature) => {
-        const type = f.get('featureType');
-
-        if (type === 'polygon') {
-          // Explicit polygon fill + stroke
-          f.setStyle(
-            new Style({
-              stroke: new Stroke({ color: this.activeLayer.color, width: 2 }),
-              fill: new Fill({ color: this.activeLayer.color + '33' }) // semi-transparent fill
-            })
-          );
-        } else {
-          // vertex, line, label handled via StyleService
-          f.setStyle(
-            this.layerManager.styleService.getLayerStyle({
-              type: type === 'label' ? 'label' : type === 'line' ? 'line' : 'point',
-              baseColor: this.activeLayer.color,
-              shape: type === 'vertex' ? this.activeLayer.shape : undefined,
-              text: f.get('text'),
-            })
-          );
-        }
-      });
+    if (this.activeLayer.olLayer instanceof VectorLayer) {
+      const features = (this.activeLayer.olLayer.getSource() as VectorSource<Feature>)?.getFeatures() || [];
+      features.forEach(f => f.setStyle(this.getFeatureStyle(f)));
+    }
   }
 
-  protected getFeatureStyle(feature: Feature): Style | Style[] {
+  protected getFeatureStyle(feature: Feature): Style[] {
     const color = this.activeLayer?.color || this.tempColor;
     const shape = this.activeLayer?.shape || this.tempShape;
-    const type = feature.get('featureType');
+    const fType = feature.get('featureType');
 
-    if (type === 'label' || feature.get('text')) {
-      return this.layerManager.styleService.getLayerStyle({
-        type: 'label',
-        baseColor: color,
-        shape,
-        text: feature.get('text'),
-      });
-    }
+    if (fType === 'line') return [new Style({ stroke: new Stroke({ color, width: 3 }) })];
+    if (fType === 'polygon') return [new Style({ stroke: new Stroke({ color, width: 2 }), fill: new Fill({ color: color + '33' }) })];
+    if (fType === 'label') return [this.layerManager.styleService.getLayerStyle({ type: 'label', baseColor: color, text: feature.get('text') as string | undefined })];
 
-    if (type === 'line') {
-      return this.layerManager.styleService.getLayerStyle({
-        type: 'line',
-        shape,
-        baseColor: color,
-      });
-    }
-
-    if (type === 'vertex' || type === 'point') {
-      return this.layerManager.styleService.getLayerStyle({
-        type: 'point',
-        baseColor: color,
-        shape,
-      });
-    }
-
-    // For polygons, return a Style directly instead of passing to StyleService
-    if (type === 'polygon') {
-      return new Style({
-        stroke: new Stroke({ color, width: 2 }),
-        fill: new Fill({ color: color + '33' }),
-      });
-    }
-
-    // fallback
-    return this.layerManager.styleService.getLayerStyle({
-      type: 'point',
-      baseColor: color,
-      shape,
-    });
+    return [this.layerManager.styleService.getLayerStyle({ type: 'point', baseColor: color, shape })];
   }
 
-  protected abstract onActivate(): void;
-  protected onDeactivate(): void { }
-  protected onSave(layer: any): void { }
-
-  getFeatures?(): FeatureLike[] {
+  getFeatures(): FeatureLike[] {
     return this.tempSource?.getFeatures() ?? [];
   }
 
-  getStyle?(feature: FeatureLike): Style[] {
-    const style = this.getFeatureStyle(feature as Feature);
-    return Array.isArray(style) ? style : [style];
+  // ------------------- ABSTRACT HOOKS -------------------
+  protected abstract onActivate(): void;
+  protected onDeactivate(): void { }
+  protected onSave?(layer: LayerConfig): void { }
+
+  // ------------------- UTILITY -------------------
+  protected createStyledFeature(
+    geom: import('ol/geom').Geometry,
+    featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
+    text?: string,
+    parentFeature?: Feature,
+    isToolFeature: boolean = true
+  ): Feature {
+    const f = new Feature(geom);
+
+    if (!f.getId()) f.setId(crypto.randomUUID());
+    f.set('featureType', featureType);
+    f.set('isToolFeature', isToolFeature);
+    f.set('isDistanceTool', true);
+    if (parentFeature) f.set('parentFeature', parentFeature);
+
+    const styleOpts: any = {
+      type: featureType === 'label' ? 'label' : featureType === 'line' ? 'line' : 'point',
+      baseColor: this.activeLayer?.color || this.tempColor,
+      shape: this.activeLayer?.shape || this.tempShape
+    };
+    if (text) styleOpts.text = text;
+
+    f.setStyle(this.layerManager.styleService.getLayerStyle(styleOpts));
+    return f;
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';
@@ -9,55 +9,63 @@ import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {
+
   private activeToolSubject = new BehaviorSubject<ToolType>('none');
   activeTool$ = this.activeToolSubject.asObservable();
 
+  constructor(private injector: Injector) {}
+
+  // Prevent duplicate emissions (CRITICAL)
   setActiveTool(tool: ToolType) {
+    if (this.activeToolSubject.value === tool) return;
     this.activeToolSubject.next(tool);
   }
 
   clearTool() {
+    if (this.activeToolSubject.value === 'none') return;
     this.activeToolSubject.next('none');
   }
 
-  /**
-   * Single source of truth for all tools.
-   * Each tool can optionally provide a pluginFactory that knows
-   * how to create a plugin instance for this tool.
-   */
+  // Centralized plugin creation
+  createPlugin(
+    tool: ToolType,
+    layerManager: LayerManagerService
+  ) {
+    return this.tools.find(t => t.type === tool)
+      ?.pluginFactory?.(layerManager);
+  }
+
   tools: ToolDefinition[] = [
     {
       name: 'Coordinate',
       type: 'coordinate',
       icon: 'assets/icons/coordinate-tool.svg',
-      pluginFactory: (lm: LayerManagerService) => new CoordinateCapturePlugin(lm)
+      pluginFactory: (lm) => new CoordinateCapturePlugin(lm)
     },
     {
       name: 'Distance',
       type: 'distance',
       icon: 'assets/icons/distance-tool.svg',
-      pluginFactory: (lm: LayerManagerService) => new DistanceToolPlugin(lm)
+      pluginFactory: (lm) => new DistanceToolPlugin(lm)
     },
     {
       name: 'Area',
       type: 'area',
       icon: 'assets/icons/area-tool.svg',
-      pluginFactory: (lm: LayerManagerService) => new AreaToolPlugin(lm)
+      pluginFactory: (lm) => new AreaToolPlugin(lm)
     },
     {
       name: 'AI Feature Find',
       type: 'ai-analysis',
       icon: 'assets/icons/ai-featureFind-tool.svg',
-      pluginFactory: (lm: LayerManagerService) => new AIAnalysisPlugin(lm)
+      pluginFactory: (lm) => new AIAnalysisPlugin(lm)
     }
   ];
 
-  /** Returns all tools except AI tools */
   get regularTools(): ToolDefinition[] {
     return this.tools.filter(t => !t.type.startsWith('ai-'));
   }
 
-  /** Returns only AI tools */
   get aiTools(): ToolDefinition[] {
     return this.tools.filter(t => t.type.startsWith('ai-'));
   }

@@ -24,3 +24,60 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Overlay backdrop */
+.plugin-save-modal-backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* Overlay panel */
+.plugin-save-modal-panel {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Actual modal container */
+.plugin-save-modal-panel .modal {
+  background: #2b2b2b;
+  color: #ffffff;
+  padding: 20px;
+  width: 420px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  border: 1px solid #444;
+}
+
+/* Title */
+.plugin-save-modal-panel h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+
+/* Input */
+.plugin-save-modal-panel input {
+  width: 100%;
+  padding: 6px 8px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  background: #1e1e1e;
+  color: white;
+  border: 1px solid #555;
+}
+
+/* Buttons */
+.plugin-save-modal-panel .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.plugin-save-modal-panel button {
+  background: #3a7bd5;
+  border: none;
+  color: white;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.plugin-save-modal-panel button:last-child {
+  background: #555;
+}

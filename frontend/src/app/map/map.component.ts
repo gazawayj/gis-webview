@@ -5,11 +5,12 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { OverlayRef } from '@angular/cdk/overlay';
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService } from './services/map-facade.service';
-import { LayerManagerService, LayerConfig } from './services/layer-manager.service';
+import { LayerManagerService } from './services/layer-manager.service';
 import { ToolService } from './services/tool.service';
 import { ToolType, ToolDefinition } from './models/tool-definition.model';
 import { ShapeType } from './constants/symbol-constants';
 import { ModalFactoryService } from './factories/modal.factory';
+import { LayerConfig } from './models/layer-config.model';
 
 @Component({
   selector: 'app-map',
@@ -25,14 +26,20 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
-  zoomDisplay = '2'; currentLon = 0; currentLat = 0;
-  lonLabel = 'Lon'; latLabel = 'Lat';
+  zoomDisplay = '2';
+  currentLon = 0;
+  currentLat = 0;
+  lonLabel = 'Lon';
+  latLabel = 'Lat';
   modalMode: 'manual' | 'console' = 'manual';
   modalTitle = 'Add New Manual Layer';
-  newLayerName = ''; newLayerDescription = '';
-  latField = 'latitude'; lonField = 'longitude';
+  newLayerName = '';
+  newLayerDescription = '';
+  latField = 'latitude';
+  lonField = 'longitude';
   fileContent: string | null = null;
-  consoleInput = ''; pluginLayerName = '';
+  consoleInput = '';
+  pluginLayerName = '';
   private dragOrder: LayerConfig[] = [];
   toolList: ToolType[] = [];
 
@@ -40,7 +47,7 @@ export class MapComponent implements AfterViewInit {
   private layerManager = inject(LayerManagerService);
   private toolService = inject(ToolService);
   private cdr = inject(ChangeDetectorRef);
-  private vcr = inject(ViewContainerRef);  // This will now be passed to the modal
+  private vcr = inject(ViewContainerRef);
   private modalFactory = inject(ModalFactoryService);
 
   private modalRef!: OverlayRef;
@@ -55,63 +62,133 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
     this.updateDragOrder();
-    this.mapContainer.nativeElement.addEventListener('plugin-save-request', () => this.openPluginSaveModal());
-    this.toolService.activeTool$.subscribe(tool => this.activateTool(tool));
+
+    // RIGHT CLICK HANDLED HERE ONLY
+    const viewport = this.mapFacade.map.getViewport();
+
+    viewport.addEventListener('contextmenu', (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (this.mapFacade.getActivePlugin()) {
+        this.openPluginSaveModal();
+      }
+    });
+
+    // SINGLE SOURCE OF TOOL ACTIVATION
+    this.toolService.activeTool$.subscribe(tool => {
+      this.activateToolFromService(tool);
+    });
+
     this.mapFacade.trackPointer((lon, lat, zoom) => {
-      this.currentLon = lon; this.currentLat = lat; this.zoomDisplay = zoom.toFixed(2);
-      this.updateLabels(); this.cdr.detectChanges();
+      this.currentLon = lon;
+      this.currentLat = lat;
+      this.zoomDisplay = zoom.toFixed(2);
+      this.updateLabels();
+      this.cdr.detectChanges();
     });
   }
 
-  private updateDragOrder() { this.dragOrder = this.layerManager.getLayersForPlanet(this.currentPlanet); }
-
-  onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
-    moveItemInArray(this.dragOrder, event.previousIndex, event.currentIndex);
-    this.layerManager.reorderLayers(this.dragOrder); this.cdr.detectChanges();
-  }
-
-  toggleLayer(layer: LayerConfig) { this.layerManager.toggle(layer); this.cdr.detectChanges(); }
-  removeLayer(layer: LayerConfig) { this.layerManager.remove(layer); this.updateDragOrder(); this.cdr.detectChanges(); }
-  onColorPicked(layer: LayerConfig, color: string) { layer.color = color; this.layerManager.updateStyle(layer); this.cdr.detectChanges(); }
-  selectShape(layer: LayerConfig, shape: ShapeType | 'none') { layer.shape = shape; this.layerManager.updateStyle(layer); this.cdr.detectChanges(); }
-
-  setPlanet(planet: 'earth' | 'moon' | 'mars') {
-    if (planet === this.currentPlanet) return;
-    this.currentPlanet = planet; this.mapFacade.setPlanet(planet);
-    this.closeSidebar(); this.closeToolbox(); this.updateLabels(); this.updateDragOrder(); this.cdr.detectChanges();
-  }
-
-  private updateLabels() {
-    switch (this.currentPlanet) {
-      case 'moon': this.lonLabel = 'Selenographic Longitude'; this.latLabel = 'Selenographic Latitude'; break;
-      case 'mars': this.lonLabel = 'Areographic Longitude'; this.latLabel = 'Areographic Latitude'; break;
-      default: this.lonLabel = 'Longitude'; this.latLabel = 'Latitude';
-    }
-  }
-
-  closeSidebar(): void { }
-
-  activateTool(tool: ToolType) {
+  // ACTIVATION ONLY FROM TOOL SERVICE
+  private activateToolFromService(tool: ToolType) {
     this.closeSidebar();
-    const plugin = this.toolService.tools.find(t => t.type === tool)?.pluginFactory?.(this.layerManager);
+
+    if (tool === 'none' || !tool) {
+      this.mapFacade.activateTool(undefined as any);
+      this.toolList = [];
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const plugin =
+      this.toolService.tools.find(t => t.type === tool)
+        ?.pluginFactory?.(this.layerManager);
+
     if (plugin) {
       this.mapFacade.activateTool(plugin);
       this.toolList = [tool];
     } else {
-      this.mapFacade.activateTool(undefined); // deactivate if no plugin
+      this.mapFacade.activateTool(undefined as any);
       this.toolList = [];
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  // BUTTON CLICK → ONLY UPDATE TOOL SERVICE
+  activateTool(tool: ToolType) {
+    this.toolService.setActiveTool(tool);
+  }
+
+  private updateDragOrder() {
+    this.dragOrder = this.layerManager.getLayersForPlanet(this.currentPlanet);
+  }
+
+  onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
+    // Create a NEW array reference so OnPush detects the change
+    const newOrder = [...this.sidebarLayers];
+    moveItemInArray(newOrder, event.previousIndex, event.currentIndex);
+    // Update the dragOrder reference
+    this.dragOrder = newOrder;
+    // Update Z-index / layer ordering in the map
+    this.layerManager.reorderLayers(newOrder);
+    // Trigger change detection
+    this.cdr.detectChanges();
+  }
+
+  toggleLayer(layer: LayerConfig) { this.layerManager.toggle(layer); this.cdr.detectChanges(); }
+  removeLayer(layer: LayerConfig) { this.layerManager.remove(layer); this.updateDragOrder(); this.cdr.detectChanges(); }
+
+  onColorPicked(layer: LayerConfig, color: string) {
+    layer.color = color;
+    this.layerManager.updateStyle(layer);
+  }
+
+  selectShape(layer: LayerConfig, shape: ShapeType | 'none') {
+    layer.shape = shape === 'none' ? 'circle' : shape;
+    this.layerManager.updateStyle(layer);
+  }
+
+  setPlanet(planet: 'earth' | 'moon' | 'mars') {
+    if (planet === this.currentPlanet) return;
+    this.currentPlanet = planet;
+    this.mapFacade.setPlanet(planet);
+    this.closeSidebar();
+    this.closeToolbox();
+    this.updateLabels();
+    this.updateDragOrder();
+    this.cdr.detectChanges();
+  }
+
+  private updateLabels() {
+    switch (this.currentPlanet) {
+      case 'moon':
+        this.lonLabel = 'Selenographic Longitude';
+        this.latLabel = 'Selenographic Latitude';
+        break;
+      case 'mars':
+        this.lonLabel = 'Areographic Longitude';
+        this.latLabel = 'Areographic Latitude';
+        break;
+      default:
+        this.lonLabel = 'Longitude';
+        this.latLabel = 'Latitude';
     }
   }
 
-  closeToolbox() { this.toolList = []; this.mapFacade.activateTool(undefined as any); this.cdr.detectChanges(); }
+  closeSidebar(): void { }
+  closeToolbox() { this.toolService.clearTool(); }
 
   // ---------- ADD LAYER ----------
   onAddLayer() {
-    this.modalMode = 'manual'; this.modalTitle = 'Add New Manual Layer';
-    this.newLayerName = ''; this.newLayerDescription = '';
-    this.latField = 'latitude'; this.lonField = 'longitude';
-    this.fileContent = null; this.consoleInput = '';
-
+    this.modalMode = 'manual';
+    this.modalTitle = 'Add New Manual Layer';
+    this.newLayerName = '';
+    this.newLayerDescription = '';
+    this.latField = 'latitude';
+    this.lonField = 'longitude';
+    this.fileContent = null;
+    this.consoleInput = '';
     this.modalRef = this.modalFactory.open({ template: this.addLayerModal, vcr: this.vcr });
   }
 
@@ -135,8 +212,13 @@ export class MapComponent implements AfterViewInit {
     if (!this.newLayerName.trim()) return;
     const isGeoJSON = this.fileContent?.trim().startsWith('{') || false;
     const newLayer = this.layerManager.addManualLayer(
-      this.currentPlanet, this.newLayerName, this.newLayerDescription,
-      this.fileContent || undefined, isGeoJSON ? 'GeoJSON' : 'CSV', this.latField, this.lonField
+      this.currentPlanet,
+      this.newLayerName,
+      this.newLayerDescription,
+      this.fileContent || undefined,
+      isGeoJSON ? 'GeoJSON' : 'CSV',
+      this.latField,
+      this.lonField
     );
     if (newLayer) this.updateDragOrder();
     this.closeAddLayer();
@@ -144,22 +226,60 @@ export class MapComponent implements AfterViewInit {
 
   cancelAddLayer() { this.closeAddLayer(); }
 
-  // ---------- PLUGIN ----------
+  // ---------- PLUGIN SAVE ----------
   openPluginSaveModal() {
-    const pluginName = this.mapFacade.getActivePlugin()?.name || 'Plugin';
-    this.pluginLayerName = `${pluginName}-${Date.now()}`;
-    this.pluginModalRef = this.modalFactory.open({ template: this.pluginSaveModal, vcr: this.vcr });
+    if (this.pluginModalRef) this.pluginModalRef.dispose();
+
+    const activePlugin = this.mapFacade.getActivePlugin();
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    const toolName = activePlugin?.name.replace(/\s+/g, '_') || 'Layer';
+    this.pluginLayerName = `${toolName}_${timestamp}`;
+
+    this.pluginModalRef = this.modalFactory.open({
+      template: this.pluginSaveModal,
+      vcr: this.vcr,
+      panelClass: 'layer-modal',
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-dark-backdrop',
+      width: '440px',
+      height: '220px'
+    });
+
+    this.cdr.detectChanges();
   }
 
-  closePluginSaveModal() { this.modalFactory.close(this.pluginModalRef); }
+  closePluginSaveModal() {
+    if (this.pluginModalRef) {
+      this.modalFactory.close(this.pluginModalRef);
+      this.pluginModalRef = undefined!;
+      this.cdr.detectChanges();
+    }
+  }
 
   confirmSavePlugin(name?: string) {
     const layerName = name?.trim() || this.pluginLayerName;
-    if (this.mapFacade.saveByActivePlugin(layerName)) this.updateDragOrder();
+
+    const pluginLayer = this.mapFacade.saveByActivePlugin(layerName);
+
+    if (pluginLayer) {
+      this.updateDragOrder();
+    }
+
+    // CRITICAL: stop tool from reopening
+    this.toolService.clearTool();
+
     this.closePluginSaveModal();
   }
 
-  cancelPluginSave() { this.mapFacade.cancelActivePlugin(); this.closePluginSaveModal(); }
+  cancelPluginSave() {
+    this.mapFacade.cancelActivePlugin();
+
+    // CRITICAL: also clear tool state
+    this.toolService.clearTool();
+
+    this.closePluginSaveModal();
+  }
 
   onLayerDragMoved(): void { }
   trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
