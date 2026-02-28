@@ -1,4 +1,4 @@
-import Feature, { FeatureLike } from 'ol/Feature';
+import { FeatureLike } from 'ol/Feature';
 import { Layer } from 'ol/layer';
 import { Style } from 'ol/style';
 import { ShapeType } from '../constants/symbol-constants';

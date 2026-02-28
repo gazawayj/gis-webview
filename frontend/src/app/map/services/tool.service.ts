@@ -1,4 +1,4 @@
-import { Injectable, Injector } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';

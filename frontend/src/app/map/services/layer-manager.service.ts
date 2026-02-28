@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Map as OlMap } from 'ol';
 import Feature, { FeatureLike } from 'ol/Feature';
 import { Style } from 'ol/style';
