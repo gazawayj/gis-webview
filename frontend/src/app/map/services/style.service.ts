@@ -13,7 +13,6 @@ export class StyleService {
 
   constructor() { }
 
-  /** ================= RANDOM GENERATORS ================= */
   getRandomColor(): string {
     if (this.usedColors.size >= this.colorsPool.length) this.usedColors.clear();
     const available = this.colorsPool.filter(c => !this.usedColors.has(c));
@@ -30,7 +29,6 @@ export class StyleService {
     return shape;
   }
 
-  /** ==================== MAIN STYLE GETTER ==================== */
   getLayerStyle(options: { type: 'point' | 'line' | 'label' | 'polygon', baseColor?: string, shape?: ShapeType, text?: string }): Style {
     const color = options.baseColor || this.getRandomColor();
     switch (options.type) {
@@ -75,7 +73,6 @@ export class StyleService {
     }
   }
 
-  /** ==================== PRIVATE HELPERS ==================== */
   private createShapeImage(shape: ShapeType, color: string) {
     const lower = shape.toLowerCase();
     if (['square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star'].includes(lower)) {
