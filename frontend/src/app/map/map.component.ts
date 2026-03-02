@@ -12,6 +12,7 @@ import { ShapeType } from './constants/symbol-constants';
 import { ModalFactoryService } from './factories/modal.factory';
 import { LayerConfig } from './models/layer-config.model';
 import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-map',
@@ -23,6 +24,7 @@ import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 })
 export class MapComponent implements AfterViewInit {
 
+  @ViewChild('aiPromptTextarea') aiPromptTextarea?: ElementRef<HTMLTextAreaElement>;
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
@@ -30,6 +32,7 @@ export class MapComponent implements AfterViewInit {
 
   aiPrompt = '';
   private aiModalRef!: OverlayRef;
+  aiResults: Array<{ name: string; lon: number; lat: number; selected: boolean }> = [];
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   zoomDisplay = '2';
@@ -48,6 +51,8 @@ export class MapComponent implements AfterViewInit {
   consoleInput = '';
   pluginLayerName = '';
 
+  isLoading = false;
+
   private dragOrder: LayerConfig[] = [];
   toolList: ToolType[] = [];
 
@@ -57,6 +62,7 @@ export class MapComponent implements AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private vcr = inject(ViewContainerRef);
   private modalFactory = inject(ModalFactoryService);
+  private http = inject(HttpClient);
 
   private modalRef!: OverlayRef;
   private pluginModalRef!: OverlayRef;
@@ -86,9 +92,7 @@ export class MapComponent implements AfterViewInit {
       if (this.mapFacade.getActivePlugin()) this.openPluginSaveModal();
     });
 
-    this.toolService.activeTool$.subscribe(tool => {
-      this.activateToolFromService(tool);
-    });
+    this.toolService.activeTool$.subscribe(tool => this.activateToolFromService(tool));
 
     this.mapFacade.trackPointer((lon, lat, zoom) => {
       this.currentLon = lon;
@@ -102,24 +106,18 @@ export class MapComponent implements AfterViewInit {
   private activateToolFromService(tool: ToolType) {
     this.closeSidebar();
 
-    if (tool === 'none' || !tool) {
+    if (!tool || tool === 'none') {
       this.mapFacade.activateTool(undefined as any);
       this.toolList = [];
       this.cdr.detectChanges();
       return;
     }
 
-    const plugin = this.toolService.createPlugin(tool, this.layerManager);
-
+    const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
     if (plugin) {
       this.mapFacade.activateTool(plugin);
       this.toolList = [tool];
-
-      if (tool === 'ai-analysis') {
-        // Open AI modal from MapComponent
-        this.openAiFeatureFindModal();
-      }
-
+      if (tool === 'ai-analysis') this.openAiFeatureFindModal();
     } else {
       this.mapFacade.activateTool(undefined as any);
       this.toolList = [];
@@ -128,13 +126,9 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  activateTool(tool: ToolType) {
-    this.toolService.setActiveTool(tool);
-  }
+  activateTool(tool: ToolType) { this.toolService.setActiveTool(tool); }
 
-  private updateDragOrder() {
-    this.dragOrder = [...this.layerManager.getLayersForPlanet(this.currentPlanet)];
-  }
+  private updateDragOrder() { this.dragOrder = [...this.layerManager.getLayersForPlanet(this.currentPlanet)]; }
 
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>) {
     const newOrder = [...this.sidebarLayers];
@@ -171,17 +165,9 @@ export class MapComponent implements AfterViewInit {
 
   private updateLabels() {
     switch (this.currentPlanet) {
-      case 'moon':
-        this.lonLabel = 'Selenographic Longitude';
-        this.latLabel = 'Selenographic Latitude';
-        break;
-      case 'mars':
-        this.lonLabel = 'Areographic Longitude';
-        this.latLabel = 'Areographic Latitude';
-        break;
-      default:
-        this.lonLabel = 'Longitude';
-        this.latLabel = 'Latitude';
+      case 'moon': this.lonLabel = 'Selenographic Longitude'; this.latLabel = 'Selenographic Latitude'; break;
+      case 'mars': this.lonLabel = 'Areographic Longitude'; this.latLabel = 'Areographic Latitude'; break;
+      default: this.lonLabel = 'Longitude'; this.latLabel = 'Latitude';
     }
   }
 
@@ -196,7 +182,6 @@ export class MapComponent implements AfterViewInit {
     this.newLayerDescription = '';
     this.modalRef = this.modalFactory.open({ template: this.addLayerModal, vcr: this.vcr });
   }
-
   closeAddLayer() { this.modalFactory.close(this.modalRef); }
   cancelAddLayer() { this.closeAddLayer(); }
 
@@ -204,42 +189,34 @@ export class MapComponent implements AfterViewInit {
   openPluginSaveModal() {
     const activePlugin = this.mapFacade.getActivePlugin();
     const now = new Date();
-    const timestamp = now.getTime();
-    const toolName = activePlugin?.name || 'Layer';
-    this.pluginLayerName = `${toolName}_${timestamp}`;
-
-    this.pluginModalRef = this.modalFactory.open({
-      template: this.pluginSaveModal,
-      vcr: this.vcr,
-      panelClass: 'layer-modal',
-      width: '440px'
-    });
-
+    this.pluginLayerName = `${activePlugin?.name || 'Layer'}_${now.getTime()}`;
+    this.pluginModalRef = this.modalFactory.open({ template: this.pluginSaveModal, vcr: this.vcr, panelClass: 'layer-modal', width: '440px' });
     this.cdr.detectChanges();
   }
-
-  closePluginSaveModal() {
-    if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
-  }
+  closePluginSaveModal() { if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef); }
 
   confirmSavePlugin(name?: string) {
     const layerName = name?.trim() || this.pluginLayerName;
-
     const pluginLayer = this.mapFacade.saveByActivePlugin(layerName);
-
     if (pluginLayer) {
       this.layerManager.styleService.setLayerShape(pluginLayer.id, pluginLayer.shape);
       this.updateDragOrder();
     }
-
     this.toolService.clearTool();
     this.closePluginSaveModal();
   }
-
   cancelPluginSave() {
     this.mapFacade.cancelActivePlugin();
     this.toolService.clearTool();
     this.closePluginSaveModal();
+  }
+
+  handleAiKeydown(event: KeyboardEvent) {
+    // Enter triggers search unless Shift+Enter
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault(); // Prevent newline
+      if (this.aiPrompt.trim()) this.confirmAiFeatureFind();
+    }
   }
 
   // ---------- AI FEATURE FIND ----------
@@ -251,7 +228,11 @@ export class MapComponent implements AfterViewInit {
       panelClass: 'layer-modal',
       width: '420px'
     });
+
     this.cdr.detectChanges();
+
+    // Focus textarea after modal renders
+    setTimeout(() => this.aiPromptTextarea?.nativeElement.focus(), 0);
   }
 
   cancelAiFeatureFind() {
@@ -260,24 +241,38 @@ export class MapComponent implements AfterViewInit {
     this.toolService.clearTool();
   }
 
-  confirmAiFeatureFind() {
-    const prompt = this.aiPrompt.trim();
-    if (!prompt) return;
+  async confirmAiFeatureFind() {
+  if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
 
-    const randomCoords: [number, number][] = [
-      [this.currentLon + 0.01, this.currentLat + 0.01],
-      [this.currentLon + 0.02, this.currentLat - 0.01],
-    ];
+  const prompt = this.aiPrompt.trim();
+  if (!prompt) return;
 
-    const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
-    if (activePlugin) {
-      activePlugin.addAIPoints(randomCoords);
-      activePlugin.onSave({ name: `AI_${Date.now()}` });
-      this.updateDragOrder();
-    }
+  const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
+  if (!activePlugin) return;
 
-    this.cancelAiFeatureFind();
+  this.isLoading = true;
+  this.cdr.detectChanges(); // show spinner immediately
+
+  try {
+    const results = await activePlugin.runAIQuery(prompt);
+    this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
+
+    const selectedCoords: [number, number][] = this.aiResults
+      .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
+      .map(r => [r.lon, r.lat]);
+
+    if (selectedCoords.length) activePlugin.addPoints(selectedCoords);
+    if (selectedCoords.length) activePlugin.onSave({ name: `AI_${Date.now()}` });
+    this.updateDragOrder();
+  } catch (err) {
+    console.error('AI Feature Find failed', err);
+  } finally {
+    this.isLoading = false;
+    this.cdr.detectChanges(); // hide spinner
+    this.mapFacade.cancelActivePlugin();
+    this.toolService.clearTool();
   }
+}
 
   trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
 }

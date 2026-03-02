@@ -1,14 +1,19 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';
+import { StyleService } from './style.service';
 import { CoordinateCapturePlugin } from '../../tools/coordinate-capture.plugin';
 import { DistanceToolPlugin } from '../../tools/distance-tool.plugin';
 import { AreaToolPlugin } from '../../tools/area-tool.plugin';
 import { AIAnalysisPlugin } from '../../tools/ai-analysis.plugin';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {
+
+  // Inject StyleService properly
+  private styleService = inject(StyleService);
 
   private activeToolSubject = new BehaviorSubject<ToolType>('none');
   activeTool$ = this.activeToolSubject.asObservable();
@@ -23,13 +28,16 @@ export class ToolService {
     this.activeToolSubject.next('none');
   }
 
-  // Centralized plugin creation
+  // Centralized plugin creation, optional HttpClient for AI plugins
   createPlugin(
     tool: ToolType,
-    layerManager: LayerManagerService
+    layerManager: LayerManagerService,
+    http?: HttpClient
   ) {
-    return this.tools.find(t => t.type === tool)
-      ?.pluginFactory?.(layerManager);
+    const toolDef = this.tools.find(t => t.type === tool);
+    if (!toolDef?.pluginFactory) return undefined;
+
+    return toolDef.pluginFactory(layerManager, http);
   }
 
   tools: ToolDefinition[] = [
@@ -55,7 +63,10 @@ export class ToolService {
       name: 'AI Feature Find',
       type: 'ai-analysis',
       icon: 'assets/icons/ai-featureFind-tool.svg',
-      pluginFactory: (lm) => new AIAnalysisPlugin(lm)
+      pluginFactory: (lm, http?: HttpClient) => {
+        if (!http) throw new Error('HttpClient must be provided for AIAnalysisPlugin');
+        return new AIAnalysisPlugin(lm, http, this.styleService); // ✅ styleService injected
+      }
     }
   ];
 

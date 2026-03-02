@@ -1,5 +1,6 @@
 import { LayerManagerService } from "../services/layer-manager.service";
 import { Tool } from "../../tools/tool";
+import { HttpClient } from "@angular/common/http";
 
 export type ToolType =
   | 'coordinate'
@@ -13,5 +14,5 @@ export interface ToolDefinition {
   type: ToolType;
   icon?: string;
 
-  pluginFactory?: (layerManager: LayerManagerService) => Tool;
+  pluginFactory: (layerManager: any, http?: HttpClient) => any;
 }
