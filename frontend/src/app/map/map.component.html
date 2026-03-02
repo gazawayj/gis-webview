@@ -26,7 +26,7 @@
         <div class="layer-items-container">
           @for (layer of sidebarLayers; track layer.id) {
           <div class="layer-item-wrapper" cdkDrag>
-            <app-layer-item [layer]="layer" (toggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
+            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
               (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
             </app-layer-item>
           </div>
