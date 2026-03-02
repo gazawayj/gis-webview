@@ -20,7 +20,7 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  protected constructor(protected layerManager: LayerManagerService) { }
+  protected constructor(protected layerManager: LayerManagerService) {}
 
   activate(map: OlMap): void {
     this.map = map;
@@ -89,7 +89,7 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   private cleanupRegisteredResources(): void {
-    this.interactions.forEach(i => this.map?.removeInteraction(i));
+    this.interactions.forEach((i) => this.map?.removeInteraction(i));
     this.interactions = [];
 
     this.mapListeners.forEach(({ type, handler }) => this.map?.un(type as any, handler));
@@ -102,24 +102,27 @@ export abstract class ToolPluginBase implements Tool {
   save(name: string): LayerConfig | null {
     if (!this.tempSource) return null;
 
-    const allFeatures = this.tempSource.getFeatures().map(f => {
+    const allFeatures = this.tempSource.getFeatures().map((f) => {
       const clone = f.clone();
       clone.setId(f.getId() ?? crypto.randomUUID());
 
-      const fType = clone.get('featureType');
+      // Block scope for lexical declaration to avoid ESLint errors
+      {
+        const fType = clone.get('featureType');
 
-      // Treat all vertices as persistent, not just labels
-      if (fType === 'label' || fType === 'vertex' || fType === 'pointerVertex') {
-        clone.set('isToolFeature', false);
-      }
+        // Treat all vertices as persistent, not just labels
+        if (fType === 'label' || fType === 'vertex' || fType === 'pointerVertex') {
+          clone.set('isToolFeature', false);
+        }
 
-      const text = f.get('text');
-      if (fType === 'label' && text) clone.set('text', text);
+        const text = f.get('text');
+        if (fType === 'label' && text) clone.set('text', text);
 
-      const parent = f.get('parentFeature') as Feature | undefined;
-      if (parent?.getId) {
-        clone.set('parentFeatureId', String(parent.getId()));
-        clone.unset('parentFeature');
+        const parent = f.get('parentFeature') as Feature | undefined;
+        if (parent?.getId) {
+          clone.set('parentFeatureId', String(parent.getId()));
+          clone.unset('parentFeature');
+        }
       }
 
       return clone;
@@ -171,6 +174,6 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   protected abstract onActivate(): void;
-  protected onDeactivate(): void { }
-  protected onSave?(layer: LayerConfig): void { }
+  protected onDeactivate(): void {}
+  protected onSave?(layer: LayerConfig): void {}
 }

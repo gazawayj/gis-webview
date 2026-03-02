@@ -237,7 +237,6 @@ export class LayerManagerService {
     if (!(layer.olLayer instanceof VectorLayer)) return;
 
     layer.features?.forEach(f => {
-      const feat = f as Feature;
       const fType = f.get('featureType');
       if (fType === 'point' || fType === 'vertex') {
         f.set('shape', layer.shape);
@@ -245,8 +244,6 @@ export class LayerManagerService {
     });
 
     layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
-      if (layer.styleFn) return layer.styleFn(feature);
-
       const feat = feature as Feature;
       const fType = feat.get('featureType') as string | undefined;
       const text = feat.get('text');
@@ -261,16 +258,19 @@ export class LayerManagerService {
       }
 
       switch (layer.geometryType) {
-        case 'line':
+        case 'line': {
           return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
-        case 'polygon':
+        }
+        case 'polygon': {
           return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
-        default:
+        }
+        default: {
           const symbolShape =
             fType === 'point' || fType === 'vertex'
               ? (feat.get('shape') as ShapeType) || layer.shape
               : undefined;
           return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: symbolShape })];
+        }
       }
     });
 
