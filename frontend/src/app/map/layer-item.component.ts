@@ -28,7 +28,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 export class LayerItemComponent implements OnDestroy {
   @Input() layer!: LayerConfig;
 
-  @Output() toggles = new EventEmitter<void>();
+  @Output() toggle = new EventEmitter<void>();
   @Output() colorPicked = new EventEmitter<string>();
   @Output() shapeSelected = new EventEmitter<ShapeType>();
   @Output() remove = new EventEmitter<void>();
@@ -46,7 +46,7 @@ export class LayerItemComponent implements OnDestroy {
   /** Toggle layer visibility */
   toggleVisibility(event: MouseEvent): void {
     event.stopPropagation();
-    this.toggles.emit();
+    this.toggle.emit();
   }
 
   /** Emit color picked */

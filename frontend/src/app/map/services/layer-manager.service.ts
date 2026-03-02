@@ -294,7 +294,9 @@ export class LayerManagerService {
 
   toggle(layer: LayerConfig) {
     layer.visible = !layer.visible;
-    layer.olLayer.setVisible(layer.visible);
+    if (layer.olLayer) {
+      layer.olLayer.setVisible(layer.visible);
+    }
   }
 
   reorderLayers(sidebarOrder: LayerConfig[]) {

@@ -15,7 +15,7 @@
 
       <!-- Layer list -->
       <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers"
-           (cdkDropListDropped)="onLayerDropped($event)">
+        (cdkDropListDropped)="onLayerDropped($event)">
 
         <!-- Add Layer button -->
         <div class="add-layer">
@@ -25,21 +25,17 @@
         <!-- Layer items (stacked bottom-up) -->
         <div class="layer-items-container">
           @for (layer of sidebarLayers; track layer.id) {
-            <div class="layer-item-wrapper" cdkDrag>
-              <app-layer-item
-                [layer]="layer"
-                (toggle)="toggleLayer(layer)"
-                (remove)="removeLayer(layer)"
-                (colorPicked)="onColorPicked(layer, $event)"
-                (shapeSelected)="selectShape(layer, $event)">
-              </app-layer-item>
-            </div>
+          <div class="layer-item-wrapper" cdkDrag>
+            <app-layer-item [layer]="layer" (toggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
+              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
+            </app-layer-item>
+          </div>
           }
         </div>
 
         <!-- No layers tooltip -->
         @if (sidebarLayers.length === 0) {
-          <div class="no-layers-tooltip">No layers added.</div>
+        <div class="no-layers-tooltip">No layers added.</div>
         }
       </div>
 
@@ -50,10 +46,10 @@
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of regularTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-            [class.active]="toolList.includes(tool.type)">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
+          [class.active]="toolList.includes(tool.type)">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
@@ -63,10 +59,10 @@
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of aiTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-            [class.active]="toolList.includes(tool.type)">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
+          [class.active]="toolList.includes(tool.type)">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
@@ -101,18 +97,13 @@
       <div class="layer-modal-body">
         <label>
           Layer Name
-          <input
-            [(ngModel)]="pluginLayerName"
-            (keydown.enter)="confirmSavePlugin(pluginLayerName)"
-            placeholder="Enter custom layer name..."
-          />
+          <input [(ngModel)]="pluginLayerName" (keydown.enter)="confirmSavePlugin(pluginLayerName)"
+            placeholder="Enter custom layer name..." />
         </label>
       </div>
 
       <div class="modal-buttons">
-        <button
-          [disabled]="!pluginLayerName.trim()"
-          (click)="confirmSavePlugin(pluginLayerName)">
+        <button [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">
           Save
         </button>
         <button (click)="cancelPluginSave()">Cancel</button>
