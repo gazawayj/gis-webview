@@ -7,7 +7,7 @@ import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
 import { LayerConfig } from '../models/layer-config.model';
-import { Tool } from '../tools/tool';
+import { Tool } from '../../tools/tool';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
@@ -17,6 +17,7 @@ export class MapFacadeService {
   map!: Map;
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
   private activePlugin?: Tool;
+  private aiModalOpener?: () => void;
 
   getActivePlugin(): Tool | undefined {
     return this.activePlugin;
@@ -94,5 +95,13 @@ export class MapFacadeService {
     if (!this.activePlugin) return;
     this.activePlugin.cancel();
     this.activePlugin = undefined;
+  }
+
+  registerAiModalOpener(fn: () => void) {
+    this.aiModalOpener = fn;
+  }
+
+  openAiModal() {
+    this.aiModalOpener?.();
   }
 }

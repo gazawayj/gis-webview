@@ -1,7 +1,7 @@
 import Feature from 'ol/Feature';
 import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
-import { LayerManagerService } from '../services/layer-manager.service';
+import { LayerManagerService } from '../map/services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
 
 export class CoordinateCapturePlugin extends ToolPluginBase {

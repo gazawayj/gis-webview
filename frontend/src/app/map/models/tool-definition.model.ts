@@ -1,5 +1,5 @@
 import { LayerManagerService } from "../services/layer-manager.service";
-import { Tool } from "../tools/tool";
+import { Tool } from "../../tools/tool";
 
 export type ToolType =
   | 'coordinate'

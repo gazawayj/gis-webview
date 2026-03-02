@@ -110,4 +110,26 @@
       </div>
     </div>
   </ng-template>
+
+  <ng-template #aiFeatureFindModal>
+    <div class="modal-body">
+      <h2>AI Feature Find</h2>
+
+      <p>
+        Use natural language to ask AI to find a feature and create a point layer representing it.
+        Examples:
+        • "Find the Eiffel Tower"
+        • "Locate Mount Fuji"
+        • "Where is the nearest volcano?"
+      </p>
+
+      <textarea rows="4" style="width:100%" placeholder="Describe the feature..." [(ngModel)]="aiPrompt">
+    </textarea>
+
+      <div class="modal-actions">
+        <button (click)="cancelAiFeatureFind()">Cancel</button>
+        <button (click)="confirmAiFeatureFind()">Save</button>
+      </div>
+    </div>
+  </ng-template>
 </div>

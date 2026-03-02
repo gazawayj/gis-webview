@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';
-import { CoordinateCapturePlugin } from '../tools/coordinate-capture.plugin';
-import { DistanceToolPlugin } from '../tools/distance-tool.plugin';
-import { AreaToolPlugin } from '../tools/area-tool.plugin';
-import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
+import { CoordinateCapturePlugin } from '../../tools/coordinate-capture.plugin';
+import { DistanceToolPlugin } from '../../tools/distance-tool.plugin';
+import { AreaToolPlugin } from '../../tools/area-tool.plugin';
+import { AIAnalysisPlugin } from '../../tools/ai-analysis.plugin';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {
@@ -13,7 +13,6 @@ export class ToolService {
   private activeToolSubject = new BehaviorSubject<ToolType>('none');
   activeTool$ = this.activeToolSubject.asObservable();
 
-  // Prevent duplicate emissions
   setActiveTool(tool: ToolType) {
     if (this.activeToolSubject.value === tool) return;
     this.activeToolSubject.next(tool);
@@ -24,7 +23,7 @@ export class ToolService {
     this.activeToolSubject.next('none');
   }
 
-  // Plugin creation
+  // Centralized plugin creation
   createPlugin(
     tool: ToolType,
     layerManager: LayerManagerService

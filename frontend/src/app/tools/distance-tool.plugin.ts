@@ -2,10 +2,10 @@ import Draw from 'ol/interaction/Draw';
 import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { getLength } from 'ol/sphere';
-import { PLANETS } from '../constants/map-constants';
-import { LayerManagerService } from '../services/layer-manager.service';
+import { PLANETS } from '../map/constants/map-constants';
+import { LayerManagerService } from '../map/services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
-import { LayerConfig } from '../models/layer-config.model';
+import { LayerConfig } from '../map/models/layer-config.model';
 import VectorSource from 'ol/source/Vector';
 
 export class DistanceToolPlugin extends ToolPluginBase {

@@ -3,8 +3,8 @@ import Polygon from 'ol/geom/Polygon';
 import Point from 'ol/geom/Point';
 import { getArea } from 'ol/sphere';
 import Draw from 'ol/interaction/Draw';
-import { PLANETS } from '../constants/map-constants';
-import { LayerManagerService } from '../services/layer-manager.service';
+import { PLANETS } from '../map/constants/map-constants';
+import { LayerManagerService } from '../map/services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
 
 export class AreaToolPlugin extends ToolPluginBase {
