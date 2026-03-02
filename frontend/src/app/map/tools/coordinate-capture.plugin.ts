@@ -3,12 +3,10 @@ import { Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
-import { LayerConfig } from '../models/layer-config.model';
 
 export class CoordinateCapturePlugin extends ToolPluginBase {
   name = 'coordinate-capture';
 
-  private hoverLayer?: LayerConfig;
   private hoverFeature?: Feature;
 
   constructor(layerManager: LayerManagerService) {
@@ -18,50 +16,40 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
-    // Create a temporary hover layer via LayerManager
-    this.hoverLayer = this.layerManager.createLayer({
-      planet: this.layerManager.currentPlanet,
-      name: '__hover_temp__',
-      isTemporary: true,
-      features: [],
-    });
+    // Create a temporary hover feature
+    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point', undefined, undefined, false);
+    this.tempSource.addFeature(this.hoverFeature);
 
-    // Hover feature is a point type
-    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point');
-
-    this.hoverLayer.olLayer.getSource()?.addFeature(this.hoverFeature);
-
-    // Move hover point
+    // Update hover feature on pointer move
     this.registerMapListener('pointermove', (evt: any) => {
       this.hoverFeature?.setGeometry(new Point(evt.coordinate));
     });
 
-    // Left click — add point + label
+    // On click, add point and persistent label
     this.registerMapListener('singleclick', (evt: any) => {
       if (evt.originalEvent?.button !== 0) return;
       const coord = evt.coordinate as [number, number];
 
-      const pointFeature = this.createFeature(new Point(coord), 'point');
+      // Persistent point feature
+      const pointFeature = this.createFeature(new Point(coord), 'point', undefined, undefined, true);
+      if (this.activeLayer?.shape) pointFeature.set('shape', this.activeLayer.shape);
       this.tempSource?.addFeature(pointFeature);
 
+      // Persistent label
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
-
-      const labelFeature = this.createFeature(new Point(coord), 'label', labelText, pointFeature, true);
+      const labelFeature = this.createFeature(new Point(coord), 'label', labelText, pointFeature, false, true);
+      if (this.activeLayer?.shape) labelFeature.set('shape', this.activeLayer.shape);
       this.tempSource?.addFeature(labelFeature);
     });
 
-    // ESC cancels tool
+    // ESC cancels
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
   }
 
   protected override onDeactivate(): void {
-    if (this.hoverLayer) {
-      this.layerManager.remove(this.hoverLayer);
-    }
-    this.hoverLayer = undefined;
     this.hoverFeature = undefined;
   }
 }

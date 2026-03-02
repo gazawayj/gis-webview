@@ -16,26 +16,30 @@ export abstract class ToolPluginBase implements Tool {
   protected activeLayer?: LayerConfig;
 
   private interactions: Interaction[] = [];
+  protected liveLabels: Feature[] = [];
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  protected constructor(protected layerManager: LayerManagerService) {}
+  protected constructor(protected layerManager: LayerManagerService) { }
 
-  // ------------------- ACTIVATE / DEACTIVATE -------------------
   activate(map: OlMap): void {
     this.map = map;
 
+    // Create temporary layer for the tool
     this.activeLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name: '__tool_temp__',
       isTemporary: true,
     });
 
+    if (!this.activeLayer) return;
+
     const olLayer = this.activeLayer.olLayer as VectorLayer<VectorSource<Feature>>;
     const source = olLayer.getSource();
     if (!source) return;
     this.tempSource = source;
 
+    // Apply dynamic style
     olLayer.setStyle((feature) => {
       const f = feature as Feature;
       const fType = f.get('featureType') || 'point';
@@ -45,6 +49,7 @@ export abstract class ToolPluginBase implements Tool {
         baseColor: this.activeLayer?.color,
         shape: this.activeLayer?.shape,
         text,
+        layerId: this.activeLayer?.id,
       });
     });
 
@@ -55,9 +60,7 @@ export abstract class ToolPluginBase implements Tool {
     this.onDeactivate();
     this.cleanupRegisteredResources();
 
-    if (this.activeLayer) {
-      this.layerManager.remove(this.activeLayer);
-    }
+    if (this.activeLayer) this.layerManager.remove(this.activeLayer);
 
     this.map = undefined;
     this.tempSource = undefined;
@@ -68,7 +71,6 @@ export abstract class ToolPluginBase implements Tool {
     this.deactivate();
   }
 
-  // ------------------- REGISTER / CLEANUP -------------------
   protected registerInteraction(interaction: Interaction): void {
     if (!this.map) return;
     this.map.addInteraction(interaction);
@@ -87,7 +89,7 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   private cleanupRegisteredResources(): void {
-    this.interactions.forEach((i) => this.map?.removeInteraction(i));
+    this.interactions.forEach(i => this.map?.removeInteraction(i));
     this.interactions = [];
 
     this.mapListeners.forEach(({ type, handler }) => this.map?.un(type as any, handler));
@@ -97,57 +99,69 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
-  // ------------------- SAVE -------------------
   save(name: string): LayerConfig | null {
     if (!this.tempSource) return null;
-    const features = this.tempSource.getFeatures();
-    if (!features.length) return null;
 
-    const featureMap = new Map<string, Feature>();
-
-    const clonedFeatures = features.map((f) => {
+    const allFeatures = this.tempSource.getFeatures().map(f => {
       const clone = f.clone();
-      const id = String(f.getId() ?? crypto.randomUUID());
-      clone.setId(id);
-      featureMap.set(id, clone);
-      clone.set('isToolFeature', false);
-      return clone;
-    });
+      clone.setId(f.getId() ?? crypto.randomUUID());
 
-    clonedFeatures.forEach((f) => {
-      const parent = f.get('parentFeature');
-      if (parent && parent.getId) {
-        f.set('parentFeatureId', String(parent.getId()));
-        f.unset('parentFeature');
+      const fType = clone.get('featureType');
+
+      // Treat all vertices as persistent, not just labels
+      if (fType === 'label' || fType === 'vertex' || fType === 'pointerVertex') {
+        clone.set('isToolFeature', false);
       }
+
+      const text = f.get('text');
+      if (fType === 'label' && text) clone.set('text', text);
+
+      const parent = f.get('parentFeature') as Feature | undefined;
+      if (parent?.getId) {
+        clone.set('parentFeatureId', String(parent.getId()));
+        clone.unset('parentFeature');
+      }
+
+      return clone;
     });
 
     const newLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name,
-      features: clonedFeatures,
+      features: allFeatures,
       isTemporary: false,
     });
+
+    if (newLayer) this.layerManager.styleService.setLayerShape(newLayer.id, newLayer.shape);
 
     return newLayer ?? null;
   }
 
-  // ------------------- FEATURE CREATION -------------------
   protected createFeature(
     geom: import('ol/geom').Geometry,
     featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
     text?: string,
     parentFeature?: Feature,
-    isToolFeature: boolean = true
+    isToolFeature: boolean = true,
+    persistLabel: boolean = false
   ): Feature {
     const f = new Feature(geom);
-
     if (!f.getId()) f.setId(crypto.randomUUID());
 
     f.set('featureType', featureType);
     f.set('isToolFeature', isToolFeature);
+
+    if (['point', 'vertex', 'pointerVertex'].includes(featureType) && this.activeLayer) {
+      f.set('shape', this.activeLayer.shape);
+    }
+
     if (text) f.set('text', text);
     if (parentFeature) f.set('parentFeature', parentFeature);
+
+    if (featureType === 'label' && persistLabel) {
+      f.set('isToolFeature', false);
+      this.liveLabels.push(f);
+    }
 
     return f;
   }
@@ -156,8 +170,7 @@ export abstract class ToolPluginBase implements Tool {
     return this.tempSource?.getFeatures() ?? [];
   }
 
-  // ------------------- ABSTRACT HOOKS -------------------
   protected abstract onActivate(): void;
-  protected onDeactivate(): void {}
-  protected onSave?(layer: LayerConfig): void {}
+  protected onDeactivate(): void { }
+  protected onSave?(layer: LayerConfig): void { }
 }

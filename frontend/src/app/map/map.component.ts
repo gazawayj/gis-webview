@@ -138,12 +138,13 @@ export class MapComponent implements AfterViewInit {
 
   onColorPicked(layer: LayerConfig, color: string) {
     layer.color = color;
-    this.layerManager.updateStyle(layer);
+    this.layerManager.updateStyle(layer); // style pipeline handles color
   }
 
   selectShape(layer: LayerConfig, shape: ShapeType) {
     layer.shape = shape;
-    this.layerManager.updateStyle(layer);
+    this.layerManager.styleService.setLayerShape(layer.id, shape); // cache shape per layer
+    this.layerManager.updateStyle(layer); // rerender with new style
   }
 
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
@@ -256,12 +257,14 @@ export class MapComponent implements AfterViewInit {
 
   confirmSavePlugin(name?: string) {
     const layerName = name?.trim() || this.pluginLayerName;
-
     const pluginLayer = this.mapFacade.saveByActivePlugin(layerName);
 
     if (pluginLayer) {
+      // ensure layer-wide shape is cached
+      this.layerManager.styleService.setLayerShape(pluginLayer.id, pluginLayer.shape);
       this.updateDragOrder();
     }
+
     this.toolService.clearTool();
     this.closePluginSaveModal();
   }

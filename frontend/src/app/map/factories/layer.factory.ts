@@ -13,94 +13,107 @@ export type LayerFactory = (
     name: string;
     features: Feature[];
     color: string;
-    shape: ShapeType | 'line';
+    shape: ShapeType;
     isTemporary: boolean;
     styleFn: (f: FeatureLike) => Style | Style[];
     geometryType: GeometryType;
-  }>
+  }>,
+  idGenerator?: () => string
 ) => LayerConfig;
 
-// FACTORY
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
-  return (planet, options) => {
+  return (planet, options, idGenerator) => {
     const {
       name = `Layer-${Date.now()}`,
       features = [],
       color = styleService.getRandomColor(),
-      shape = styleService.getRandomShape() || 'circle',
+      shape,
       isTemporary = false,
       styleFn,
       geometryType: optGeometryType,
     } = options || {};
 
-    // Determine geometry type
-    const geometryType: GeometryType = optGeometryType
-      ? optGeometryType
-      : detectGeometryType(features, shape);
+    // ------------------- Determine layer-wide shape -------------------
+    const layerShape: ShapeType = shape || styleService.getRandomShape();
 
-    let configRef: LayerConfig;
+    // ------------------- Detect geometry type -------------------
+    const geometryType: GeometryType = optGeometryType ?? detectGeometryType(features);
 
-    const layerStyleFn: (f: FeatureLike) => Style | Style[] = styleFn
-      ? styleFn
-      : (f) => {
-          const feature = f as Feature;
-          const fType = feature.get('featureType') as string | undefined;
+    let configRef!: LayerConfig;
 
-          // Label styling
-          if (fType === 'label') {
-            return styleService.getLayerStyle({
-              type: 'label',
-              baseColor: configRef.color,
-              text: feature.get('text') as string | undefined,
-            });
-          }
+    // ------------------- Clone features and attach layer-wide shape -------------------
+    const clonedFeatures = features.map(f => {
+      const clone = f.clone();
+      const fType = clone.get('featureType');
+      if (fType === 'point' || fType === 'vertex') {
+        clone.set('shape', layerShape); // enforce valid layer-wide shape
+      }
+      return clone;
+    });
 
-          // Determine geometry styling type
-          let type: GeometryType = 'point';
-          if (fType === 'line' || configRef.geometryType === 'line') type = 'line';
-          else if (fType === 'polygon' || configRef.geometryType === 'polygon') type = 'polygon';
-
-          return styleService.getLayerStyle({
-            type,
-            baseColor: configRef.color,
-            shape: configRef.shape,
-          });
-        };
-
+    // ------------------- Create OpenLayers vector layer -------------------
     const vectorLayer = new VectorLayer({
-      source: new VectorSource({
-        features: features.map(f => f.clone())
-      }),
-      style: (f) => {
-        const result = layerStyleFn(f);
-        return Array.isArray(result) ? result : [result];
+      source: new VectorSource({ features: clonedFeatures }),
+      style: (feature: FeatureLike) => {
+        if (styleFn) return styleFn(feature);
+
+        const feat = feature as Feature;
+        const fType = feat.get('featureType') as string | undefined;
+
+        // Labels
+        if (fType === 'label') {
+          return styleService.getLayerStyle({
+            type: 'label',
+            baseColor: configRef.color,
+            text: feat.get('text') as string | undefined,
+          });
+        }
+
+        // Determine rendering geometry type
+        let type: GeometryType = 'point';
+        if (fType === 'line' || configRef.geometryType === 'line') type = 'line';
+        else if (fType === 'polygon' || configRef.geometryType === 'polygon') type = 'polygon';
+
+        // Vertices/points use only valid layerShape
+        const symbolShape =
+          fType === 'point' || fType === 'vertex'
+            ? (feat.get('shape') as ShapeType) || configRef.shape
+            : undefined;
+
+        return styleService.getLayerStyle({
+          type,
+          baseColor: configRef.color,
+          shape: symbolShape,
+        });
       },
     });
 
+    // ------------------- LayerConfig -------------------
     const config: LayerConfig = {
-      id: `${name}-${Date.now()}`,
+      id: idGenerator
+        ? idGenerator()
+        : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
       name,
       color,
-      shape,
+      shape: layerShape,
       visible: true,
       olLayer: vectorLayer,
       isTemporary,
       planet,
-      styleFn: layerStyleFn,
-      features: features.map(f => f.clone()),
+      styleFn,
+      features: clonedFeatures,
       geometryType,
     };
+
+    // Needed in style closure
     configRef = config;
 
     return config;
   };
 }
 
-//  HELPERS
-function detectGeometryType(
-  features: Feature[],
-  shape?: ShapeType | 'line'
-): GeometryType {
+// ------------------- Geometry detection helper -------------------
+function detectGeometryType(features: Feature[]): GeometryType {
   if (features.length) {
     for (const f of features) {
       const geomType = f.getGeometry()?.getType();
@@ -108,5 +121,6 @@ function detectGeometryType(
       if (geomType === 'Polygon' || geomType === 'MultiPolygon') return 'polygon';
     }
   }
-  return shape === 'line' ? 'line' : 'point';
+  // Default to 'point'; vertices will use layerShape
+  return 'point';
 }

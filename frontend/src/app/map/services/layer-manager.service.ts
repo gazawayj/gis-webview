@@ -18,22 +18,25 @@ import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
 
+type Planet = 'earth' | 'moon' | 'mars';
+
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
   public styleService = inject(StyleService);
   private http = inject(HttpClient);
 
   private _map?: OlMap;
-  currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
+  currentPlanet: Planet = 'earth';
 
   private registry = new Map<string, LayerConfig>();
-  planetCache: Record<'earth' | 'moon' | 'mars', LayerConfig[]> = { earth: [], moon: [], mars: [] };
-  private basemapRegistry: Record<'earth' | 'moon' | 'mars', LayerConfig> = { earth: null!, moon: null!, mars: null! };
-  dragOrder: LayerConfig[] = [];
+  planetCache: Record<Planet, LayerConfig[]> = { earth: [], moon: [], mars: [] };
 
+  private basemapRegistry: Record<Planet, LayerConfig> = { earth: null!, moon: null!, mars: null! };
+  private planetInitialized: Record<Planet, boolean> = { earth: false, moon: false, mars: false };
+
+  dragOrder: LayerConfig[] = [];
   private layerFactory: LayerFactory;
 
-  // Observable for UI to react to layers
   private layersSubject = new BehaviorSubject<LayerConfig[]>([]);
   layers$ = this.layersSubject.asObservable();
 
@@ -45,16 +48,62 @@ export class LayerManagerService {
     this._map = map;
   }
 
-  getLayersForPlanet(planet: 'earth' | 'moon' | 'mars'): LayerConfig[] {
+  getLayersForPlanet(planet: Planet): LayerConfig[] {
     return this.planetCache[planet].slice();
   }
 
-  // CREATE VECTOR LAYER
+  private initializePlanet(planet: Planet) {
+    if (this.planetInitialized[planet]) return;
+
+    if (planet === 'earth') {
+      this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe(csv => {
+        this.addManualLayer('earth', 'FIRMS Fires', 'FIRMS CSV', csv, 'CSV', 'latitude', 'longitude', 'system-firms');
+      });
+      this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
+        this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes');
+      });
+    }
+
+    this.planetInitialized[planet] = true;
+  }
+
+  loadPlanet(planet: Planet) {
+    if (!this._map) return;
+
+    this.currentPlanet = planet;
+    this.initializePlanet(planet);
+
+    this._map.getLayers().clear();
+
+    const basemap = this.createBasemap(planet);
+    this._map.addLayer(basemap.olLayer);
+
+    this.dragOrder
+      .filter(l => l.planet === planet && !l.isBasemap)
+      .slice()
+      .reverse()
+      .forEach(layer => {
+        this._map!.addLayer(layer.olLayer);
+        layer.olLayer.setVisible(layer.visible);
+      });
+
+    this.applyZOrder();
+    this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
+  }
+
+  private generateLayerId(layer: LayerConfig, planet: Planet, isTemporary?: boolean): string {
+    if (!isTemporary) {
+      return `${planet}:${layer.name.replace(/\s+/g, '_')}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    } else {
+      return `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    }
+  }
+
   createLayer(params: {
-    planet: 'earth' | 'moon' | 'mars';
+    planet: Planet;
     name?: string;
     features?: FeatureLike[];
-    shape?: ShapeType | 'line';
+    shape?: ShapeType;
     color?: string;
     id?: string;
     cache?: boolean;
@@ -64,7 +113,7 @@ export class LayerManagerService {
   }): LayerConfig {
     const {
       planet,
-      name = `Layer-${Date.now()}`,
+      name: incomingName,
       features = [],
       shape,
       color,
@@ -75,122 +124,169 @@ export class LayerManagerService {
       geometryType,
     } = params;
 
+    const defaultName = incomingName || (() => {
+      const now = new Date();
+      const MM = String(now.getMonth() + 1).padStart(2, '0');
+      const DD = String(now.getDate()).padStart(2, '0');
+      const HH = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      return `layer-${MM}${DD}${HH}${mm}${ss}`;
+    })();
+
+    const layerName = incomingName || defaultName;
+
     const layerFeatures: Feature[] = features
       .filter(f => f instanceof Feature)
-      .map(f => f.clone());
+      .map(f => {
+        const clone = f.clone();
+        const fType = f.get('featureType');
+        const text = f.get('text');
+        const parentId = f.get('parentFeatureId');
+
+        clone.set('featureType', fType);
+        if (text) clone.set('text', text);
+        if (parentId) clone.set('parentFeatureId', parentId); // preserve line link
+
+        if (['point', 'vertex'].includes(fType)) {
+          const symbolShape = shape || this.styleService.getRandomShape();
+          clone.set('shape', symbolShape);
+        }
+
+        return clone;
+      });
+
+    const layerShape: ShapeType = shape || this.styleService.getRandomShape();
 
     const layerConfig = this.layerFactory(planet, {
-      name,
+      name: layerName,
       features: layerFeatures,
-      shape,
+      shape: layerShape,
       color,
       styleFn,
       isTemporary,
       geometryType,
     });
 
-    const layerId = id || layerConfig.id;
+    layerConfig.id = id || this.generateLayerId(layerConfig, planet, isTemporary);
 
-    if (!this.registry.has(layerId)) {
-      this.registry.set(layerId, layerConfig);
+    if (!this.registry.has(layerConfig.id)) {
+      this.registry.set(layerConfig.id, layerConfig);
 
       if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
       this.dragOrder.unshift(layerConfig);
+
       if (this._map) this._map.addLayer(layerConfig.olLayer);
 
+      this.updateStyle(layerConfig);
       this.applyZOrder();
       this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
     }
 
-    return this.registry.get(layerId)!;
+    return this.registry.get(layerConfig.id)!;
   }
 
-  // ADD CSV OR GEOJSON LAYER
   addManualLayer(
-    planet: 'earth' | 'moon' | 'mars',
+    planet: Planet,
     name: string,
     description: string,
     fileContent?: string,
     sourceType: 'CSV' | 'GeoJSON' = 'CSV',
     latField?: string,
-    lonField?: string
+    lonField?: string,
+    id?: string
   ): LayerConfig | undefined {
     const features: Feature[] = [];
 
     if (fileContent) {
-      try {
-        if (sourceType === 'CSV') {
-          const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
-          parsed.data.forEach((row: any) => {
-            const lat = parseFloat(row[latField || 'latitude']);
-            const lon = parseFloat(row[lonField || 'longitude']);
-            if (!isNaN(lat) && !isNaN(lon)) {
-              const coords = fromLonLat([lon, lat]);
-              features.push(new Feature(new Point(coords)));
+      if (sourceType === 'CSV') {
+        const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
+        parsed.data.forEach((row: any) => {
+          const lat = parseFloat(row[latField || 'latitude']);
+          const lon = parseFloat(row[lonField || 'longitude']);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const coords = fromLonLat([lon, lat]);
+            const f = new Feature(new Point(coords));
+            f.set('featureType', 'point');
+            f.set('shape', this.styleService.getRandomShape());
+            features.push(f);
+          }
+        });
+      } else {
+        const geoFeatures = new GeoJSON().readFeatures(fileContent, {
+          dataProjection: 'EPSG:4326',
+          featureProjection: 'EPSG:3857',
+        });
+        geoFeatures.forEach(f => {
+          if (f instanceof Feature) {
+            const fType = f.get('featureType') || 'point';
+            f.set('featureType', fType);
+            if (fType === 'point' || fType === 'vertex') {
+              f.set('shape', this.styleService.getRandomShape());
             }
-          });
-        } else if (sourceType === 'GeoJSON') {
-          const geoFeatures = new GeoJSON().readFeatures(fileContent, {
-            dataProjection: 'EPSG:4326',
-            featureProjection: 'EPSG:3857',
-          });
-          features.push(...geoFeatures.filter(f => f instanceof Feature));
-        }
-      } catch (err) {
-        console.warn('Failed to parse layer file', err);
+            features.push(f);
+          }
+        });
       }
     }
 
-    return this.createLayer({ planet, name, features });
+    return this.createLayer({ planet, name, features, id });
   }
 
-  // UPDATE STYLE
   updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
+
+    layer.features?.forEach(f => {
+      const feat = f as Feature;
+      const fType = f.get('featureType');
+      if (fType === 'point' || fType === 'vertex') {
+        f.set('shape', layer.shape);
+      }
+    });
 
     layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
       if (layer.styleFn) return layer.styleFn(feature);
 
+      const feat = feature as Feature;
+      const fType = feat.get('featureType') as string | undefined;
+      const text = feat.get('text');
+
+      if (fType === 'label') {
+        return [this.styleService.getLayerStyle({
+          type: 'label',
+          text,
+          baseColor: layer.color,
+          layerId: layer.id,
+        })];
+      }
+
       switch (layer.geometryType) {
         case 'line':
-          return [
-            this.styleService.getLayerStyle({
-              type: 'line',
-              baseColor: layer.color
-            })
-          ];
-
+          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
         case 'polygon':
-          return [
-            this.styleService.getLayerStyle({
-              type: 'polygon',
-              baseColor: layer.color
-            })
-          ];
-
+          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
         default:
-          return [
-            this.styleService.getLayerStyle({
-              type: 'point',
-              baseColor: layer.color,
-              shape: layer.shape
-            })
-          ];
+          const symbolShape =
+            fType === 'point' || fType === 'vertex'
+              ? (feat.get('shape') as ShapeType) || layer.shape
+              : undefined;
+          return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: symbolShape })];
       }
     });
+
     layer.olLayer.changed();
   }
 
-  // REMOVE LAYER
   remove(layer?: LayerConfig) {
     if (!layer || !this._map) return;
 
     this._map.removeLayer(layer.olLayer);
     this.registry.delete(layer.id);
     this.dragOrder = this.dragOrder.filter(l => l.id !== layer.id);
+
     Object.keys(this.planetCache).forEach(p => {
-      this.planetCache[p as 'earth' | 'moon' | 'mars'] =
-        this.planetCache[p as 'earth' | 'moon' | 'mars'].filter(l => l.id !== layer.id);
+      this.planetCache[p as Planet] =
+        this.planetCache[p as Planet].filter(l => l.id !== layer.id);
     });
 
     this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
@@ -201,9 +297,16 @@ export class LayerManagerService {
     layer.olLayer.setVisible(layer.visible);
   }
 
-  private createBasemap(planet: 'earth' | 'moon' | 'mars'): LayerConfig {
+  reorderLayers(sidebarOrder: LayerConfig[]) {
+    sidebarOrder.slice().reverse().forEach((cfg, idx) => cfg.olLayer.setZIndex(idx + 1));
+    this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
+  }
+
+  private createBasemap(planet: Planet): LayerConfig {
     if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
+
     const layer = new TileLayer({ source: new XYZ({ url: BASEMAP_URLS[planet] }), zIndex: 0 });
+
     const config: LayerConfig = {
       id: `basemap-${planet}`,
       geometryType: 'line',
@@ -216,66 +319,19 @@ export class LayerManagerService {
       planet,
       isBasemap: true,
     };
+
     this.basemapRegistry[planet] = config;
     return config;
   }
 
-  loadPlanet(planet: 'earth' | 'moon' | 'mars') {
-    if (!this._map) return;
-
-    const persistent: LayerConfig[] = [];
-    this._map.getLayers().getArray().forEach(l => {
-      const cfg = Array.from(this.registry.values()).find(c => c.olLayer === l);
-      if (!cfg || cfg.isBasemap || cfg.isTemporary || cfg.planet !== this.currentPlanet) return;
-      persistent.push(cfg);
-    });
-    this.planetCache[this.currentPlanet] = persistent;
-
-    this._map.getLayers().clear();
-    this.currentPlanet = planet;
-
-    const basemap = this.createBasemap(planet);
-    this._map.addLayer(basemap.olLayer);
-
-    if (planet === 'earth') {
-      this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe(csv => {
-        const layer = this.addManualLayer(planet, 'FIRMS Fires', 'FIRMS CSV', csv, 'CSV', 'latitude', 'longitude');
-        if (layer) {
-          layer.olLayer.setVisible(true);
-          if (!this.dragOrder.includes(layer)) this.dragOrder.unshift(layer);
-        }
-      });
-
-      this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
-        const layer = this.addManualLayer(planet, 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON');
-        if (layer) {
-          layer.olLayer.setVisible(true);
-          if (!this.dragOrder.includes(layer)) this.dragOrder.unshift(layer);
-        }
-      });
-    }
-
-    this.planetCache[planet].forEach(layer => {
-      if (!this.dragOrder.includes(layer)) this.dragOrder.push(layer);
-      this._map?.addLayer(layer.olLayer);
-      layer.olLayer.setVisible(layer.visible);
-    });
-
-    this.applyZOrder();
-    this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
-  }
-
   applyZOrder() {
     if (!this._map) return;
+
     const nonBasemap = this.dragOrder.filter(l => !l.isBasemap);
     nonBasemap.slice().reverse().forEach((layer, idx) => {
       layer.olLayer.setZIndex(idx + 1);
     });
-    this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
-  }
 
-  reorderLayers(sidebarOrder: LayerConfig[]) {
-    sidebarOrder.slice().reverse().forEach((cfg, idx) => cfg.olLayer.setZIndex(idx + 1));
     this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
   }
 }

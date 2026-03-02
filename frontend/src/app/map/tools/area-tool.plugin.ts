@@ -20,24 +20,24 @@ export class AreaToolPlugin extends ToolPluginBase {
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
-    this.drawInteraction = new Draw({
-      source: this.tempSource,
-      type: 'Polygon',
-    });
-
+    this.drawInteraction = new Draw({ source: this.tempSource, type: 'Polygon' });
     this.registerInteraction(this.drawInteraction);
 
     this.drawInteraction.on('drawstart', (evt: any) => {
       this.currentFeature = evt.feature as Feature;
     });
 
-    // Update area label live
+    this.drawInteraction.on('drawend', () => {
+      if (!this.currentFeature) return;
+      this.updatePolygonFeature(this.currentFeature);
+      this.currentFeature = undefined;
+    });
+
     this.registerMapListener('pointermove', () => {
       if (!this.currentFeature) return;
       this.updatePolygonFeature(this.currentFeature);
     });
 
-    // ESC cancels tool
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
@@ -62,7 +62,6 @@ export class AreaToolPlugin extends ToolPluginBase {
       .filter(f => f.get('featureType') === 'label' && f.get('parentFeature') === feature)
       .forEach(f => this.tempSource?.removeFeature(f));
 
-    // Compute area
     const planet = this.layerManager.currentPlanet;
     const radius = PLANETS[planet].radius;
     const areaMeters = getArea(geom, { radius });
@@ -73,14 +72,9 @@ export class AreaToolPlugin extends ToolPluginBase {
 
     const centroid = this.getPolygonCentroid(coords as [number, number][]);
 
-    const labelFeature = this.createFeature(
-      new Point(centroid),
-      'label',
-      text,
-      feature,
-      true
-    );
-
+    // Persistent label
+    const labelFeature = this.createFeature(new Point(centroid), 'label', text, feature, false, true);
+    if (this.activeLayer?.shape) labelFeature.set('shape', this.activeLayer.shape);
     this.tempSource.addFeature(labelFeature);
   }
 
