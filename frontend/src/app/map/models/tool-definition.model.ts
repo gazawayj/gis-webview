@@ -1,5 +1,3 @@
-import { LayerManagerService } from "../services/layer-manager.service";
-import { Tool } from "../../tools/tool";
 import { HttpClient } from "@angular/common/http";
 
 export type ToolType =
