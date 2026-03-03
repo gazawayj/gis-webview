@@ -1,5 +1,5 @@
 import Feature from 'ol/Feature';
-import { LineString, Point } from 'ol/geom';
+import { LineString, MultiPolygon, Point, Polygon } from 'ol/geom';
 import { getLength } from 'ol/sphere';
 import { PLANETS } from '../map/constants/map-constants';
 import { ToolPluginBase } from './tool-base.plugin';
@@ -101,9 +101,40 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     }
 
     private getLayerPoints(layer: LayerConfig): [number, number][] {
-        return (layer.features || [])
-            .filter(f => f.getGeometry() instanceof Point && f.get('featureType') === 'point' && !f.get('isTempDistanceFeature'))
-            .map(f => (f.getGeometry() as Point).getCoordinates() as [number, number]);
+        const coords: [number, number][] = [];
+
+        (layer.features || [])
+            .filter(f => !f.get('isTempDistanceFeature')) // ignore temp features
+            .forEach(f => {
+                const geom = f.getGeometry();
+                if (!geom) return;
+
+                const type = geom.getType();
+                switch (type) {
+                    case 'Point':
+                        coords.push((geom as Point).getCoordinates() as [number, number]);
+                        break;
+                    case 'LineString':
+                        coords.push(...(geom as LineString).getCoordinates() as [number, number][]);
+                        break;
+                    case 'Polygon':
+                        // Flatten all rings
+                        (geom as Polygon).getCoordinates().forEach(ring => {
+                            coords.push(...ring as [number, number][]);
+                        });
+                        break;
+                    case 'MultiPolygon':
+                        // Flatten all polygons
+                        (geom as MultiPolygon).getCoordinates().forEach(poly => {
+                            poly.forEach(ring => coords.push(...ring as [number, number][]));
+                        });
+                        break;
+                    default:
+                        break;
+                }
+            });
+
+        return coords;
     }
 
     /** Build or rebuild KD-tree if points changed */

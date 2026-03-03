@@ -13,10 +13,11 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 
 import { GeometryType, LayerConfig } from '../models/layer-config.model';
-import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL } from '../constants/map-constants';
+import { BASEMAP_URLS, FIRMS_CSV_URL, EARTHQUAKE_GEOJSON_URL, MARS_LAYERS } from '../constants/map-constants';
 import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
+import VectorSource from 'ol/source/Vector';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
@@ -62,6 +63,10 @@ export class LayerManagerService {
       this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
         this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes');
       });
+    }
+
+    if (planet === 'mars') {
+      this.addMarsBuiltInLayers();
     }
 
     this.planetInitialized[planet] = true;
@@ -121,7 +126,6 @@ export class LayerManagerService {
     const layerFeatures: Feature[] = features
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => {
-        // If it's a tool-generated feature, use it directly to keep metadata intact
         if (f.get('isToolFeature') || f.get('isTempDistanceFeature')) {
           f.set('shape', finalShape);
           return f;
@@ -164,7 +168,6 @@ export class LayerManagerService {
     return this.registry.get(layerConfig.id)!;
   }
 
-
   addManualLayer(
     planet: Planet,
     name: string,
@@ -179,7 +182,6 @@ export class LayerManagerService {
     const features: Feature[] = [];
 
     if (fileContent) {
-
       if (sourceType === 'CSV') {
         const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
 
@@ -213,8 +215,27 @@ export class LayerManagerService {
     return this.createLayer({ planet, name, features, id });
   }
 
-  updateStyle(layer: LayerConfig) {
+  private addMarsBuiltInLayers() {
+    const geojsonPath = 'assets/layers/surface_ice_mars.geojson'; // relative to index.html
 
+    this.http.get(geojsonPath, { responseType: 'text' }).subscribe(content => {
+      const features = new GeoJSON().readFeatures(content, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: 'EPSG:3857'
+      });
+
+      this.createLayer({
+        planet: 'mars',
+        name: 'Surface Ice',
+        features,
+        geometryType: 'polygon',
+        color: '#00ffff',
+        shape: 'none',
+      });
+    });
+  }
+
+  updateStyle(layer: LayerConfig) {
     if (!(layer.olLayer instanceof VectorLayer)) return;
 
     layer.features?.forEach(f => {
@@ -222,39 +243,21 @@ export class LayerManagerService {
     });
 
     layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
-
       const feat = feature as Feature;
       const fType = feat.get('featureType');
       const text = feat.get('text');
 
       if (fType === 'label') {
-        return [this.styleService.getLayerStyle({
-          type: 'label',
-          text,
-          baseColor: layer.color
-        })];
+        return [this.styleService.getLayerStyle({ type: 'label', text, baseColor: layer.color })];
       }
 
       switch (layer.geometryType) {
-
         case 'line':
-          return [this.styleService.getLayerStyle({
-            type: 'line',
-            baseColor: layer.color
-          })];
-
+          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
         case 'polygon':
-          return [this.styleService.getLayerStyle({
-            type: 'polygon',
-            baseColor: layer.color
-          })];
-
+          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
         default:
-          return [this.styleService.getLayerStyle({
-            type: 'point',
-            baseColor: layer.color,
-            shape: layer.shape
-          })];
+          return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
       }
     });
 
@@ -269,8 +272,7 @@ export class LayerManagerService {
     this.dragOrder = this.dragOrder.filter(l => l.id !== layer.id);
 
     Object.keys(this.planetCache).forEach(p => {
-      this.planetCache[p as Planet] =
-        this.planetCache[p as Planet].filter(l => l.id !== layer.id);
+      this.planetCache[p as Planet] = this.planetCache[p as Planet].filter(l => l.id !== layer.id);
     });
 
     this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
@@ -322,10 +324,7 @@ export class LayerManagerService {
   }
 
   private sanitizeLayerName(name: string): string {
-    return name
-      .trim()
-      .replace(/[^a-zA-Z0-9 ]/g, '')
-      .replace(/\s+/g, '');
+    return name.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '');
   }
 
   private ensureUniqueName(planet: Planet, baseName: string): string {
