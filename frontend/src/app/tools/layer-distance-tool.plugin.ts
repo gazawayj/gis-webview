@@ -14,9 +14,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     modalRef?: OverlayRef;
     onConfirmComplete?: () => void;
 
-    protected override onActivate(): void {
-        // tempSource & activeLayer automatically created by ToolPluginBase
-    }
+    protected override onActivate(): void { }
 
     computeDistance(layerA: LayerConfig, layerB: LayerConfig): number {
         const radius = PLANETS[this.layerManager.currentPlanet].radius;
@@ -55,7 +53,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         this.tempSource.addFeature(lineFeature);
         this.tempSource.addFeature(labelFeature);
 
-        // --- Save via base pipeline (creates LayerConfig + registers with LayerManager)
+        // --- Save via base pipeline
         const newLayer = this.save(`layer-distance_${Date.now()}`);
 
         // --- Notify MapComponent to update sidebar
