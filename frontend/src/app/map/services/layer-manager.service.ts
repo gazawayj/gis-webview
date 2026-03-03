@@ -65,6 +65,7 @@ export class LayerManagerService {
       this.spinnerMessage = null;
       this.messageSubject.next('');
     }
+    this.applyZOrder();
   }
 
   public startExternalLoad(message?: string): void { this.beginLoad(message); }
