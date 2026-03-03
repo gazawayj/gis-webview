@@ -43,31 +43,31 @@ export class ToolService {
 
   tools: ToolDefinition[] = [
     {
-      name: 'Coordinate',
+      name: 'Coordinate Capture Tool',
       type: 'coordinate',
       icon: 'assets/icons/coordinate-tool.svg',
       pluginFactory: (lm) => new CoordinateCapturePlugin(lm)
     },
     {
-      name: 'Distance',
+      name: 'Distance Tool',
       type: 'distance',
       icon: 'assets/icons/distance-tool.svg',
       pluginFactory: (lm) => new DistanceToolPlugin(lm)
     },
     {
-      name: 'Layer Distance',
+      name: 'Distance Tool - Layers',
       type: 'layer-distance',
       icon: 'assets/icons/layer-distance-tool.svg',
       pluginFactory: (lm) => new LayerDistanceToolPlugin(lm)
     },
     {
-      name: 'Area',
+      name: 'Area Tool',
       type: 'area',
       icon: 'assets/icons/area-tool.svg',
       pluginFactory: (lm) => new AreaToolPlugin(lm)
     },
     {
-      name: 'AI Feature Find',
+      name: 'AI Feature Find Tool',
       type: 'ai-analysis',
       icon: 'assets/icons/ai-featureFind-tool.svg',
       pluginFactory: (lm, http?: HttpClient) => {
