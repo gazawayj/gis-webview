@@ -96,9 +96,8 @@ body {
   min-height: 0;
   background-color: var(--panel-bg);
   border-radius: 8px;
-  padding: 8px;
+  padding: 5px 8px 8px;
   gap: 4px;
-  padding-top: 5px;
   overflow: visible;
 }
 
@@ -114,7 +113,7 @@ body {
 
 .add-layer button {
   width: 100%;
-  padding: 0.1rem 0.1rem;
+  padding: 0.1rem;
   color: var(--primary-color);
   border: 1.5px dashed var(--primary-color);
   border-radius: 6px;
@@ -256,14 +255,44 @@ body {
   width: 100%;
   height: 100%;
   background: #000;
-  overflow: hidden;
+  position: relative;
 }
 
-/* =====================  DRAG/DROP  ===================== */
+/* Bottom-left map spinner overlay */
+.map-loading-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 12px 18px;
+  border-radius: 8px;
+  color: white;
+}
+
+.map-loading-overlay .spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 6px;
+}
+
+.map-loading-overlay .loading-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ===================== DRAG & DROP ===================== */
 .cdk-drag-preview,
 .cdk-drag-dragging {
   width: 100%;
-  display: end;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   border-radius: 6px;
@@ -277,7 +306,6 @@ body {
   background-color: var(--text-color-dark);
 }
 
-/* Drag handle inside preview */
 .cdk-drag-preview .drag-handle,
 .cdk-drag-dragging .drag-handle {
   cursor: grab;
@@ -291,7 +319,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Layer content inside preview (everything except drag handle) */
 .cdk-drag-preview .layer-content,
 .cdk-drag-dragging .layer-content {
   display: flex;
@@ -301,7 +328,6 @@ body {
   gap: 4px;
 }
 
-/* Close button / selectors inside preview */
 .cdk-drag-preview .close-btn,
 .cdk-drag-dragging .close-btn {
   margin-left: 4px;
@@ -319,13 +345,6 @@ body {
 }
 
 /* ===================== MODALS ===================== */
-.layer-modal,
-.layer-modal-header,
-.layer-modal-body,
-.layer-modal-body * {
-  pointer-events: auto;
-}
-
 .layer-modal {
   display: flex;
   flex-direction: column;
@@ -334,17 +353,17 @@ body {
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 20px 20px rgba(0,0,0,0.45);
   position: relative;
   z-index: 1000;
 }
 
 .layer-modal-header {
   display: flex;
-  color: var(--primary-color);
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
+  color: var(--primary-color);
   background: var(--background-color-medium-light);
   border-bottom: 1px solid var(--border-color-light);
 }
@@ -356,37 +375,6 @@ body {
   color: var(--primary-color);
 }
 
-.layer-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--background-color-medium-light);
-  border-top: 1px solid var(--border-color-light);
-}
-
-.layer-modal-footer button {
-  padding: 0.4rem 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  border-radius: 6px;
-  border: 1px solid var(--primary-color);
-  background: var(--text-color-light);
-  color: var(--primary-color);
-}
-
-.layer-modal-footer button:hover {
-  background: var(--button-color-highlight);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--primary-color);
-}
-
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
@@ -394,13 +382,12 @@ body {
   padding: 0.5rem 1rem;
   background: var(--background-color-medium-light);
   border-top: 1px solid var(--border-color-light);
-  pointer-events: auto;
 }
 
 /* ===================== TOOLTIP & MEASURE ===================== */
 .measure-tooltip {
   position: relative;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0,0,0,0.75);
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -424,7 +411,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   white-space: nowrap;
 }
 
@@ -435,38 +422,29 @@ body {
   background-color: var(--primary-color);
   border: 1px solid white;
   pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-
-/* ===================== AI FEATURE FIND MODAL ===================== */
+/* ===================== AI MODAL ===================== */
 .ai-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.35);
+  position: fixed; inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+  background: rgba(0,0,0,0.35);
   z-index: 10000;
-  animation: fadeIn 0.2s ease-out;
 }
 
 .ai-modal-card {
   background: var(--background-color-extra-light);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   width: 500px;
   max-width: 90%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family: var(--font-sans);
-  animation: slideDown 0.25s ease-out;
   color: var(--primary-color);
-  position: relative;
+  min-height: 280px;
 }
 
 .ai-modal-header {
@@ -480,15 +458,6 @@ body {
   font-size: 1.2rem;
 }
 
-.ai-modal-header .close-btn {
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  cursor: pointer;
-  color: var(--primary-color);
-  font-weight: 700;
-}
-
 .ai-modal-body {
   padding: 1rem 1.5rem;
   display: flex;
@@ -496,17 +465,8 @@ body {
   gap: 0.75rem;
   font-size: 0.95rem;
   color: var(--text-color-dark);
-}
-
-.ai-modal-body p {
-  margin: 0;
-}
-
-.ai-modal-body ul {
-  margin: 0.25rem 0 0.5rem 1.2rem;
-  padding: 0;
-  list-style: disc;
-  color: var(--primary-color);
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .ai-modal-body textarea {
@@ -536,7 +496,6 @@ body {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   border: 1px solid var(--primary-color);
 }
 
@@ -558,144 +517,10 @@ body {
   background: var(--primary-color-lighter);
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-top: 1px solid #eee;
-}
-
-.modal-actions button {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.modal-actions button:first-child {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.modal-actions button:first-child:hover {
-  background: #e0e0e0;
-}
-
-.modal-actions button:last-child {
-  background: #3b82f6;
-  color: #fff;
-}
-
-.modal-actions button:last-child:hover {
-  background: #2563eb;
-}
-
-.ai-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  animation: fadeInOverlay 0.3s ease-out forwards;
-}
-
-.spinner-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  animation: scaleUp 0.3s ease-out forwards;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #ccc;
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.loading-text {
-  margin-top: 12px;
-  font-weight: 600;
-  color: var(--primary-color);
-  opacity: 0;
-  animation: fadeInText 0.5s ease-out forwards;
-  animation-delay: 0.2s;
-}
-
-/* ===================== Animations ===================== */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes fadeInOverlay {
-  0% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleUp {
-  0% {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeInText {
-  0% {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
+/* ===================== ANIMATIONS ===================== */
+@keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+@keyframes fadeInOverlay { 0%{opacity:0;} 100%{opacity:1;} }
+@keyframes scaleUp { 0%{transform:scale(0.7);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+@keyframes fadeInText { 0%{opacity:0;transform:translateY(4px);} 100%{opacity:1;transform:translateY(0);} }
+@keyframes slideDown { from{transform:translateY(-20px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }

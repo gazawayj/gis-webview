@@ -10,19 +10,16 @@
       <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
     </div>
 
-    <!-- Sidebar content -->
     <div class="sidebar-content">
 
       <!-- Layer list -->
       <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers"
         (cdkDropListDropped)="onLayerDropped($event)">
 
-        <!-- Add Layer button -->
         <div class="add-layer">
           <button (click)="onAddLayer()">Add Layer</button>
         </div>
 
-        <!-- Layer items (stacked bottom-up) -->
         <div class="layer-items-container">
           @for (layer of sidebarLayers; track layer.id) {
           <div class="layer-item-wrapper" cdkDrag>
@@ -33,7 +30,6 @@
           }
         </div>
 
-        <!-- No layers tooltip -->
         @if (sidebarLayers.length === 0) {
         <div class="no-layers-tooltip">No layers added.</div>
         }
@@ -41,7 +37,7 @@
 
     </div>
 
-    <!-- Regular Toolbox -->
+    <!-- Toolboxes -->
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
@@ -54,7 +50,6 @@
       </div>
     </div>
 
-    <!-- AI Toolbox -->
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
@@ -67,25 +62,28 @@
       </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Map stats -->
     <div class="map-stats">
-      <div class="stat-item">
-        <span class="stat-label">{{ latLabel }}:</span>
-        <span class="stat-value">{{ formattedLat }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ lonLabel }}:</span>
-        <span class="stat-value">{{ formattedLon }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Zoom:</span>
-        <span class="stat-value">{{ zoomDisplay }}</span>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
       </div>
     </div>
 
   </aside>
 
-  <div #mapContainer class="map-container"></div>
+  <!-- Map -->
+  <div #mapContainer class="map-container">
+    <!-- Bottom-left spinner -->
+    <div class="map-loading-overlay" *ngIf="isLoading">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="loading-text">{{ loadingMessage }}</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Plugin Save Modal -->
   <ng-template #pluginSaveModal>
@@ -118,28 +116,19 @@
         </div>
         <div class="ai-modal-body">
           <p>Use natural language to find a feature on the <strong>currently selected planet</strong>.</p>
-          <p><em>Examples:</em></p>
           <ul>
             <li>“Find the Eiffel Tower” (Earth)</li>
             <li>“Locate Olympus Mons” (Mars)</li>
             <li>“Where is the biggest volcano?” (Moon)</li>
           </ul>
-          <textarea #aiPromptTextarea rows="4" style="width:100%" placeholder="Describe the feature..."
-            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading"></textarea>
+          <textarea #aiPromptTextarea rows="4" placeholder="Describe the feature..." [(ngModel)]="aiPrompt"
+            (keydown)="handleAiKeydown($event)" [disabled]="isLoading"></textarea>
         </div>
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
           <button class="confirm" [disabled]="!aiPrompt.trim() || isLoading"
             (click)="confirmAiFeatureFind()">Search</button>
         </div>
-        @if (isLoading) {
-        <div class="ai-loading-overlay">
-          <div class="spinner-container">
-            <div class="spinner"></div>
-            <div class="loading-text">Loading...</div>
-          </div>
-        </div>
-        }
       </div>
     </div>
   </ng-template>
@@ -152,10 +141,8 @@
           Measure Layer Distance
           <button class="close-btn" (click)="cancelLayerDistance()">✕</button>
         </div>
-
         <div class="ai-modal-body">
           <p>Select two layers to compute the distance between them:</p>
-
           <label>
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
@@ -164,7 +151,6 @@
               }
             </select>
           </label>
-
           <label>
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
@@ -173,27 +159,15 @@
               }
             </select>
           </label>
-
-          @if (distanceLayerA && distanceLayerB) {
-          <p>Distance: {{ distanceValue | number:'1.2-2' }} meters</p>
+          @if (distanceLayerA && distanceLayerB){
+          <p>Distance: {{ formattedDistance }}</p>
           }
         </div>
-
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
-          <button class="confirm" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">
-            Draw Line
-          </button>
+          <button class="confirm" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
+            Line</button>
         </div>
-
-        @if (isLoading) {
-        <div class="ai-loading-overlay">
-          <div class="spinner-container">
-            <div class="spinner"></div>
-            <div class="loading-text">Loading...</div>
-          </div>
-        </div>
-        }
       </div>
     </div>
   </ng-template>

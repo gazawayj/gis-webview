@@ -54,6 +54,7 @@ export class MapComponent implements AfterViewInit {
   pluginLayerName = '';
 
   isLoading = false;
+  loadingMessage = 'Loading...';
 
   private dragOrder: LayerConfig[] = [];
   toolList: ToolType[] = [];
@@ -61,7 +62,7 @@ export class MapComponent implements AfterViewInit {
   // Distance tool selections
   distanceLayerA?: LayerConfig;
   distanceLayerB?: LayerConfig;
-  distanceValue: number | null = null;
+  distanceValue = 0;
 
   public mapFacade = inject(MapFacadeService);
   private layerManager = inject(LayerManagerService);
@@ -91,6 +92,18 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
     this.updateDragOrder();
+
+    // Subscribe to loading state
+    this.layerManager.loading$.subscribe(isLoading => {
+      this.isLoading = isLoading;
+      this.cdr.detectChanges();
+    });
+
+    // Subscribe to loading messages
+    this.layerManager.loadingMessage$.subscribe(message => {
+      this.loadingMessage = message || 'Loading...';
+      this.cdr.detectChanges();
+    });
 
     const viewport = this.mapFacade.map.getViewport();
     viewport.addEventListener('contextmenu', (event: MouseEvent) => {
@@ -155,6 +168,13 @@ export class MapComponent implements AfterViewInit {
     this.dragOrder = newOrder;
     this.layerManager.reorderLayers(newOrder);
     this.cdr.detectChanges();
+  }
+
+  get formattedDistance(): string {
+    if (this.distanceValue < 1000) {
+      return `${this.distanceValue.toFixed(2)} m`;
+    }
+    return `${(this.distanceValue / 1000).toFixed(2)} km`;
   }
 
   toggleLayer(layer: LayerConfig) { this.layerManager.toggle(layer); this.cdr.detectChanges(); }
@@ -257,61 +277,56 @@ export class MapComponent implements AfterViewInit {
   }
 
   async confirmAiFeatureFind() {
-    const prompt = this.aiPrompt.trim();
-    if (!prompt) return;
+  const prompt = this.aiPrompt.trim();
+  if (!prompt) return;
 
-    const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
-    if (!activePlugin) return;
+  const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
+  if (!activePlugin) return;
 
-    this.isLoading = true;          // start spinner
-    this.cdr.detectChanges();       // update UI
+  try {
+    // Run AI query
+    const results = await activePlugin.runAIQuery(prompt, false);
+    this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
 
-    try {
-      // Run AI query
-      const results = await activePlugin.runAIQuery(prompt, false);
-      this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
+    // Determine which coordinates to add
+    const selectedCoords: [number, number][] = this.aiResults
+      .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
+      .map(r => [r.lon, r.lat]);
 
-      // Stop spinner and close modal **before flying**
-      this.isLoading = false;
-      this.cdr.detectChanges();
+    if (selectedCoords.length) {
+      // --- Step 1: Add points to map immediately ---
+      activePlugin.addPoints(selectedCoords);
+
+      // --- Step 2: Close the modal immediately ---
       if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
 
-      const selectedCoords: [number, number][] = this.aiResults
-        .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
-        .map(r => [r.lon, r.lat]);
+      // --- Step 3: Fly to the points ---
+      await activePlugin.flyToPoints(selectedCoords);
 
-      if (selectedCoords.length) {
-        await activePlugin.flyToPoints(selectedCoords);
-        activePlugin.addPoints(selectedCoords);
-        activePlugin.onSave({ name: `AI_${Date.now()}` });
-        this.updateDragOrder();
-      }
-    } catch (err) {
-      console.error('AI Feature Find failed', err);
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    } finally {
-      // ensure spinner is off and cleanup
-      this.isLoading = false;
-      this.cdr.detectChanges();
-      this.mapFacade.cancelActivePlugin();
-      this.toolService.clearTool();
+      // --- Step 4: Save plugin layer ---
+      activePlugin.onSave({ name: `AI_${Date.now()}` });
+
+      this.updateDragOrder();
     }
+  } catch (err) {
+    console.error('AI Feature Find failed', err);
+  } finally {
+    this.mapFacade.cancelActivePlugin();
+    this.toolService.clearTool();
   }
+}
 
   // ---------- LAYER DISTANCE TOOL ----------
-
   onDistanceLayerChange() {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin | undefined;
     if (!plugin) return;
 
-    // Sync dropdown selection to plugin
     plugin.selectedLayers = [this.distanceLayerA || null, this.distanceLayerB || null];
 
     if (this.distanceLayerA && this.distanceLayerB) {
       this.distanceValue = plugin.computeDistance(this.distanceLayerA, this.distanceLayerB);
     } else {
-      this.distanceValue = null;
+      this.distanceValue = 0;
     }
 
     this.cdr.detectChanges();
@@ -327,7 +342,6 @@ export class MapComponent implements AfterViewInit {
       return;
     }
 
-    // Initialize dropdown selections
     this.distanceLayerA = pointLayers[0];
     this.distanceLayerB = pointLayers[1];
     plugin.selectedLayers = [this.distanceLayerA, this.distanceLayerB];
@@ -342,18 +356,17 @@ export class MapComponent implements AfterViewInit {
       width: '440px'
     });
 
-    // Confirm handler
     plugin.onConfirmComplete = () => {
       this.updateDragOrder();
       this.cdr.detectChanges();
       if (plugin.modalRef) this.modalFactory.close(plugin.modalRef);
       this.distanceLayerA = undefined;
       this.distanceLayerB = undefined;
-      this.distanceValue = null;
+      this.distanceValue = 0;
       this.toolService.clearTool();
     };
 
-    this.onDistanceLayerChange(); // compute initial distance
+    this.onDistanceLayerChange();
     this.cdr.detectChanges();
   }
 
@@ -369,7 +382,7 @@ export class MapComponent implements AfterViewInit {
     if (activePlugin.modalRef) this.modalFactory.close(activePlugin.modalRef);
     this.distanceLayerA = undefined;
     this.distanceLayerB = undefined;
-    this.distanceValue = null;
+    this.distanceValue = 0;
     this.toolService.clearTool();
     this.cdr.detectChanges();
   }

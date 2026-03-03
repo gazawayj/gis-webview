@@ -17,7 +17,6 @@ export interface AIResult {
 
 export class AIAnalysisPlugin extends ToolPluginBase {
   name = 'ai-analysis';
-  public isRunning = false;
   private generatedFeatures: Feature[] = [];
   public aiResults: AIResult[] = [];
   private highlightFeature?: Feature;
@@ -32,6 +31,7 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   protected override onActivate(): void {
+    // Only proceed if the map, temp source, and active layer exist
     if (!this.map || !this.tempSource || !this.activeLayer) return;
 
     this.generatedFeatures = [];
@@ -55,10 +55,7 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   private sanitizeName(name: string): string {
-    return name
-      .trim()
-      .replace(/[^a-zA-Z0-9 ]/g, '')
-      .replace(/\s+/g, '');
+    return name.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '');
   }
 
   addPoints(coords: [number, number][]) {
@@ -73,18 +70,26 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   async runAIQuery(prompt: string, addToMap = true): Promise<AIResult[]> {
-    if (!prompt || !this.map) return [];
+    if (!prompt || !this.map) {
+      alert('AI query failed: no prompt or map initialized.');
+      return [];
+    }
 
     this.lastQuery = prompt;
-    this.isRunning = true; // start spinner for the network call
-
     const currentPlanet = this.layerManager.currentPlanet;
     const promptWithPlanet = `${prompt} on ${currentPlanet}`;
 
     try {
+      this.layerManager.startExternalLoad('Connecting to AI...');
+      await new Promise(r => setTimeout(r, 100));
+
+      this.layerManager['messageSubject'].next('Processing query...');
       const res = await this.http
         .get<any>(`https://gazawayj.pythonanywhere.com/search?q=${encodeURIComponent(promptWithPlanet)}`)
         .toPromise();
+
+      this.layerManager['messageSubject'].next('Parsing results...');
+      await new Promise(r => setTimeout(r, 100));
 
       const resultsArray: AIResult[] = Array.isArray(res) ? res : [res];
       const validCoords: [number, number][] = [];
@@ -96,18 +101,23 @@ export class AIAnalysisPlugin extends ToolPluginBase {
           return { ...r, selected: true };
         });
 
-      // stop spinner **before** flying
-      this.isRunning = false;
+      if (!this.aiResults.length) {
+        alert('No AI features found for this query.');
+        return [];
+      }
 
       if (addToMap && validCoords.length) {
-        await this.flyToPoints(validCoords); // animation happens without spinner
+        this.layerManager['messageSubject'].next('Plotting results on map...');
+        await this.flyToPoints(validCoords);
       }
 
       return this.aiResults;
     } catch (err) {
       console.error('AI: Error connecting to server', err);
-      this.isRunning = false; // ensure spinner stops on error
+      alert('AI query failed. Check console for details.');
       return [];
+    } finally {
+      this.layerManager.endExternalLoad();
     }
   }
 
@@ -157,26 +167,25 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   override onSave(layer: { name: string }) {
-    // Determine the preferred name from AI results or last query
     let preferredName: string;
     if (this.aiResults.length && this.aiResults[0].name) {
       preferredName = this.aiResults[0].name;
     } else if (this.lastQuery) {
       preferredName = this.lastQuery;
     } else {
-      preferredName = `AI_${Date.now()}`; // fallback, just in case
+      preferredName = `AI_${Date.now()}`;
     }
-    // Sanitize: remove special chars and spaces, replace spaces with underscores
+
     const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-    // Prefix with "AI-"
     const finalName = `${sanitizedName}-AI`;
-    // Call base save() with sanitized and prefixed name
+
     const savedLayer = this.save(finalName);
-    // Clear temporary state
+
     this.generatedFeatures = [];
     this.aiResults = [];
     this.removeHighlightFeature();
     this.lastQuery = '';
+
     console.log('AI Analysis layer saved', savedLayer);
   }
 }

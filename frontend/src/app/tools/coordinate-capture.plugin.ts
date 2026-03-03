@@ -27,19 +27,17 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
 
     // On click, add point and persistent label
     this.registerMapListener('singleclick', (evt: any) => {
-      if (evt.originalEvent?.button !== 0) return;
+      if (evt.originalEvent?.button !== 0) return; // Only left click
       const coord = evt.coordinate as [number, number];
 
       // Persistent point feature
       const pointFeature = this.createFeature(new Point(coord), 'point', undefined, undefined, true);
-      if (this.activeLayer?.shape) pointFeature.set('shape', this.activeLayer.shape);
       this.tempSource?.addFeature(pointFeature);
 
       // Persistent label
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
       const labelFeature = this.createFeature(new Point(coord), 'label', labelText, pointFeature, false, true);
-      if (this.activeLayer?.shape) labelFeature.set('shape', this.activeLayer.shape);
       this.tempSource?.addFeature(labelFeature);
     });
 

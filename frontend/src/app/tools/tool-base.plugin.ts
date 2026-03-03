@@ -20,12 +20,11 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  constructor(protected layerManager: LayerManagerService) {}
+  constructor(protected layerManager: LayerManagerService) { }
 
   activate(map: OlMap): void {
     this.map = map;
 
-    // Create temporary layer for the tool
     this.activeLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name: '__tool_temp__',
@@ -39,22 +38,20 @@ export abstract class ToolPluginBase implements Tool {
     if (!source) return;
     this.tempSource = source;
 
-    // Apply dynamic style
     olLayer.setStyle((feature) => {
+      if (!this.activeLayer) return [];
 
-  if (!this.activeLayer) return [];
+      const f = feature as Feature;
+      const fType = f.get('featureType') || 'point';
+      const text = f.get('text');
 
-  const f = feature as Feature;
-  const fType = f.get('featureType') || 'point';
-  const text = f.get('text');
-
-  return this.layerManager.styleService.getLayerStyle({
-    type: fType,
-    baseColor: this.activeLayer.color,   // now guaranteed defined
-    shape: this.activeLayer.shape,
-    text,
-  });
-});
+      return this.layerManager.styleService.getLayerStyle({
+        type: fType,
+        baseColor: this.activeLayer.color,
+        shape: this.activeLayer.shape,
+        text,
+      });
+    });
 
     this.onActivate();
   }
@@ -102,34 +99,19 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
+  /**
+   * Standardized save() using LayerManagerService.cloneFeature
+   */
   save(name: string): LayerConfig | null {
     if (!this.tempSource) return null;
 
-    const allFeatures = this.tempSource.getFeatures().map((f) => {
-      const clone = f.clone();
-      clone.setId(f.getId() ?? crypto.randomUUID());
-
-      // Block scope for lexical declaration to avoid ESLint errors
-      {
-        const fType = clone.get('featureType');
-
-        // Treat all vertices as persistent, not just labels
-        if (fType === 'label' || fType === 'vertex' || fType === 'pointerVertex') {
-          clone.set('isToolFeature', false);
-        }
-
-        const text = f.get('text');
-        if (fType === 'label' && text) clone.set('text', text);
-
-        const parent = f.get('parentFeature') as Feature | undefined;
-        if (parent?.getId) {
-          clone.set('parentFeatureId', String(parent.getId()));
-          clone.unset('parentFeature');
-        }
-      }
-
-      return clone;
-    });
+    const allFeatures = this.tempSource.getFeatures().map(f =>
+      this.layerManager.cloneFeature(f, {
+        isToolFeature: !(f.get('featureType') === 'label' || f.get('featureType') === 'vertex' || f.get('featureType') === 'pointerVertex'),
+        parentFeatureId: f.get('parentFeature')?.getId ? String(f.get('parentFeature').getId()) : undefined,
+        shape: this.activeLayer?.shape
+      })
+    );
 
     const newLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
@@ -177,6 +159,6 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   protected abstract onActivate(): void;
-  protected onDeactivate(): void {}
-  protected onSave?(layer: LayerConfig): void {}
+  protected onDeactivate(): void { }
+  protected onSave?(layer: LayerConfig): void { }
 }

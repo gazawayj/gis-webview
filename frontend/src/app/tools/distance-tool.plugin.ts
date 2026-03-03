@@ -56,7 +56,8 @@ export class DistanceToolPlugin extends ToolPluginBase {
           'vertex',
           undefined,
           this.currentFeature,
-          false // persist vertex
+          false,  // not a tool feature
+          false
         );
         this.tempSource?.addFeature(vertex);
       });
@@ -98,8 +99,8 @@ export class DistanceToolPlugin extends ToolPluginBase {
         'label',
         text,
         parentFeature,
-        false, // persistent
-        true   // persistLabel
+        false,
+        true // persistLabel
       );
 
       if (isTemporary) this.liveSegmentLabels.push(label);
@@ -132,8 +133,9 @@ export class DistanceToolPlugin extends ToolPluginBase {
 
     if (savedLayer && this.liveLabels.length) {
       this.liveLabels.forEach(label => {
-        savedLayer.features?.push(label);
-        (savedLayer.olLayer.getSource() as VectorSource<Feature>).addFeature(label);
+        const cloned = this.layerManager.cloneFeature(label, { shape: this.activeLayer?.shape });
+        savedLayer.features?.push(cloned);
+        (savedLayer.olLayer.getSource() as VectorSource<Feature>).addFeature(cloned);
       });
       this.liveLabels = [];
     }

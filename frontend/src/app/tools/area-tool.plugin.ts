@@ -72,9 +72,16 @@ export class AreaToolPlugin extends ToolPluginBase {
 
     const centroid = this.getPolygonCentroid(coords as [number, number][]);
 
-    // Persistent label
-    const labelFeature = this.createFeature(new Point(centroid), 'label', text, feature, false, true);
-    if (this.activeLayer?.shape) labelFeature.set('shape', this.activeLayer.shape);
+    // Persistent label using createFeature with persistLabel
+    const labelFeature = this.createFeature(
+      new Point(centroid),
+      'label',
+      text,
+      feature,
+      false,
+      true
+    );
+
     this.tempSource.addFeature(labelFeature);
   }
 

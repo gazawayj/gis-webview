@@ -72,10 +72,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     onConfirmComplete?: () => void;
     private _closestPair: [[number, number], [number, number]] | null = null;
 
-    /** Persistent KD-tree cache per layer id */
     private kdCache = new Map<string, KDTree>();
-
-    /** Tracks last feature count for automatic invalidation */
     private layerFeatureCounts = new Map<string, number>();
 
     protected override onActivate(): void { }
@@ -95,6 +92,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         selectable?: boolean,
         labelAbove?: boolean
     ): Feature {
+        // Use the base helper for consistent cloning
         const f = this.createFeature(geom, featureType, text, parent, selectable, labelAbove);
         f.set('isTempDistanceFeature', true);
         return f;
@@ -104,7 +102,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         const coords: [number, number][] = [];
 
         (layer.features || [])
-            .filter(f => !f.get('isTempDistanceFeature')) // ignore temp features
+            .filter(f => !f.get('isTempDistanceFeature'))
             .forEach(f => {
                 const geom = f.getGeometry();
                 if (!geom) return;
@@ -118,13 +116,11 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
                         coords.push(...(geom as LineString).getCoordinates() as [number, number][]);
                         break;
                     case 'Polygon':
-                        // Flatten all rings
                         (geom as Polygon).getCoordinates().forEach(ring => {
                             coords.push(...ring as [number, number][]);
                         });
                         break;
                     case 'MultiPolygon':
-                        // Flatten all polygons
                         (geom as MultiPolygon).getCoordinates().forEach(poly => {
                             poly.forEach(ring => coords.push(...ring as [number, number][]));
                         });
@@ -137,7 +133,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         return coords;
     }
 
-    /** Build or rebuild KD-tree if points changed */
     private getKDTree(layer: LayerConfig): KDTree {
         const points = this.getLayerPoints(layer);
         const lastCount = this.layerFeatureCounts.get(layer.id) ?? -1;
@@ -188,6 +183,8 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         if (!closestPair || distanceMeters === 0) return;
 
         const [cA, cB] = closestPair;
+
+        // Use createDistanceFeature to ensure consistency
         const lineFeature = this.createDistanceFeature(new LineString([cA, cB]), 'line');
 
         const midpoint: [number, number] = [(cA[0] + cB[0]) / 2, (cA[1] + cB[1]) / 2];
@@ -207,8 +204,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         this.tempSource.addFeature(lineFeature);
         this.tempSource.addFeature(labelFeature);
 
-        // --- Updated naming: unique with timestamp ---
-        const layerName = `dist: ${layerA.name || 'A'} ↔ ${layerB.name || 'B'}}`;
+        const layerName = `dist: ${layerA.name || 'A'} ↔ ${layerB.name || 'B'}`;
         this.save(layerName);
 
         this.onConfirmComplete?.();
