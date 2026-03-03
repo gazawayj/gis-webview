@@ -77,12 +77,14 @@
   <!-- Map -->
   <div #mapContainer class="map-container">
     <!-- Bottom-left spinner -->
-    <div class="map-loading-overlay" *ngIf="isLoading">
+    @if (isLoading) {
+    <div class="map-loading-overlay">
       <div class="spinner-container">
         <div class="spinner"></div>
         <div class="loading-text">{{ loadingMessage }}</div>
       </div>
     </div>
+    }
   </div>
 
   <!-- Plugin Save Modal -->
