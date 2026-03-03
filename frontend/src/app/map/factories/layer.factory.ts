@@ -23,42 +23,18 @@ export type LayerFactory = (
 
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
   return (planet, options, idGenerator) => {
+    const { name = `Layer-${Date.now()}`, features = [], color, shape, isTemporary = false, styleFn, geometryType: optGeometryType } = options || {};
 
-    const {
-      name = `Layer-${Date.now()}`,
-      features = [],
-      color,
-      shape,
-      isTemporary = false,
-      styleFn,
-      geometryType: optGeometryType,
-    } = options || {};
-
-    if (!color || !shape) {
-      throw new Error('LayerFactory requires color and shape. Allocation must happen in LayerManagerService.');
-    }
+    if (!color || !shape) throw new Error('LayerFactory requires color and shape.');
 
     const geometryType: GeometryType = optGeometryType ?? detectGeometryType(features);
-
     let configRef!: LayerConfig;
 
-    const clonedFeatures = features.map(f => {
-      const clone = f.clone();
-      const fType = clone.get('featureType');
-
-      if (fType === 'point' || fType === 'vertex') {
-        clone.set('shape', shape);
-      }
-
-      return clone;
-    });
-
+    // FIX: Removed clonedFeatures mapping. Triple-cloning destroys geometry refs.
     const vectorLayer = new VectorLayer({
-      source: new VectorSource({ features: clonedFeatures }),
+      source: new VectorSource({ features }),
       style: (feature: FeatureLike) => {
-
         if (styleFn) return styleFn(feature);
-
         const feat = feature as Feature;
         const fType = feat.get('featureType') as string | undefined;
 
@@ -83,36 +59,20 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
     });
 
     const config: LayerConfig = {
-      id: idGenerator
-        ? idGenerator()
-        : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
-      name,
-      color,
-      shape,
-      visible: true,
-      olLayer: vectorLayer,
-      isTemporary,
-      planet,
-      styleFn,
-      features: clonedFeatures,
-      geometryType,
+      id: idGenerator ? idGenerator() : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+      name, color, shape, visible: true, olLayer: vectorLayer, isTemporary, planet, styleFn, features, geometryType,
     };
 
     configRef = config;
-
     return config;
   };
 }
 
-// ------------------- Geometry detection helper -------------------
 function detectGeometryType(features: Feature[]): GeometryType {
-  if (features.length) {
-    for (const f of features) {
-      const geomType = f.getGeometry()?.getType();
-      if (geomType === 'LineString' || geomType === 'MultiLineString') return 'line';
-      if (geomType === 'Polygon' || geomType === 'MultiPolygon') return 'polygon';
-    }
+  for (const f of features) {
+    const geomType = f.getGeometry()?.getType();
+    if (geomType?.includes('LineString')) return 'line';
+    if (geomType?.includes('Polygon')) return 'polygon';
   }
-  // Default to 'point'; vertices will use layerShape
   return 'point';
 }

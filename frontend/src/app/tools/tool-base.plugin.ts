@@ -12,7 +12,7 @@ export abstract class ToolPluginBase implements Tool {
   abstract name: string;
 
   protected map?: OlMap;
-  protected tempSource?: VectorSource<Feature>;
+  public tempSource?: VectorSource<Feature>;
   protected activeLayer?: LayerConfig;
 
   private interactions: Interaction[] = [];

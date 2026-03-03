@@ -87,13 +87,13 @@
 
   <div #mapContainer class="map-container"></div>
 
+  <!-- Plugin Save Modal -->
   <ng-template #pluginSaveModal>
     <div class="layer-modal">
       <div class="layer-modal-header">
         <span>Save Plugin Layer</span>
         <button class="close-btn" (click)="cancelPluginSave()">✕</button>
       </div>
-
       <div class="layer-modal-body">
         <label>
           Layer Name
@@ -101,62 +101,50 @@
             placeholder="Enter custom layer name..." />
         </label>
       </div>
-
       <div class="modal-buttons">
-        <button [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">
-          Save
-        </button>
+        <button [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">Save</button>
         <button (click)="cancelPluginSave()">Cancel</button>
       </div>
     </div>
   </ng-template>
 
+  <!-- AI Feature Find Modal -->
   <ng-template #aiFeatureFindModal>
     <div class="ai-modal-backdrop">
       <div class="ai-modal-card">
-
-        <!-- Header -->
         <div class="ai-modal-header">
           AI Feature Find
           <button class="close-btn" (click)="cancelAiFeatureFind()" [disabled]="isLoading">✕</button>
         </div>
-
-        <!-- Body -->
         <div class="ai-modal-body">
-          <p>
-            Use natural language to find a feature on the <strong>currently selected planet</strong>.
-          </p>
+          <p>Use natural language to find a feature on the <strong>currently selected planet</strong>.</p>
           <p><em>Examples:</em></p>
           <ul>
             <li>“Find the Eiffel Tower” (Earth)</li>
             <li>“Locate Olympus Mons” (Mars)</li>
             <li>“Where is the biggest volcano?” (Moon)</li>
           </ul>
-
           <textarea #aiPromptTextarea rows="4" style="width:100%" placeholder="Describe the feature..."
-            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
-        </textarea>
+            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading"></textarea>
         </div>
-
-        <!-- Actions -->
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
           <button class="confirm" [disabled]="!aiPrompt.trim() || isLoading"
             (click)="confirmAiFeatureFind()">Search</button>
         </div>
-
-        <!-- Spinner overlay -->
         @if (isLoading) {
         <div class="ai-loading-overlay">
-          <div class="spinner"></div>
-          <div class="loading-text">Loading AI results...</div>
+          <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading...</div>
+          </div>
         </div>
         }
-
       </div>
     </div>
   </ng-template>
 
+  <!-- Layer Distance Modal -->
   <ng-template #layerDistanceModal>
     <div class="ai-modal-backdrop">
       <div class="ai-modal-card">
@@ -170,32 +158,44 @@
 
           <label>
             Layer A:
-            <select [(ngModel)]="distanceLayerA" (ngModelChange)="computeLayerDistance()">
-              <option *ngFor="let layer of sidebarLayers" [ngValue]="layer">{{ layer.name }}</option>
+            <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
+              @for (layer of sidebarLayers; track layer.id) {
+              <option [ngValue]="layer">{{ layer.name }}</option>
+              }
             </select>
           </label>
 
           <label>
             Layer B:
-            <select [(ngModel)]="distanceLayerB" (ngModelChange)="computeLayerDistance()">
-              <option *ngFor="let layer of sidebarLayers" [ngValue]="layer">{{ layer.name }}</option>
+            <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
+              @for (layer of sidebarLayers; track layer.id) {
+              <option [ngValue]="layer">{{ layer.name }}</option>
+              }
             </select>
           </label>
 
-          <p *ngIf="distanceLayerA && distanceLayerB">
-            Distance: {{ distanceValue | number:'1.2-2' }} meters
-          </p>
+          @if (distanceLayerA && distanceLayerB) {
+          <p>Distance: {{ distanceValue | number:'1.2-2' }} meters</p>
+          }
         </div>
 
         <div class="ai-modal-actions">
-          <button class="cancel" (click)="cancelLayerDistance()">Cancel</button>
-
-          <!-- Fixed Confirm button -->
+          <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
           <button class="confirm" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">
-            Confirm
+            Draw Line
           </button>
         </div>
+
+        @if (isLoading) {
+        <div class="ai-loading-overlay">
+          <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading...</div>
+          </div>
+        </div>
+        }
       </div>
     </div>
   </ng-template>
+
 </div>

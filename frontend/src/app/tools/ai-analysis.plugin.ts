@@ -5,6 +5,7 @@ import { ToolPluginBase } from './tool-base.plugin';
 import { HttpClient } from '@angular/common/http';
 import { LayerManagerService } from '../map/services/layer-manager.service';
 import { StyleService } from '../map/services/style.service';
+import { extend as extendExtent, boundingExtent } from 'ol/extent';
 
 export interface AIResult {
   name: string;
@@ -16,9 +17,11 @@ export interface AIResult {
 
 export class AIAnalysisPlugin extends ToolPluginBase {
   name = 'ai-analysis';
+  public isRunning = false;
   private generatedFeatures: Feature[] = [];
   public aiResults: AIResult[] = [];
   private highlightFeature?: Feature;
+  private lastQuery = '';
 
   constructor(
     layerManager: LayerManagerService,
@@ -28,20 +31,20 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     super(layerManager);
   }
 
-  /** Plugin-specific activation: temp layer already exists */
   protected override onActivate(): void {
     if (!this.map || !this.tempSource || !this.activeLayer) return;
 
-    // Initialize internal state
     this.generatedFeatures = [];
     this.aiResults = [];
     this.highlightFeature = undefined;
+    this.lastQuery = '';
   }
 
   protected override onDeactivate(): void {
     this.generatedFeatures = [];
     this.aiResults = [];
     this.removeHighlightFeature();
+    this.lastQuery = '';
   }
 
   private removeHighlightFeature() {
@@ -51,7 +54,13 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     }
   }
 
-  /** Add points — style is handled by LayerManager style pipeline */
+  private sanitizeName(name: string): string {
+    return name
+      .trim()
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .replace(/\s+/g, '');
+  }
+
   addPoints(coords: [number, number][]) {
     if (!this.tempSource) return;
 
@@ -63,9 +72,11 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     });
   }
 
-  /** Run AI query, limited to current planet */
   async runAIQuery(prompt: string, addToMap = true): Promise<AIResult[]> {
     if (!prompt || !this.map) return [];
+
+    this.lastQuery = prompt;
+    this.isRunning = true; // start spinner for the network call
 
     const currentPlanet = this.layerManager.currentPlanet;
     const promptWithPlanet = `${prompt} on ${currentPlanet}`;
@@ -85,25 +96,30 @@ export class AIAnalysisPlugin extends ToolPluginBase {
           return { ...r, selected: true };
         });
 
+      // stop spinner **before** flying
+      this.isRunning = false;
+
       if (addToMap && validCoords.length) {
-        await this.flyToPoints(validCoords);
+        await this.flyToPoints(validCoords); // animation happens without spinner
       }
 
       return this.aiResults;
     } catch (err) {
       console.error('AI: Error connecting to server', err);
+      this.isRunning = false; // ensure spinner stops on error
       return [];
     }
   }
 
-  /** Smoothly fly to points and add them to the temp layer */
-  private async flyToPoints(coords: [number, number][]) {
+  async flyToPoints(coords: [number, number][]) {
     if (!this.map || !this.tempSource) return;
 
     const view = this.map.getView();
+    const projectedCoords: [number, number][] = [];
 
     for (const [lon, lat] of coords) {
-      const projected = fromLonLat([lon, lat]);
+      const projected = fromLonLat([lon, lat]) as [number, number];
+      projectedCoords.push(projected);
 
       await new Promise<void>((resolve) => {
         const targetZoom = Math.max(view.getZoom() ?? 2, 6);
@@ -114,13 +130,22 @@ export class AIAnalysisPlugin extends ToolPluginBase {
         );
       });
 
-      // Small pause before adding permanent point
       await new Promise(r => setTimeout(r, 200));
       this.addPoints([[lon, lat]]);
     }
+
+    if (projectedCoords.length > 1) {
+      let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
+      projectedCoords.forEach(coord => extendExtent(extent, coord));
+
+      view.fit(extent, {
+        padding: [50, 50, 50, 50],
+        duration: 800,
+        maxZoom: 12
+      });
+    }
   }
 
-  /** Add selected AI points to map */
   confirmSelectedPoints() {
     if (!this.aiResults || !this.tempSource) return;
 
@@ -131,14 +156,30 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     if (selectedCoords.length) this.addPoints(selectedCoords);
   }
 
-  /** Save the temporary layer as permanent */
   override onSave(layer: { name: string }) {
-    if (!layer.name) return;
+    // Determine the preferred name from AI results or last query
+    let preferredName: string;
 
-    const savedLayer = this.save(layer.name);
+    if (this.aiResults.length && this.aiResults[0].name) {
+      preferredName = this.aiResults[0].name;
+    } else if (this.lastQuery) {
+      preferredName = this.lastQuery;
+    } else {
+      preferredName = `AI_${Date.now()}`; // fallback, just in case
+    }
+
+    // Sanitize: remove special chars and spaces
+    const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+
+    // Call base save() with sanitized name
+    const savedLayer = this.save(sanitizedName);
+
+    // Clear temporary state
     this.generatedFeatures = [];
     this.aiResults = [];
     this.removeHighlightFeature();
+    this.lastQuery = '';
+
     console.log('AI Analysis layer saved', savedLayer);
   }
 }

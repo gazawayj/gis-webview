@@ -466,6 +466,7 @@ body {
   font-family: var(--font-sans);
   animation: slideDown 0.25s ease-out;
   color: var(--primary-color);
+  position: relative;
 }
 
 .ai-modal-header {
@@ -603,8 +604,6 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-
-  /* Fade-in for smooth appearance */
   animation: fadeInOverlay 0.3s ease-out forwards;
 }
 
@@ -632,28 +631,51 @@ body {
   opacity: 0;
   animation: fadeInText 0.5s ease-out forwards;
   animation-delay: 0.2s;
-  /* start after spinner appears */
 }
 
 /* ===================== Animations ===================== */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeInOverlay {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  0% { transform: scale(0.7); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInText {
-  0% { opacity: 0; transform: translateY(4px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
@@ -661,6 +683,7 @@ body {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -671,6 +694,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }

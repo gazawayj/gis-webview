@@ -112,41 +112,35 @@ export class LayerManagerService {
     geometryType?: GeometryType;
   }): LayerConfig {
 
-    const {
-      planet,
-      name: incomingName,
-      features = [],
-      shape,
-      color,
-      id,
-      cache = true,
-      isTemporary = false,
-      styleFn,
-      geometryType,
-    } = params;
+    const { planet, name: incomingName, features = [], shape, color, id, cache = true, isTemporary = false, styleFn, geometryType } = params;
 
-    // 🔥 Allocate unique combo per planet ONCE
-    const allocation = (!shape || !color)
-      ? this.styleService.allocateLayerStyle(planet)
-      : { shape, color };
-
+    const allocation = (!shape || !color) ? this.styleService.allocateLayerStyle(planet) : { shape, color };
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
 
     const layerFeatures: Feature[] = features
-      .filter(f => f instanceof Feature)
+      .filter((f): f is Feature => f instanceof Feature)
       .map(f => {
+        // If it's a tool-generated feature, use it directly to keep metadata intact
+        if (f.get('isToolFeature') || f.get('isTempDistanceFeature')) {
+          f.set('shape', finalShape);
+          return f;
+        }
+
         const clone = f.clone();
         clone.set('featureType', f.get('featureType'));
         clone.set('text', f.get('text'));
         clone.set('parentFeatureId', f.get('parentFeatureId'));
-
+        clone.set('isTempDistanceFeature', f.get('isTempDistanceFeature'));
+        clone.set('isToolFeature', f.get('isToolFeature'));
         clone.set('shape', finalShape);
         return clone;
       });
 
+    const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
+
     const layerConfig = this.layerFactory(planet, {
-      name: incomingName,
+      name: resolvedName,
       features: layerFeatures,
       shape: finalShape,
       color: finalColor,
@@ -159,12 +153,9 @@ export class LayerManagerService {
 
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
-
       if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
       this.dragOrder.unshift(layerConfig);
-
       if (this._map) this._map.addLayer(layerConfig.olLayer);
-
       this.updateStyle(layerConfig);
       this.applyZOrder();
       this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
@@ -172,6 +163,7 @@ export class LayerManagerService {
 
     return this.registry.get(layerConfig.id)!;
   }
+
 
   addManualLayer(
     planet: Planet,
@@ -327,5 +319,33 @@ export class LayerManagerService {
     });
 
     this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
+  }
+
+  private sanitizeLayerName(name: string): string {
+    return name
+      .trim()
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .replace(/\s+/g, '');
+  }
+
+  private ensureUniqueName(planet: Planet, baseName: string): string {
+    const existing = this.planetCache[planet].map(l => l.name);
+
+    if (!existing.includes(baseName)) return baseName;
+
+    let counter = 2;
+    let candidate = `${baseName}_${counter}`;
+
+    while (existing.includes(candidate)) {
+      counter++;
+      candidate = `${baseName}_${counter}`;
+    }
+
+    return candidate;
+  }
+
+  public resolveLayerName(planet: Planet, preferredName: string): string {
+    const cleaned = this.sanitizeLayerName(preferredName);
+    return this.ensureUniqueName(planet, cleaned);
   }
 }
