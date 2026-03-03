@@ -159,7 +159,6 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   override onSave(layer: { name: string }) {
     // Determine the preferred name from AI results or last query
     let preferredName: string;
-
     if (this.aiResults.length && this.aiResults[0].name) {
       preferredName = this.aiResults[0].name;
     } else if (this.lastQuery) {
@@ -167,19 +166,17 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     } else {
       preferredName = `AI_${Date.now()}`; // fallback, just in case
     }
-
-    // Sanitize: remove special chars and spaces
+    // Sanitize: remove special chars and spaces, replace spaces with underscores
     const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-
-    // Call base save() with sanitized name
-    const savedLayer = this.save(sanitizedName);
-
+    // Prefix with "AI-"
+    const finalName = `${sanitizedName}-AI`;
+    // Call base save() with sanitized and prefixed name
+    const savedLayer = this.save(finalName);
     // Clear temporary state
     this.generatedFeatures = [];
     this.aiResults = [];
     this.removeHighlightFeature();
     this.lastQuery = '';
-
     console.log('AI Analysis layer saved', savedLayer);
   }
 }

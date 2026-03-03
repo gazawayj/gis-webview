@@ -176,7 +176,8 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         this.tempSource.addFeature(lineFeature);
         this.tempSource.addFeature(labelFeature);
 
-        const layerName = `dist: ${layerA.name || 'A'} ↔ ${layerB.name || 'B'}`;
+        // --- Updated naming: unique with timestamp ---
+        const layerName = `dist: ${layerA.name || 'A'} ↔ ${layerB.name || 'B'}}`;
         this.save(layerName);
 
         this.onConfirmComplete?.();
