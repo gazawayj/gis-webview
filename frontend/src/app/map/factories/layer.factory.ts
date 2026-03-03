@@ -23,44 +23,45 @@ export type LayerFactory = (
 
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
   return (planet, options, idGenerator) => {
+
     const {
       name = `Layer-${Date.now()}`,
       features = [],
-      color = styleService.getRandomColor(),
+      color,
       shape,
       isTemporary = false,
       styleFn,
       geometryType: optGeometryType,
     } = options || {};
 
-    // ------------------- Determine layer-wide shape -------------------
-    const layerShape: ShapeType = shape || styleService.getRandomShape();
+    if (!color || !shape) {
+      throw new Error('LayerFactory requires color and shape. Allocation must happen in LayerManagerService.');
+    }
 
-    // ------------------- Detect geometry type -------------------
     const geometryType: GeometryType = optGeometryType ?? detectGeometryType(features);
 
     let configRef!: LayerConfig;
 
-    // ------------------- Clone features and attach layer-wide shape -------------------
     const clonedFeatures = features.map(f => {
       const clone = f.clone();
       const fType = clone.get('featureType');
+
       if (fType === 'point' || fType === 'vertex') {
-        clone.set('shape', layerShape); // enforce valid layer-wide shape
+        clone.set('shape', shape);
       }
+
       return clone;
     });
 
-    // ------------------- Create OpenLayers vector layer -------------------
     const vectorLayer = new VectorLayer({
       source: new VectorSource({ features: clonedFeatures }),
       style: (feature: FeatureLike) => {
+
         if (styleFn) return styleFn(feature);
 
         const feat = feature as Feature;
         const fType = feat.get('featureType') as string | undefined;
 
-        // Labels
         if (fType === 'label') {
           return styleService.getLayerStyle({
             type: 'label',
@@ -69,33 +70,25 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
           });
         }
 
-        // Determine rendering geometry type
         let type: GeometryType = 'point';
         if (fType === 'line' || configRef.geometryType === 'line') type = 'line';
         else if (fType === 'polygon' || configRef.geometryType === 'polygon') type = 'polygon';
 
-        // Vertices/points use only valid layerShape
-        const symbolShape =
-          fType === 'point' || fType === 'vertex'
-            ? (feat.get('shape') as ShapeType) || configRef.shape
-            : undefined;
-
         return styleService.getLayerStyle({
           type,
           baseColor: configRef.color,
-          shape: symbolShape,
+          shape: configRef.shape,
         });
       },
     });
 
-    // ------------------- LayerConfig -------------------
     const config: LayerConfig = {
       id: idGenerator
         ? idGenerator()
         : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
       name,
       color,
-      shape: layerShape,
+      shape,
       visible: true,
       olLayer: vectorLayer,
       isTemporary,
@@ -105,7 +98,6 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
       geometryType,
     };
 
-    // Needed in style closure
     configRef = config;
 
     return config;

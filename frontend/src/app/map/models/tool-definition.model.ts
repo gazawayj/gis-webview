@@ -5,7 +5,8 @@ export type ToolType =
   | 'distance'
   | 'area'
   | 'none'
-  | 'ai-analysis';
+  | 'ai-analysis'
+  | 'layer-distance';
 
 export interface ToolDefinition {
   name: string;

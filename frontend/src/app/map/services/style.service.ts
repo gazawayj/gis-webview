@@ -2,70 +2,91 @@ import { Injectable } from '@angular/core';
 import { Style, Circle as CircleStyle, Fill, Stroke, RegularShape, Icon, Text } from 'ol/style';
 import { SHAPES, COLOR_PALETTE, ShapeType } from '../constants/symbol-constants';
 
+type Planet = 'earth' | 'moon' | 'mars';
+
 @Injectable({ providedIn: 'root' })
 export class StyleService {
 
-  private colorsPool = [...COLOR_PALETTE];
-  private shapesPool = [...SHAPES];
+  // ----- Per-planet allocation tracking -----
 
-  private usedColors: Set<string> = new Set();
-  private usedShapes: Set<ShapeType> = new Set();
+  private planetColorUsage: Record<Planet, Set<string>> = {
+    earth: new Set(),
+    moon: new Set(),
+    mars: new Set()
+  };
 
-  /** Cache for persistent shapes per layer ID */
-  private layerShapeCache: Map<string, ShapeType> = new Map();
+  private planetShapeUsage: Record<Planet, Set<ShapeType>> = {
+    earth: new Set(),
+    moon: new Set(),
+    mars: new Set()
+  };
 
-  constructor() { }
+  private layerShapeCache = new Map<string, ShapeType>();
 
-  /** Return a random color from the pool, ensuring no repeats until exhausted */
-  getRandomColor(): string {
-    if (this.usedColors.size >= this.colorsPool.length) this.usedColors.clear();
-    const available = this.colorsPool.filter(c => !this.usedColors.has(c));
-    const color = available[Math.floor(Math.random() * available.length)];
-    this.usedColors.add(color);
-    return color;
+  constructor() {}
+
+  // Reset when switching planets if needed
+  resetPlanet(planet: Planet) {
+    this.planetColorUsage[planet].clear();
+    this.planetShapeUsage[planet].clear();
   }
 
-  /** Return a random shape for a layer; cached by layerId if provided */
-  getRandomShape(layerId?: string): ShapeType {
-    if (layerId && this.layerShapeCache.has(layerId)) {
-      return this.layerShapeCache.get(layerId)!;
-    }
+  /**
+   * Allocate unique color+shape combination per planet.
+   * Called ONCE at layer creation.
+   */
+  allocateLayerStyle(planet: Planet): { color: string; shape: ShapeType } {
+    const usedColors = this.planetColorUsage[planet];
+    const usedShapes = this.planetShapeUsage[planet];
 
-    if (this.usedShapes.size >= this.shapesPool.length) this.usedShapes.clear();
-    const available = this.shapesPool.filter(s => !this.usedShapes.has(s));
-    const shape = available[Math.floor(Math.random() * available.length)];
-    this.usedShapes.add(shape);
+    // Reset pools if exhausted
+    if (usedColors.size >= COLOR_PALETTE.length) usedColors.clear();
+    if (usedShapes.size >= SHAPES.length) usedShapes.clear();
 
-    if (layerId) this.layerShapeCache.set(layerId, shape);
-    return shape;
+    const availableColors = COLOR_PALETTE.filter(c => !usedColors.has(c));
+    const availableShapes = SHAPES.filter(s => !usedShapes.has(s));
+
+    const color = availableColors[Math.floor(Math.random() * availableColors.length)];
+    const shape = availableShapes[Math.floor(Math.random() * availableShapes.length)];
+
+    usedColors.add(color);
+    usedShapes.add(shape);
+
+    return { color, shape };
   }
 
-  /** Force update a shape cache entry for a specific layer */
   setLayerShape(layerId: string, shape: ShapeType) {
     this.layerShapeCache.set(layerId, shape);
   }
 
-  /** Return an OpenLayers Style for a feature; respects layer-wide shape if layerId is provided */
   getLayerStyle(options: {
     type: 'point' | 'line' | 'label' | 'polygon',
-    baseColor?: string,
+    baseColor: string,
     shape?: ShapeType,
     text?: string,
-    layerId?: string
   }): Style {
-    const color = options.baseColor || this.getRandomColor();
+
+    const color = options.baseColor;
 
     switch (options.type) {
+
       case 'point': {
-        // Use cached layer-wide shape if layerId is provided
-        const shape = options.layerId
-          ? this.getRandomShape(options.layerId)
-          : (options.shape || this.getRandomShape());
-        return new Style({ image: this.createShapeImage(shape, color) });
+        return new Style({
+          image: this.createShapeImage(options.shape!, color)
+        });
       }
 
       case 'line': {
-        return new Style({ stroke: new Stroke({ color, width: 3 }) });
+        return new Style({
+          stroke: new Stroke({ color, width: 3 })
+        });
+      }
+
+      case 'polygon': {
+        return new Style({
+          stroke: new Stroke({ color, width: 2 }),
+          fill: new Fill({ color: color + '33' })
+        });
       }
 
       case 'label': {
@@ -80,15 +101,7 @@ export class StyleService {
         });
       }
 
-      case 'polygon': {
-        return new Style({
-          stroke: new Stroke({ color, width: 2 }),
-          fill: new Fill({ color: color + '33' }), // semi-transparent
-        });
-      }
-
-      default: {
-        // fallback: circle
+      default:
         return new Style({
           image: new CircleStyle({
             radius: 5,
@@ -96,18 +109,26 @@ export class StyleService {
             stroke: new Stroke({ color: '#000', width: 1 })
           })
         });
-      }
     }
   }
 
-  /** Return the correct OL image for a given shape and color */
+  // ---------------- Shape Builder ----------------
   private createShapeImage(shape: ShapeType, color: string) {
     const lower = shape.toLowerCase();
 
     if (['square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star'].includes(lower)) {
-      const pointsMap: Record<string, number> = { square: 4, triangle: 3, diamond: 4, pentagon: 5, hexagon: 6, star: 5 };
+      const pointsMap: Record<string, number> = {
+        square: 4,
+        triangle: 3,
+        diamond: 4,
+        pentagon: 5,
+        hexagon: 6,
+        star: 5
+      };
+
       const radius2 = lower === 'star' ? 3 : undefined;
       const angle = lower === 'square' ? Math.PI / 4 : 0;
+
       return new RegularShape({
         points: pointsMap[lower],
         radius: 6,

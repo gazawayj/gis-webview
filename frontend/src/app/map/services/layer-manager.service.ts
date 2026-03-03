@@ -111,6 +111,7 @@ export class LayerManagerService {
     styleFn?: (f: FeatureLike) => Style | Style[];
     geometryType?: GeometryType;
   }): LayerConfig {
+
     const {
       planet,
       name: incomingName,
@@ -124,45 +125,31 @@ export class LayerManagerService {
       geometryType,
     } = params;
 
-    const defaultName = incomingName || (() => {
-      const now = new Date();
-      const MM = String(now.getMonth() + 1).padStart(2, '0');
-      const DD = String(now.getDate()).padStart(2, '0');
-      const HH = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      return `layer-${MM}${DD}${HH}${mm}${ss}`;
-    })();
+    // 🔥 Allocate unique combo per planet ONCE
+    const allocation = (!shape || !color)
+      ? this.styleService.allocateLayerStyle(planet)
+      : { shape, color };
 
-    const layerName = incomingName || defaultName;
+    const finalShape = shape || allocation.shape;
+    const finalColor = color || allocation.color;
 
     const layerFeatures: Feature[] = features
       .filter(f => f instanceof Feature)
       .map(f => {
         const clone = f.clone();
-        const fType = f.get('featureType');
-        const text = f.get('text');
-        const parentId = f.get('parentFeatureId');
+        clone.set('featureType', f.get('featureType'));
+        clone.set('text', f.get('text'));
+        clone.set('parentFeatureId', f.get('parentFeatureId'));
 
-        clone.set('featureType', fType);
-        if (text) clone.set('text', text);
-        if (parentId) clone.set('parentFeatureId', parentId); // preserve line link
-
-        if (['point', 'vertex'].includes(fType)) {
-          const symbolShape = shape || this.styleService.getRandomShape();
-          clone.set('shape', symbolShape);
-        }
-
+        clone.set('shape', finalShape);
         return clone;
       });
 
-    const layerShape: ShapeType = shape || this.styleService.getRandomShape();
-
     const layerConfig = this.layerFactory(planet, {
-      name: layerName,
+      name: incomingName,
       features: layerFeatures,
-      shape: layerShape,
-      color,
+      shape: finalShape,
+      color: finalColor,
       styleFn,
       isTemporary,
       geometryType,
@@ -196,34 +183,35 @@ export class LayerManagerService {
     lonField?: string,
     id?: string
   ): LayerConfig | undefined {
+
     const features: Feature[] = [];
 
     if (fileContent) {
+
       if (sourceType === 'CSV') {
         const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
+
         parsed.data.forEach((row: any) => {
           const lat = parseFloat(row[latField || 'latitude']);
           const lon = parseFloat(row[lonField || 'longitude']);
+
           if (!isNaN(lat) && !isNaN(lon)) {
             const coords = fromLonLat([lon, lat]);
             const f = new Feature(new Point(coords));
             f.set('featureType', 'point');
-            f.set('shape', this.styleService.getRandomShape());
             features.push(f);
           }
         });
+
       } else {
         const geoFeatures = new GeoJSON().readFeatures(fileContent, {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857',
         });
+
         geoFeatures.forEach(f => {
           if (f instanceof Feature) {
-            const fType = f.get('featureType') || 'point';
-            f.set('featureType', fType);
-            if (fType === 'point' || fType === 'vertex') {
-              f.set('shape', this.styleService.getRandomShape());
-            }
+            f.set('featureType', f.get('featureType') || 'point');
             features.push(f);
           }
         });
@@ -234,43 +222,47 @@ export class LayerManagerService {
   }
 
   updateStyle(layer: LayerConfig) {
+
     if (!(layer.olLayer instanceof VectorLayer)) return;
 
     layer.features?.forEach(f => {
-      const fType = f.get('featureType');
-      if (fType === 'point' || fType === 'vertex') {
-        f.set('shape', layer.shape);
-      }
+      f.set('shape', layer.shape);
     });
 
     layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
+
       const feat = feature as Feature;
-      const fType = feat.get('featureType') as string | undefined;
+      const fType = feat.get('featureType');
       const text = feat.get('text');
 
       if (fType === 'label') {
         return [this.styleService.getLayerStyle({
           type: 'label',
           text,
-          baseColor: layer.color,
-          layerId: layer.id,
+          baseColor: layer.color
         })];
       }
 
       switch (layer.geometryType) {
-        case 'line': {
-          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
-        }
-        case 'polygon': {
-          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
-        }
-        default: {
-          const symbolShape =
-            fType === 'point' || fType === 'vertex'
-              ? (feat.get('shape') as ShapeType) || layer.shape
-              : undefined;
-          return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: symbolShape })];
-        }
+
+        case 'line':
+          return [this.styleService.getLayerStyle({
+            type: 'line',
+            baseColor: layer.color
+          })];
+
+        case 'polygon':
+          return [this.styleService.getLayerStyle({
+            type: 'polygon',
+            baseColor: layer.color
+          })];
+
+        default:
+          return [this.styleService.getLayerStyle({
+            type: 'point',
+            baseColor: layer.color,
+            shape: layer.shape
+          })];
       }
     });
 

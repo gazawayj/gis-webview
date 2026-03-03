@@ -1,23 +1,12 @@
-<svg
-  width="32"
-  height="32"
-  viewBox="0 0 100 100"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
->
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Polygon Outline -->
-  <polygon points="30,70 50,20 70,50 50,80"
-    stroke="currentColor"
-    stroke-width="4"
-    fill="none"
-    stroke-linejoin="round"
-  />
+  <polygon points="30,70 50,20 70,50 50,80" stroke="currentColor" stroke-width="4" fill="none" stroke-linejoin="round"/>
 
-  <!-- Vertices with white outline for visibility -->
-  <circle cx="30" cy="70" r="5" fill="currentColor" stroke="white" stroke-width="2"/>
-  <circle cx="50" cy="20" r="5" fill="currentColor" stroke="white" stroke-width="2"/>
-  <circle cx="70" cy="50" r="5" fill="currentColor" stroke="white" stroke-width="2"/>
-  <circle cx="50" cy="80" r="5" fill="currentColor" stroke="white" stroke-width="2"/>
+  <!-- Vertices -->
+  <circle cx="30" cy="70" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="50" cy="20" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="70" cy="50" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="50" cy="80" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
 
   <!-- Centroid Dot -->
   <circle cx="50" cy="55" r="4" fill="currentColor"/>

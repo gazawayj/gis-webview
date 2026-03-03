@@ -20,7 +20,7 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  protected constructor(protected layerManager: LayerManagerService) {}
+  constructor(protected layerManager: LayerManagerService) {}
 
   activate(map: OlMap): void {
     this.map = map;
@@ -41,17 +41,20 @@ export abstract class ToolPluginBase implements Tool {
 
     // Apply dynamic style
     olLayer.setStyle((feature) => {
-      const f = feature as Feature;
-      const fType = f.get('featureType') || 'point';
-      const text = f.get('text');
-      return this.layerManager.styleService.getLayerStyle({
-        type: fType,
-        baseColor: this.activeLayer?.color,
-        shape: this.activeLayer?.shape,
-        text,
-        layerId: this.activeLayer?.id,
-      });
-    });
+
+  if (!this.activeLayer) return [];
+
+  const f = feature as Feature;
+  const fType = f.get('featureType') || 'point';
+  const text = f.get('text');
+
+  return this.layerManager.styleService.getLayerStyle({
+    type: fType,
+    baseColor: this.activeLayer.color,   // now guaranteed defined
+    shape: this.activeLayer.shape,
+    text,
+  });
+});
 
     this.onActivate();
   }

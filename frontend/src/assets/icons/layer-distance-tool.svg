@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Diagonal line -->
+  <path d="M25 75 L75 25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Points -->
+  <circle cx="25" cy="75" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="75" cy="25" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+
+  <!-- Minimal ruler overlay -->
+  <rect x="45" y="45" width="10" height="10" rx="2" fill="#333" transform="rotate(-45 50 50)"/>
+  <line x1="48" y1="48" x2="48" y2="52" stroke="white" stroke-width="1.5" transform="rotate(-45 50 50)"/>
+  <line x1="52" y1="48" x2="52" y2="52" stroke="white" stroke-width="1.5" transform="rotate(-45 50 50)"/>
+</svg>

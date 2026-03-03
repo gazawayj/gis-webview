@@ -8,6 +8,7 @@ import { DistanceToolPlugin } from '../../tools/distance-tool.plugin';
 import { AreaToolPlugin } from '../../tools/area-tool.plugin';
 import { AIAnalysisPlugin } from '../../tools/ai-analysis.plugin';
 import { HttpClient } from '@angular/common/http';
+import { LayerDistanceToolPlugin } from 'src/app/tools/layer-distance-tool.plugin';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {
@@ -54,6 +55,12 @@ export class ToolService {
       pluginFactory: (lm) => new DistanceToolPlugin(lm)
     },
     {
+      name: 'Layer Distance',
+      type: 'layer-distance',
+      icon: 'assets/icons/layer-distance-tool.svg',
+      pluginFactory: (lm) => new LayerDistanceToolPlugin(lm)
+    },
+    {
       name: 'Area',
       type: 'area',
       icon: 'assets/icons/area-tool.svg',
@@ -65,7 +72,7 @@ export class ToolService {
       icon: 'assets/icons/ai-featureFind-tool.svg',
       pluginFactory: (lm, http?: HttpClient) => {
         if (!http) throw new Error('HttpClient must be provided for AIAnalysisPlugin');
-        return new AIAnalysisPlugin(lm, http, this.styleService); // ✅ styleService injected
+        return new AIAnalysisPlugin(lm, http, this.styleService);
       }
     }
   ];

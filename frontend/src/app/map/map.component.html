@@ -25,17 +25,17 @@
         <!-- Layer items (stacked bottom-up) -->
         <div class="layer-items-container">
           @for (layer of sidebarLayers; track layer.id) {
-            <div class="layer-item-wrapper" cdkDrag>
-              <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
-                (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
-              </app-layer-item>
-            </div>
+          <div class="layer-item-wrapper" cdkDrag>
+            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
+              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
+            </app-layer-item>
+          </div>
           }
         </div>
 
         <!-- No layers tooltip -->
         @if (sidebarLayers.length === 0) {
-          <div class="no-layers-tooltip">No layers added.</div>
+        <div class="no-layers-tooltip">No layers added.</div>
         }
       </div>
 
@@ -46,10 +46,10 @@
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of regularTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-            [class.active]="toolList.includes(tool.type)">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
+          [class.active]="toolList.includes(tool.type)">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
@@ -59,10 +59,10 @@
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of aiTools; track tool.type) {
-          <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-            [class.active]="toolList.includes(tool.type)">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
+          [class.active]="toolList.includes(tool.type)">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
@@ -147,12 +147,54 @@
 
         <!-- Spinner overlay -->
         @if (isLoading) {
-          <div class="ai-loading-overlay">
-            <div class="spinner"></div>
-            <div class="loading-text">Loading AI results...</div>
-          </div>
+        <div class="ai-loading-overlay">
+          <div class="spinner"></div>
+          <div class="loading-text">Loading AI results...</div>
+        </div>
         }
 
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #layerDistanceModal>
+    <div class="ai-modal-backdrop">
+      <div class="ai-modal-card">
+        <div class="ai-modal-header">
+          Measure Layer Distance
+          <button class="close-btn" (click)="cancelLayerDistance()">✕</button>
+        </div>
+
+        <div class="ai-modal-body">
+          <p>Select two layers to compute the distance between them:</p>
+
+          <label>
+            Layer A:
+            <select [(ngModel)]="distanceLayerA" (ngModelChange)="computeLayerDistance()">
+              <option *ngFor="let layer of sidebarLayers" [ngValue]="layer">{{ layer.name }}</option>
+            </select>
+          </label>
+
+          <label>
+            Layer B:
+            <select [(ngModel)]="distanceLayerB" (ngModelChange)="computeLayerDistance()">
+              <option *ngFor="let layer of sidebarLayers" [ngValue]="layer">{{ layer.name }}</option>
+            </select>
+          </label>
+
+          <p *ngIf="distanceLayerA && distanceLayerB">
+            Distance: {{ distanceValue | number:'1.2-2' }} meters
+          </p>
+        </div>
+
+        <div class="ai-modal-actions">
+          <button class="cancel" (click)="cancelLayerDistance()">Cancel</button>
+
+          <!-- Fixed Confirm button -->
+          <button class="confirm" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">
+            Confirm
+          </button>
+        </div>
       </div>
     </div>
   </ng-template>

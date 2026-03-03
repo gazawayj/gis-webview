@@ -13,6 +13,7 @@ import { ModalFactoryService } from './factories/modal.factory';
 import { LayerConfig } from './models/layer-config.model';
 import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 import { HttpClient } from '@angular/common/http';
+import { LayerDistanceToolPlugin } from '../tools/layer-distance-tool.plugin';
 
 @Component({
   selector: 'app-map',
@@ -29,6 +30,7 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
   @ViewChild('aiFeatureFindModal') aiFeatureFindModal!: TemplateRef<any>;
+  @ViewChild('layerDistanceModal') distanceModalTemplate!: TemplateRef<any>;
 
   aiPrompt = '';
   private aiModalRef!: OverlayRef;
@@ -56,9 +58,14 @@ export class MapComponent implements AfterViewInit {
   private dragOrder: LayerConfig[] = [];
   toolList: ToolType[] = [];
 
-  private mapFacade = inject(MapFacadeService);
+  // Distance tool selections
+  distanceLayerA?: LayerConfig;
+  distanceLayerB?: LayerConfig;
+  distanceValue: number | null = null;
+
+  public mapFacade = inject(MapFacadeService);
   private layerManager = inject(LayerManagerService);
-  private toolService = inject(ToolService);
+  public toolService = inject(ToolService);
   private cdr = inject(ChangeDetectorRef);
   private vcr = inject(ViewContainerRef);
   private modalFactory = inject(ModalFactoryService);
@@ -113,14 +120,24 @@ export class MapComponent implements AfterViewInit {
       return;
     }
 
+    // Create plugin
     const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
-    if (plugin) {
-      this.mapFacade.activateTool(plugin);
-      this.toolList = [tool];
-      if (tool === 'ai-analysis') this.openAiFeatureFindModal();
-    } else {
+
+    if (!plugin) {
       this.mapFacade.activateTool(undefined as any);
       this.toolList = [];
+      return;
+    }
+
+    this.mapFacade.activateTool(plugin);
+    this.toolList = [tool];
+
+    // Open AI modal if needed
+    if (tool === 'ai-analysis') this.openAiFeatureFindModal();
+
+    // Open Layer Distance modal if tool is layer-distance
+    if (tool === 'layer-distance') {
+      this.openLayerDistanceModal(plugin);
     }
 
     this.cdr.detectChanges();
@@ -212,9 +229,8 @@ export class MapComponent implements AfterViewInit {
   }
 
   handleAiKeydown(event: KeyboardEvent) {
-    // Enter triggers search unless Shift+Enter
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault(); // Prevent newline
+      event.preventDefault();
       if (this.aiPrompt.trim()) this.confirmAiFeatureFind();
     }
   }
@@ -228,10 +244,7 @@ export class MapComponent implements AfterViewInit {
       panelClass: 'layer-modal',
       width: '420px'
     });
-
     this.cdr.detectChanges();
-
-    // Focus textarea after modal renders
     setTimeout(() => this.aiPromptTextarea?.nativeElement.focus(), 0);
   }
 
@@ -242,37 +255,100 @@ export class MapComponent implements AfterViewInit {
   }
 
   async confirmAiFeatureFind() {
-  if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
+    if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
+    const prompt = this.aiPrompt.trim();
+    if (!prompt) return;
 
-  const prompt = this.aiPrompt.trim();
-  if (!prompt) return;
+    const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
+    if (!activePlugin) return;
 
-  const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin;
-  if (!activePlugin) return;
+    this.isLoading = true;
+    this.cdr.detectChanges();
 
-  this.isLoading = true;
-  this.cdr.detectChanges(); // show spinner immediately
+    try {
+      const results = await activePlugin.runAIQuery(prompt);
+      this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
 
-  try {
-    const results = await activePlugin.runAIQuery(prompt);
-    this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
+      const selectedCoords: [number, number][] = this.aiResults
+        .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
+        .map(r => [r.lon, r.lat]);
 
-    const selectedCoords: [number, number][] = this.aiResults
-      .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
-      .map(r => [r.lon, r.lat]);
-
-    if (selectedCoords.length) activePlugin.addPoints(selectedCoords);
-    if (selectedCoords.length) activePlugin.onSave({ name: `AI_${Date.now()}` });
-    this.updateDragOrder();
-  } catch (err) {
-    console.error('AI Feature Find failed', err);
-  } finally {
-    this.isLoading = false;
-    this.cdr.detectChanges(); // hide spinner
-    this.mapFacade.cancelActivePlugin();
-    this.toolService.clearTool();
+      if (selectedCoords.length) activePlugin.addPoints(selectedCoords);
+      if (selectedCoords.length) activePlugin.onSave({ name: `AI_${Date.now()}` });
+      this.updateDragOrder();
+    } catch (err) {
+      console.error('AI Feature Find failed', err);
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      this.mapFacade.cancelActivePlugin();
+      this.toolService.clearTool();
+    }
   }
-}
+
+  // ---------- LAYER DISTANCE TOOL ----------
+  private openLayerDistanceModal(plugin: LayerDistanceToolPlugin) {
+    if (this.sidebarLayers.length < 2) {
+      alert('At least two layers are required to measure distance.');
+      this.toolService.clearTool();
+      return;
+    }
+
+    // Initialize plugin selection
+    plugin.selectedLayers = [this.sidebarLayers[0], this.sidebarLayers[1]];
+
+    // Open modal
+    plugin.modalRef = this.modalFactory.open({
+      template: this.distanceModalTemplate,
+      vcr: this.vcr,
+      panelClass: 'layer-modal',
+      width: '440px'
+    });
+
+    // When user clicks confirm
+    plugin.onConfirmComplete = () => {
+      // Refresh sidebar list
+      this.updateDragOrder();
+      this.cdr.detectChanges();
+
+      // Close modal
+      if (plugin.modalRef) this.modalFactory.close(plugin.modalRef);
+
+      // Clear selection & deactivate tool
+      this.distanceLayerA = undefined;
+      this.distanceLayerB = undefined;
+      this.distanceValue = null;
+      this.toolService.clearTool();
+    };
+
+    this.cdr.detectChanges();
+  }
+
+  public confirmLayerDistance() {
+    const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin | undefined;
+    plugin?.confirm();
+  }
+
+  computeLayerDistance(plugin?: LayerDistanceToolPlugin) {
+    const activePlugin = plugin || this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
+    if (!activePlugin || !activePlugin.selectedLayers[0] || !activePlugin.selectedLayers[1]) return;
+    this.distanceValue = activePlugin.computeDistance(
+      activePlugin.selectedLayers[0],
+      activePlugin.selectedLayers[1]
+    );
+    this.cdr.detectChanges();
+  }
+
+  cancelLayerDistance(plugin?: LayerDistanceToolPlugin) {
+    const activePlugin = plugin || this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
+    if (!activePlugin) return;
+    if (activePlugin.modalRef) this.modalFactory.close(activePlugin.modalRef);
+    this.distanceLayerA = undefined;
+    this.distanceLayerB = undefined;
+    this.distanceValue = null;
+    this.toolService.clearTool();
+    this.cdr.detectChanges();
+  }
 
   trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
 }
