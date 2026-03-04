@@ -1,47 +1,17 @@
-<g
-  class="planet-wireframe"
-  stroke="currentColor"
-  fill="none"
-  opacity="0.4"
-  mask="url(#radialFade)"
->
-  <!-- Outer sphere (medium weight) -->
-  <circle
-    cx="110"
-    cy="110"
-    r="55"
-    class="sphere-outline"
-  />
+<svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="planet-wireframe" stroke="currentColor" fill="none" opacity="0.4" mask="url(#radialFade)">
+    <!-- Outer sphere (thicker now) -->
+    <circle cx="110" cy="110" r="55" class="sphere-outline" stroke-width="3"/>
 
-  <!-- Latitude lines (thin) -->
-  <ellipse cx="110" cy="110" rx="55" ry="35" class="grid-line" />
-  <ellipse cx="110" cy="110" rx="55" ry="20" class="grid-line" />
+    <!-- Latitude lines -->
+    <ellipse cx="110" cy="110" rx="55" ry="35" class="grid-line" stroke-width="1"/>
+    <ellipse cx="110" cy="110" rx="55" ry="20" class="grid-line" stroke-width="1"/>
 
-  <!-- Longitude lines (thin) -->
-  <ellipse
-    cx="110"
-    cy="110"
-    rx="35"
-    ry="55"
-    transform="rotate(25 110 110)"
-    class="grid-line"
-  />
-  <ellipse
-    cx="110"
-    cy="110"
-    rx="35"
-    ry="55"
-    transform="rotate(-25 110 110)"
-    class="grid-line"
-  />
+    <!-- Longitude lines -->
+    <ellipse cx="110" cy="110" rx="35" ry="55" transform="rotate(25 110 110)" class="grid-line" stroke-width="1"/>
+    <ellipse cx="110" cy="110" rx="35" ry="55" transform="rotate(-25 110 110)" class="grid-line" stroke-width="1"/>
 
-  <!-- Ring (boldest) -->
-  <ellipse
-    cx="110"
-    cy="110"
-    rx="85"
-    ry="25"
-    transform="rotate(-18 110 110)"
-    class="planet-ring"
-  />
-</g>
+    <!-- Ring -->
+    <ellipse cx="110" cy="110" rx="85" ry="25" transform="rotate(-18 110 110)" class="planet-ring" stroke-width="2"/>
+  </g>
+</svg>
