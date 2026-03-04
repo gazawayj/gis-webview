@@ -35,7 +35,7 @@ This platform is intended to be a foundation for professional GIS development.
 - Vector and raster layer rendering  
 - Interactive layer management with planned drag-and-drop, opacity, and grouping controls  
 - Temporal data visualization and animation (planned)  
-- Plain-language AI-assisted layer creation (planned)  
+- Plain-language AI-assisted layer creation 
 - Browser-native, standards-compliant spatial formats  
 
 ---
