@@ -3,12 +3,12 @@ import { BehaviorSubject } from 'rxjs';
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';
 import { StyleService } from './style.service';
-import { CoordinateCapturePlugin } from '../../tools/coordinate-capture.plugin';
-import { DistanceToolPlugin } from '../../tools/distance-tool.plugin';
-import { AreaToolPlugin } from '../../tools/area-tool.plugin';
-import { AIAnalysisPlugin } from '../../tools/ai-analysis.plugin';
+import { CoordinateCapturePlugin } from '../tools/coordinate-capture.plugin';
+import { DistanceToolPlugin } from '../tools/distance-tool.plugin';
+import { AreaToolPlugin } from '../tools/area-tool.plugin';
+import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 import { HttpClient } from '@angular/common/http';
-import { LayerDistanceToolPlugin } from 'src/app/tools/layer-distance-tool.plugin';
+import { LayerDistanceToolPlugin } from '../tools/layer-distance-tool.plugin';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {

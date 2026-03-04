@@ -11,9 +11,9 @@ import { ToolType, ToolDefinition } from './models/tool-definition.model';
 import { ShapeType } from './constants/symbol-constants';
 import { ModalFactoryService } from './factories/modal.factory';
 import { LayerConfig } from './models/layer-config.model';
-import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
+import { AIAnalysisPlugin } from './tools/ai-analysis.plugin';
 import { HttpClient } from '@angular/common/http';
-import { LayerDistanceToolPlugin } from '../tools/layer-distance-tool.plugin';
+import { LayerDistanceToolPlugin } from './tools/layer-distance-tool.plugin';
 
 @Component({
   selector: 'app-map',

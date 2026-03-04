@@ -4,7 +4,7 @@ import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
 import { LayerConfig } from '../models/layer-config.model';
-import { Tool } from '../../tools/tool';
+import { Tool } from '../tools/tool';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {

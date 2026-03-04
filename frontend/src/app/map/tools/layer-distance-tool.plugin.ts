@@ -1,9 +1,9 @@
 import Feature from 'ol/Feature';
 import { LineString, MultiPolygon, Point, Polygon } from 'ol/geom';
 import { getLength } from 'ol/sphere';
-import { PLANETS } from '../map/constants/map-constants';
+import { PLANETS } from '../constants/map-constants';
 import { ToolPluginBase } from './tool-base.plugin';
-import { LayerConfig } from '../map/models/layer-config.model';
+import { LayerConfig } from '../models/layer-config.model';
 import { OverlayRef } from '@angular/cdk/overlay';
 
 /** Lightweight KD-tree for 2D points */

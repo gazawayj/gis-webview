@@ -4,9 +4,9 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
-import { LayerManagerService } from '../map/services/layer-manager.service';
+import { LayerManagerService } from '../services/layer-manager.service';
 import { Tool } from './tool';
-import { LayerConfig } from '../map/models/layer-config.model';
+import { LayerConfig } from '../models/layer-config.model';
 
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;

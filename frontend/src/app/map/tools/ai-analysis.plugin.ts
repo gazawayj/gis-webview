@@ -3,8 +3,8 @@ import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
 import { ToolPluginBase } from './tool-base.plugin';
 import { HttpClient } from '@angular/common/http';
-import { LayerManagerService } from '../map/services/layer-manager.service';
-import { StyleService } from '../map/services/style.service';
+import { LayerManagerService } from '../services/layer-manager.service';
+import { StyleService } from '../services/style.service';
 import { extend as extendExtent, boundingExtent } from 'ol/extent';
 
 export interface AIResult {
