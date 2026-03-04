@@ -28,27 +28,13 @@ export class LayerManagerService {
 
   private _map?: OlMap;
 
-  // ✅ Mars is default planet on service init
   currentPlanet: Planet = 'mars';
 
   private registry = new Map<string, LayerConfig>();
-  planetCache: Record<Planet, LayerConfig[]> = {
-    earth: [],
-    moon: [],
-    mars: []
-  };
+  planetCache: Record<Planet, LayerConfig[]> = { earth: [], moon: [], mars: [] };
 
-  private basemapRegistry: Record<Planet, LayerConfig> = {
-    earth: null!,
-    moon: null!,
-    mars: null!
-  };
-
-  private planetInitialized: Record<Planet, boolean> = {
-    earth: false,
-    moon: false,
-    mars: false
-  };
+  private basemapRegistry: Record<Planet, LayerConfig> = { earth: null!, moon: null!, mars: null! };
+  private planetInitialized: Record<Planet, boolean> = { earth: false, moon: false, mars: false };
 
   dragOrder: LayerConfig[] = [];
   private layerFactory: LayerFactory;
@@ -56,43 +42,12 @@ export class LayerManagerService {
   private layersSubject = new BehaviorSubject<LayerConfig[]>([]);
   layers$ = this.layersSubject.asObservable();
 
-  // ------------------ GLOBAL LOADING WITH MESSAGE ------------------
   private activeLoads = 0;
   private spinnerMessage: string | null = null;
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
   private messageSubject = new BehaviorSubject<string>('Loading...');
   public loadingMessage$ = this.messageSubject.asObservable();
-
-  private beginLoad(message?: string): void {
-    this.activeLoads++;
-    if (message) this.spinnerMessage = message;
-
-    if (this.activeLoads === 1) {
-      this.messageSubject.next(this.spinnerMessage || 'Loading...');
-      this.loadingSubject.next(true);
-    }
-  }
-
-  private endLoad(): void {
-    this.activeLoads = Math.max(0, this.activeLoads - 1);
-
-    if (this.activeLoads === 0) {
-      this.loadingSubject.next(false);
-      this.spinnerMessage = null;
-      this.messageSubject.next('');
-    }
-
-    this.applyZOrder();
-  }
-
-  public startExternalLoad(message?: string): void {
-    this.beginLoad(message);
-  }
-
-  public endExternalLoad(): void {
-    this.endLoad();
-  }
 
   constructor() {
     this.layerFactory = createVectorLayerFactory(this.styleService);
@@ -102,8 +57,37 @@ export class LayerManagerService {
     this._map = map;
   }
 
-  getLayersForPlanet(planet: Planet): LayerConfig[] {
+  private beginLoad(message?: string) {
+    this.activeLoads++;
+    if (message) this.spinnerMessage = message;
+    if (this.activeLoads === 1) {
+      this.messageSubject.next(this.spinnerMessage || 'Loading...');
+      this.loadingSubject.next(true);
+    }
+  }
+
+  private endLoad() {
+    this.activeLoads = Math.max(0, this.activeLoads - 1);
+    if (this.activeLoads === 0) {
+      this.loadingSubject.next(false);
+      this.spinnerMessage = null;
+      this.messageSubject.next('');
+    }
+    this.applyZOrder();
+  }
+
+  public startExternalLoad(message?: string) { this.beginLoad(message); }
+  public endExternalLoad() { this.endLoad(); }
+
+  getLayersForPlanet(planet: Planet) {
     return this.planetCache[planet].slice();
+  }
+
+  /** Helper to refresh sidebar for a planet */
+  private refreshLayersForPlanet(planet: Planet) {
+    if (this.currentPlanet === planet) {
+      this.layersSubject.next(this.getLayersForPlanet(planet));
+    }
   }
 
   private initializePlanet(planet: Planet) {
@@ -123,6 +107,7 @@ export class LayerManagerService {
             'longitude',
             'system-firms'
           );
+          this.refreshLayersForPlanet('earth');
           this.endLoad();
         },
         error: () => this.endLoad()
@@ -141,6 +126,7 @@ export class LayerManagerService {
             undefined,
             'system-earthquakes'
           );
+          this.refreshLayersForPlanet('earth');
           this.endLoad();
         },
         error: () => this.endLoad()
@@ -161,7 +147,6 @@ export class LayerManagerService {
     this.initializePlanet(planet);
 
     this._map.getLayers().clear();
-
     const basemap = this.createBasemap(planet);
     this._map.addLayer(basemap.olLayer);
 
@@ -180,7 +165,6 @@ export class LayerManagerService {
 
   private addMarsBuiltInLayers() {
     const geojsonPath = 'assets/layers/surface_ice_mars.geojson';
-
     this.beginLoad('Loading Mars surface ice...');
     this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
       next: content => {
@@ -188,16 +172,8 @@ export class LayerManagerService {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
         });
-
-        this.createLayer({
-          planet: 'mars',
-          name: 'Surface Ice',
-          features,
-          geometryType: 'polygon',
-          color: '#00ffff',
-          shape: 'none'
-        });
-
+        this.createLayer({ planet: 'mars', name: 'Surface Ice', features, geometryType: 'polygon', color: '#00ffff', shape: 'none' });
+        this.refreshLayersForPlanet('mars');
         this.endLoad();
       },
       error: () => this.endLoad()
@@ -206,14 +182,9 @@ export class LayerManagerService {
 
   private generateLayerId(layer: LayerConfig, planet: Planet, isTemporary?: boolean): string {
     if (!isTemporary) {
-      return `${planet}:${layer.name.replace(/\s+/g, '_')}:${Date.now()}:${Math.random()
-        .toString(36)
-        .slice(2)}`;
+      return `${planet}:${layer.name.replace(/\s+/g, '_')}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     }
-
-    return `tmp:${planet}:${Date.now()}:${Math.random()
-      .toString(36)
-      .slice(2)}`;
+    return `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
   }
 
   createLayer(params: {
@@ -228,24 +199,9 @@ export class LayerManagerService {
     styleFn?: (f: FeatureLike) => Style | Style[];
     geometryType?: GeometryType;
   }): LayerConfig {
-    const {
-      planet,
-      name: incomingName,
-      features = [],
-      shape,
-      color,
-      id,
-      cache = true,
-      isTemporary = false,
-      styleFn,
-      geometryType
-    } = params;
+    const { planet, name: incomingName, features = [], shape, color, id, cache = true, isTemporary = false, styleFn, geometryType } = params;
 
-    const allocation =
-      !shape || !color
-        ? this.styleService.allocateLayerStyle(planet)
-        : { shape, color };
-
+    const allocation = !shape || !color ? this.styleService.allocateLayerStyle(planet) : { shape, color };
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
 
@@ -253,39 +209,22 @@ export class LayerManagerService {
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => this.cloneFeature(f, { shape: finalShape }));
 
-    const resolvedName = incomingName
-      ? this.resolveLayerName(planet, incomingName)
-      : `Layer_${Date.now()}`;
+    const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
 
-    const layerConfig = this.layerFactory(planet, {
-      name: resolvedName,
-      features: layerFeatures,
-      shape: finalShape,
-      color: finalColor,
-      styleFn,
-      isTemporary,
-      geometryType
-    });
+    const layerConfig = this.layerFactory(planet, { name: resolvedName, features: layerFeatures, shape: finalShape, color: finalColor, styleFn, isTemporary, geometryType });
 
-    layerConfig.id =
-      id || this.generateLayerId(layerConfig, planet, isTemporary);
+    layerConfig.id = id || this.generateLayerId(layerConfig, planet, isTemporary);
 
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
 
-      if (cache && !isTemporary) {
-        this.planetCache[planet].unshift(layerConfig);
-      }
-
+      if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
       this.dragOrder.unshift(layerConfig);
-
-      if (this._map) {
-        this._map.addLayer(layerConfig.olLayer);
-      }
+      if (this._map) this._map.addLayer(layerConfig.olLayer);
 
       this.updateStyle(layerConfig);
       this.applyZOrder();
-      this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
+      this.refreshLayersForPlanet(planet);
     }
 
     return this.registry.get(layerConfig.id)!;
@@ -305,38 +244,25 @@ export class LayerManagerService {
 
     if (fileContent) {
       if (sourceType === 'CSV') {
-        const parsed = Papa.parse(fileContent, {
-          header: true,
-          skipEmptyLines: true
-        });
-
+        const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
         parsed.data.forEach((row: any) => {
           const lat = parseFloat(row[latField || 'latitude']);
           const lon = parseFloat(row[lonField || 'longitude']);
-
           if (!isNaN(lat) && !isNaN(lon)) {
-            const coords = fromLonLat([lon, lat]);
-            const f = new Feature(new Point(coords));
+            const f = new Feature(new Point(fromLonLat([lon, lat])));
             f.set('featureType', 'point');
             features.push(f);
           }
         });
       } else {
-        const geoFeatures = new GeoJSON().readFeatures(fileContent, {
-          dataProjection: 'EPSG:4326',
-          featureProjection: 'EPSG:3857'
-        });
-
-        geoFeatures.forEach(f => {
-          if (f instanceof Feature) {
-            f.set('featureType', f.get('featureType') || 'point');
-            features.push(f);
-          }
-        });
+        const geoFeatures = new GeoJSON().readFeatures(fileContent, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
+        geoFeatures.forEach(f => { if (f instanceof Feature) features.push(f); });
       }
     }
 
-    return this.createLayer({ planet, name, features, id });
+    const layer = this.createLayer({ planet, name, features, id });
+    this.refreshLayersForPlanet(planet);
+    return layer;
   }
 
   updateStyle(layer: LayerConfig) {
@@ -350,40 +276,16 @@ export class LayerManagerService {
       const text = feat.get('text');
 
       if (fType === 'label') {
-        return [
-          this.styleService.getLayerStyle({
-            type: 'label',
-            text,
-            baseColor: layer.color
-          })
-        ];
+        return [this.styleService.getLayerStyle({ type: 'label', text, baseColor: layer.color })];
       }
 
       switch (layer.geometryType) {
         case 'line':
-          return [
-            this.styleService.getLayerStyle({
-              type: 'line',
-              baseColor: layer.color
-            })
-          ];
-
+          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
         case 'polygon':
-          return [
-            this.styleService.getLayerStyle({
-              type: 'polygon',
-              baseColor: layer.color
-            })
-          ];
-
+          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
         default:
-          return [
-            this.styleService.getLayerStyle({
-              type: 'point',
-              baseColor: layer.color,
-              shape: layer.shape
-            })
-          ];
+          return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
       }
     });
 
@@ -398,11 +300,10 @@ export class LayerManagerService {
     this.dragOrder = this.dragOrder.filter(l => l.id !== layer.id);
 
     Object.keys(this.planetCache).forEach(p => {
-      this.planetCache[p as Planet] =
-        this.planetCache[p as Planet].filter(l => l.id !== layer.id);
+      this.planetCache[p as Planet] = this.planetCache[p as Planet].filter(l => l.id !== layer.id);
     });
 
-    this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
+    this.refreshLayersForPlanet(this.currentPlanet);
   }
 
   toggle(layer: LayerConfig) {
@@ -411,25 +312,14 @@ export class LayerManagerService {
   }
 
   reorderLayers(sidebarOrder: LayerConfig[]) {
-    sidebarOrder
-      .slice()
-      .reverse()
-      .forEach((cfg, idx) => cfg.olLayer.setZIndex(idx + 1));
-
-    this.dragOrder
-      .filter(l => l.isBasemap)
-      .forEach(l => l.olLayer.setZIndex(0));
+    sidebarOrder.slice().reverse().forEach((cfg, idx) => cfg.olLayer.setZIndex(idx + 1));
+    this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
   }
 
   private createBasemap(planet: Planet): LayerConfig {
-    if (this.basemapRegistry[planet]) {
-      return this.basemapRegistry[planet];
-    }
+    if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
 
-    const layer = new TileLayer({
-      source: new XYZ({ url: BASEMAP_URLS[planet] }),
-      zIndex: 0
-    });
+    const layer = new TileLayer({ source: new XYZ({ url: BASEMAP_URLS[planet] }), zIndex: 0 });
 
     const config: LayerConfig = {
       id: `basemap-${planet}`,
@@ -450,37 +340,24 @@ export class LayerManagerService {
 
   applyZOrder() {
     const nonBasemap = this.dragOrder.filter(l => !l.isBasemap);
-
-    nonBasemap
-      .slice()
-      .reverse()
-      .forEach((layer, idx) => layer.olLayer.setZIndex(idx + 1));
-
-    this.dragOrder
-      .filter(l => l.isBasemap)
-      .forEach(l => l.olLayer.setZIndex(0));
+    nonBasemap.slice().reverse().forEach((layer, idx) => layer.olLayer.setZIndex(idx + 1));
+    this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
   }
 
   private sanitizeLayerName(name: string): string {
-    return name
-      .trim()
-      .replace(/[^a-zA-Z0-9 ]/g, '')
-      .replace(/\s+/g, '');
+    return name.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '');
   }
 
   private ensureUniqueName(planet: Planet, baseName: string): string {
     const existing = this.planetCache[planet].map(l => l.name);
-
     if (!existing.includes(baseName)) return baseName;
 
     let counter = 2;
     let candidate = `${baseName}_${counter}`;
-
     while (existing.includes(candidate)) {
       counter++;
       candidate = `${baseName}_${counter}`;
     }
-
     return candidate;
   }
 
@@ -491,19 +368,9 @@ export class LayerManagerService {
 
   cloneFeature(f: Feature, overrides: Record<string, any> = {}): Feature {
     const clone = f.clone();
-
-    f.getKeys().forEach(key => {
-      clone.set(key, f.get(key));
-    });
-
-    Object.keys(overrides).forEach(key => {
-      clone.set(key, overrides[key]);
-    });
-
-    if (!clone.getId()) {
-      clone.setId(crypto.randomUUID());
-    }
-
+    f.getKeys().forEach(key => clone.set(key, f.get(key)));
+    Object.keys(overrides).forEach(key => clone.set(key, overrides[key]));
+    if (!clone.getId()) clone.setId(crypto.randomUUID());
     return clone;
   }
 }
