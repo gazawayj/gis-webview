@@ -5,6 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
+import csvParse from 'papaparse';
 
 dotenv.config();
 
@@ -13,8 +14,6 @@ const __dirname = path.dirname(__filename);
 
 // Cache directory for FIRMS CSV
 const CACHE_DIR = path.join(__dirname, 'cache');
-
-// Ensure cache directory exists
 await fs.mkdir(CACHE_DIR, { recursive: true });
 
 const app = express();
@@ -29,64 +28,100 @@ app.use(cors({
 }));
 
 // NASA FIRMS Map Key
-const FIRMS_MAP_KEY = '8c771d8430508dba8db3afeb34e9ff72';
+const FIRMS_MAP_KEY = process.env.FIRMS_MAP_KEY || '8c771d8430508dba8db3afeb34e9ff72';
 
 // Default FIRMS params
 const DEFAULT_SOURCE = 'VIIRS_SNPP_NRT';
 const DEFAULT_AREA = 'world';
-const DEFAULT_RANGE = '1';
+const DEFAULT_RANGE = '2'; // 48-hour rolling window
 
-// Cache duration in milliseconds (24 hours)
-const CACHE_DURATION = 24 * 60 * 60 * 1000;
+// Fetch FIRMS CSV from NASA ---
+async function fetchFIRMS(source = DEFAULT_SOURCE, area = DEFAULT_AREA, range = DEFAULT_RANGE) {
+  const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_MAP_KEY}/${source}/${area}/${range}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`NASA FIRMS fetch failed: ${response.statusText}`);
+  return await response.text();
+}
 
-// Health check
+// Merge CSV strings, removing duplicates ---
+function mergeCSVs(oldCSV, newCSV) {
+  const oldData = csvParse.parse(oldCSV, { header: true }).data;
+  const newData = csvParse.parse(newCSV, { header: true }).data;
+
+  const keySet = new Set();
+  const merged = [];
+
+  [...oldData, ...newData].forEach(row => {
+    const key = `${row.latitude}-${row.longitude}-${row.acq_date}-${row.acq_time}`;
+    if (!keySet.has(key)) {
+      keySet.add(key);
+      merged.push(row);
+    }
+  });
+
+  return csvParse.unparse(merged);
+}
+
+// Update cache for a source/area ---
+async function updateCache(source = DEFAULT_SOURCE, area = DEFAULT_AREA) {
+  const cacheFile = path.join(CACHE_DIR, `${source}-${area}-48h.csv`);
+
+  try {
+    const newCSV = await fetchFIRMS(source, area, DEFAULT_RANGE);
+    let finalCSV = newCSV;
+
+    try {
+      const oldCSV = await fs.readFile(cacheFile, 'utf8');
+      finalCSV = mergeCSVs(oldCSV, newCSV);
+    } catch {
+      // No previous cache, use newCSV
+    }
+
+    await fs.writeFile(cacheFile, finalCSV, 'utf8');
+    console.log(`[${new Date().toISOString()}] FIRMS cache updated: ${source}-${area}-48h.csv`);
+  } catch (err) {
+    console.error(`Failed to update FIRMS cache: ${err.message}`);
+  }
+}
+
+// Periodically refresh caches
+setInterval(() => {
+  updateCache(DEFAULT_SOURCE, DEFAULT_AREA);
+}, 25 * 60 * 1000); // 25 minutes
+
+// Initial cache update on startup
+updateCache(DEFAULT_SOURCE, DEFAULT_AREA);
+
+// Health check ---
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', ts: Date.now() });
 });
 
-// FIRMS endpoint with caching
+// FIRMS endpoint ---
 app.get('/firms', async (req, res) => {
   try {
     const source = req.query.source || DEFAULT_SOURCE;
     const area = req.query.area || DEFAULT_AREA;
-    const range = req.query.range || DEFAULT_RANGE;
+    const cacheFile = path.join(CACHE_DIR, `${source}-${area}-48h.csv`);
 
-    const cacheFile = path.join(CACHE_DIR, `${source}-${area}-${range}.csv`);
-
-    let useCache = false;
-
+    let csvData = '';
     try {
-      const stats = await fs.stat(cacheFile);
-      const age = Date.now() - stats.mtimeMs;
-      if (age < CACHE_DURATION) useCache = true;
+      csvData = await fs.readFile(cacheFile, 'utf8');
     } catch {
-      // Cache doesn't exist, will fetch
+      // If cache missing, fetch on demand
+      csvData = await fetchFIRMS(source, area, DEFAULT_RANGE);
+      await fs.writeFile(cacheFile, csvData, 'utf8');
     }
-
-    if (useCache) {
-      const cachedData = await fs.readFile(cacheFile, 'utf8');
-      res.setHeader('Content-Type', 'text/csv');
-      return res.send(cachedData);
-    }
-
-    // Fetch from NASA FIRMS
-    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_MAP_KEY}/${source}/${area}/${range}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('NASA FIRMS API fetch failed');
-
-    const text = await response.text();
-
-    // Save to cache
-    await fs.writeFile(cacheFile, text, 'utf8');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.send(text);
+    res.send(csvData);
   } catch (err) {
     console.error(err);
     res.status(500).send({ error: err.message });
   }
 });
 
+// Start server ---
 app.listen(port, () => {
   console.log(`Backend running at http://localhost:${port}`);
 });
