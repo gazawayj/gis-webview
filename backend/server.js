@@ -90,7 +90,7 @@ setInterval(() => {
 }, 25 * 60 * 1000); // 25 minutes
 
 // Initial cache update on startup
-updateCache(DEFAULT_SOURCE, DEFAULT_AREA);
+await updateCache(DEFAULT_SOURCE, DEFAULT_AREA);
 
 // Health check ---
 app.get('/health', (req, res) => {
