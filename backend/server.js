@@ -33,7 +33,7 @@ const FIRMS_MAP_KEY = process.env.FIRMS_MAP_KEY || '8c771d8430508dba8db3afeb34e9
 // Default FIRMS params
 const DEFAULT_SOURCE = 'VIIRS_SNPP_NRT';
 const DEFAULT_AREA = 'world';
-const DEFAULT_RANGE = '2'; // 48-hour rolling window
+const DEFAULT_RANGE = '1'; // 24-hour rolling window
 
 // Fetch FIRMS CSV from NASA ---
 async function fetchFIRMS(source = DEFAULT_SOURCE, area = DEFAULT_AREA, range = DEFAULT_RANGE) {
@@ -64,7 +64,7 @@ function mergeCSVs(oldCSV, newCSV) {
 
 // Update cache for a source/area ---
 async function updateCache(source = DEFAULT_SOURCE, area = DEFAULT_AREA) {
-  const cacheFile = path.join(CACHE_DIR, `${source}-${area}-48h.csv`);
+  const cacheFile = path.join(CACHE_DIR, `${source}-${area}-24h.csv`);
 
   try {
     const newCSV = await fetchFIRMS(source, area, DEFAULT_RANGE);
@@ -78,7 +78,7 @@ async function updateCache(source = DEFAULT_SOURCE, area = DEFAULT_AREA) {
     }
 
     await fs.writeFile(cacheFile, finalCSV, 'utf8');
-    console.log(`[${new Date().toISOString()}] FIRMS cache updated: ${source}-${area}-48h.csv`);
+    console.log(`[${new Date().toISOString()}] FIRMS cache updated: ${source}-${area}-24h.csv`);
   } catch (err) {
     console.error(`Failed to update FIRMS cache: ${err.message}`);
   }

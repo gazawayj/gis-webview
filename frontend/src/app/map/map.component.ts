@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, TemplateRef, ViewContainerRef, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, TemplateRef, ViewContainerRef, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -35,7 +35,6 @@ export class MapComponent implements AfterViewInit {
 
   // ===================== STATE =====================
   aiPrompt = '';
-  aiResults: Array<{ name: string; lon: number; lat: number; selected: boolean }> = [];
   private aiModalRef?: OverlayRef;
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
@@ -74,6 +73,7 @@ export class MapComponent implements AfterViewInit {
   private vcr = inject(ViewContainerRef);
   private modalFactory = inject(ModalFactoryService);
   private http = inject(HttpClient);
+  private zone = inject(NgZone);
 
   private modalRef?: OverlayRef;
   private pluginModalRef?: OverlayRef;
@@ -107,15 +107,8 @@ export class MapComponent implements AfterViewInit {
     this.updateDragOrder();
 
     // Subscribe to loading state
-    this.layerManager.loading$.subscribe(isLoading => {
-      this.isLoading = isLoading;
-      this.cdr.detectChanges();
-    });
-
-    this.layerManager.loadingMessage$.subscribe(message => {
-      this.loadingMessage = message || 'Loading...';
-      this.cdr.detectChanges();
-    });
+    this.layerManager.loading$.subscribe(isLoading => { this.isLoading = isLoading; this.detect(); });
+    this.layerManager.loadingMessage$.subscribe(message => { this.loadingMessage = message || 'Loading...'; this.detect(); });
 
     const viewport = this.mapFacade.map.getViewport();
     viewport.addEventListener('contextmenu', (event: MouseEvent) => {
@@ -131,35 +124,40 @@ export class MapComponent implements AfterViewInit {
       this.currentLat = lat;
       this.zoomDisplay = zoom.toFixed(2);
       this.updateLabels();
-      this.cdr.detectChanges();
+      this.detect();
     });
   }
 
   // ===================== TOOL ACTIVATION =====================
   private activateToolFromService(tool: ToolType): void {
-    this.closeSidebar();
+    this.closeToolbox();
 
-    if (!tool || tool === 'none') {
-      this.mapFacade.activateTool(undefined as any);
-      this.toolList = [];
-      this.cdr.detectChanges();
-      return;
+    try {
+      if (!tool || tool === 'none') {
+        this.mapFacade.activateTool(undefined as any);
+        this.toolList = [];
+        return;
+      }
+
+      const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
+      if (!plugin) {
+        this.mapFacade.activateTool(undefined as any);
+        this.toolList = [];
+        return;
+      }
+
+      // **Activate the plugin with the map** (this was missing!)
+      plugin.activate(this.mapFacade.map);
+
+      this.mapFacade.activateTool(plugin);
+      this.toolList = [tool];
+
+      // Open modals as needed for specific tools
+      if (tool === 'ai-analysis') this.openAiFeatureFindModal();
+      if (tool === 'layer-distance') this.openLayerDistanceModal(plugin as LayerDistanceToolPlugin);
+    } finally {
+      this.detect();
     }
-
-    const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
-    if (!plugin) {
-      this.mapFacade.activateTool(undefined as any);
-      this.toolList = [];
-      return;
-    }
-
-    this.mapFacade.activateTool(plugin);
-    this.toolList = [tool];
-
-    if (tool === 'ai-analysis') this.openAiFeatureFindModal();
-    if (tool === 'layer-distance') this.openLayerDistanceModal(plugin as LayerDistanceToolPlugin);
-
-    this.cdr.detectChanges();
   }
 
   activateTool(tool: ToolType): void { this.toolService.setActiveTool(tool); }
@@ -171,11 +169,11 @@ export class MapComponent implements AfterViewInit {
     moveItemInArray(newOrder, event.previousIndex, event.currentIndex);
     this.dragOrder = newOrder;
     this.layerManager.reorderLayers(newOrder);
-    this.cdr.detectChanges();
+    this.detect();
   }
 
-  toggleLayer(layer: LayerConfig): void { this.layerManager.toggle(layer); this.cdr.detectChanges(); }
-  removeLayer(layer: LayerConfig): void { this.layerManager.remove(layer); this.updateDragOrder(); this.cdr.detectChanges(); }
+  toggleLayer(layer: LayerConfig): void { this.layerManager.toggle(layer); this.detect(); }
+  removeLayer(layer: LayerConfig): void { this.layerManager.remove(layer); this.updateDragOrder(); this.detect(); }
 
   onColorPicked(layer: LayerConfig, color: string): void {
     layer.color = color;
@@ -192,11 +190,10 @@ export class MapComponent implements AfterViewInit {
     if (planet === this.currentPlanet) return;
     this.currentPlanet = planet;
     this.mapFacade.setPlanet(planet);
-    this.closeSidebar();
     this.closeToolbox();
     this.updateLabels();
     this.updateDragOrder();
-    this.cdr.detectChanges();
+    this.detect();
   }
 
   private updateLabels(): void {
@@ -207,7 +204,6 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
-  closeSidebar(): void { }
   closeToolbox(): void { this.toolService.clearTool(); }
 
   // ===================== ADD LAYER MODAL =====================
@@ -233,7 +229,7 @@ export class MapComponent implements AfterViewInit {
       panelClass: 'layer-modal',
       width: '440px'
     });
-    this.cdr.detectChanges();
+    this.detect();
   }
 
   closePluginSaveModal(): void { if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef); }
@@ -247,6 +243,7 @@ export class MapComponent implements AfterViewInit {
     }
     this.toolService.clearTool();
     this.closePluginSaveModal();
+    this.detect();
   }
 
   cancelPluginSave(): void {
@@ -265,14 +262,16 @@ export class MapComponent implements AfterViewInit {
   // ===================== AI FEATURE FIND =====================
   openAiFeatureFindModal(): void {
     this.aiPrompt = '';
-    this.aiModalRef = this.modalFactory.open({
-      template: this.aiFeatureFindModal,
-      vcr: this.vcr,
-      panelClass: 'layer-modal',
-      width: '420px'
+    this.zone.runOutsideAngular(() => {
+      this.aiModalRef = this.modalFactory.open({
+        template: this.aiFeatureFindModal,
+        vcr: this.vcr,
+        panelClass: 'layer-modal',
+        width: '420px'
+      });
+      setTimeout(() => this.aiPromptTextarea?.nativeElement.focus(), 0);
     });
-    this.cdr.detectChanges();
-    setTimeout(() => this.aiPromptTextarea?.nativeElement.focus(), 0);
+    this.detect();
   }
 
   cancelAiFeatureFind(): void {
@@ -285,40 +284,21 @@ export class MapComponent implements AfterViewInit {
     const prompt = this.aiPrompt.trim();
     if (!prompt) return;
 
-    const activePlugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin | undefined;
-    if (!activePlugin) return;
+    const plugin = this.mapFacade.getActivePlugin() as AIAnalysisPlugin | undefined;
+    if (!plugin) return;
 
     try {
-      // Close modal immediately so user can see map
       if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
-
-      // Run AI query
-      const results = await activePlugin.runAIQuery(prompt, false);
-      this.aiResults = (Array.isArray(results) ? results : [results]).map(r => ({ ...r, selected: true }));
-
-      const selectedCoords: [number, number][] = this.aiResults
-        .filter(r => r.selected && r.lat !== undefined && r.lon !== undefined)
-        .map(r => [r.lon, r.lat]);
-
-      if (selectedCoords.length) {
-        // Add points to map
-        activePlugin.addPoints(selectedCoords);
-
-        // Fly to points
-        await activePlugin.flyToPoints(selectedCoords);
-
-        // Save plugin layer
-        activePlugin.onSave({ name: `AI_${Date.now()}` });
-
-        this.updateDragOrder();
-      }
+      await plugin.execute(prompt);
+      this.updateDragOrder();
     } catch (err) {
       console.error('AI Feature Find failed', err);
+      this.showNotification('AI Feature Find failed. See console for details.');
     } finally {
-      // Clean up plugin
       this.mapFacade.cancelActivePlugin();
       this.toolService.clearTool();
     }
+    this.detect();
   }
 
   // ===================== LAYER DISTANCE TOOL =====================
@@ -334,7 +314,7 @@ export class MapComponent implements AfterViewInit {
       this.distanceValue = 0;
     }
 
-    this.cdr.detectChanges();
+    this.detect();
   }
 
   private openLayerDistanceModal(plugin: LayerDistanceToolPlugin): void {
@@ -342,7 +322,7 @@ export class MapComponent implements AfterViewInit {
       .filter(l => !l.isBasemap && !l.isTemporary);
 
     if (pointLayers.length < 2) {
-      alert('At least two layers are required to measure distance.');
+      this.showNotification('At least two layers are required to measure distance.');
       this.toolService.clearTool();
       return;
     }
@@ -363,7 +343,7 @@ export class MapComponent implements AfterViewInit {
 
     plugin.onConfirmComplete = () => {
       this.updateDragOrder();
-      this.cdr.detectChanges();
+      this.detect();
       if (plugin.modalRef) this.modalFactory.close(plugin.modalRef);
       this.distanceLayerA = undefined;
       this.distanceLayerB = undefined;
@@ -372,7 +352,7 @@ export class MapComponent implements AfterViewInit {
     };
 
     this.onDistanceLayerChange();
-    this.cdr.detectChanges();
+    this.detect();
   }
 
   public confirmLayerDistance(): void {
@@ -389,8 +369,16 @@ export class MapComponent implements AfterViewInit {
     this.distanceLayerB = undefined;
     this.distanceValue = 0;
     this.toolService.clearTool();
-    this.cdr.detectChanges();
+    this.detect();
   }
 
   trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
+
+  // ===================== UTILITIES =====================
+  private detect(): void { this.cdr.detectChanges(); }
+
+  private showNotification(message: string): void {
+    // Placeholder for UI notification (can be replaced with toast/snackbar)
+    console.warn('Notification:', message);
+  }
 }

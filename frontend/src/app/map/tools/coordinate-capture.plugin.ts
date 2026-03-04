@@ -8,6 +8,8 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   name = 'coordinate-capture';
 
   private hoverFeature?: Feature;
+  private currentPoint?: Feature;
+  private currentLabel?: Feature;
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
@@ -16,38 +18,75 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
-    // Create a temporary hover feature
-    this.hoverFeature = this.createFeature(new Point([0, 0]), 'point', undefined, undefined, false);
+    // Follower Vertex: Initialized with empty coords so it's not at 0,0
+    // isToolFeature: false tells the system this is just a UI helper
+    this.hoverFeature = this.createFeature(new Point([]), 'pointerVertex', undefined, undefined, false);
     this.tempSource.addFeature(this.hoverFeature);
 
-    // Update hover feature on pointer move
     this.registerMapListener('pointermove', (evt: any) => {
-      this.hoverFeature?.setGeometry(new Point(evt.coordinate));
+      const geom = this.hoverFeature?.getGeometry() as Point;
+      if (geom) {
+        geom.setCoordinates(evt.coordinate);
+      }
     });
 
-    // On click, add point and persistent label
+    // Left click: Create/Replace the single point
     this.registerMapListener('singleclick', (evt: any) => {
-      if (evt.originalEvent?.button !== 0) return; // Only left click
-      const coord = evt.coordinate as [number, number];
+      if (!this.tempSource) return;
 
-      // Persistent point feature
-      const pointFeature = this.createFeature(new Point(coord), 'point', undefined, undefined, true);
-      this.tempSource?.addFeature(pointFeature);
+      // Ensure "Only one coordinate point created at a time"
+      if (this.currentPoint) this.tempSource.removeFeature(this.currentPoint);
+      if (this.currentLabel) this.tempSource.removeFeature(this.currentLabel);
 
-      // Persistent label
+      const coord = evt.coordinate;
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
-      const labelFeature = this.createFeature(new Point(coord), 'label', labelText, pointFeature, false, true);
-      this.tempSource?.addFeature(labelFeature);
+
+      // Create persistent point
+      this.currentPoint = this.createFeature(new Point(coord), 'point', undefined, undefined, true);
+
+      // Create label - persistLabel: true ensures it's included in the save list
+      this.currentLabel = this.createFeature(new Point(coord), 'label', labelText, this.currentPoint, false, true);
+
+      this.tempSource.addFeatures([this.currentPoint, this.currentLabel]);
     });
 
-    // ESC cancels
+    // Prevent browser menu (MapComponent's global listener handles opening the Modal)
+    this.registerDomListener(this.map.getViewport(), 'contextmenu', (evt: MouseEvent) => {
+      evt.preventDefault();
+    });
+
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') this.cancel();
     });
   }
 
+  /**
+   * Overriding save ensures the hover vertex is gone and tool deactivates 
+   * after the MapComponent triggers the save.
+   */
+  public override save(name: string): any {
+    // Explicitly remove hover from source BEFORE super.save() iterates over features
+    if (this.hoverFeature && this.tempSource) {
+      this.tempSource.removeFeature(this.hoverFeature);
+      this.hoverFeature = undefined;
+    }
+    
+    const newLayer = super.save(name);
+    
+    if (newLayer) {
+      this.deactivate();
+    }
+    return newLayer;
+  }
+
   protected override onDeactivate(): void {
+    // Final safety cleanup
+    if (this.hoverFeature && this.tempSource) {
+      this.tempSource.removeFeature(this.hoverFeature);
+    }
     this.hoverFeature = undefined;
+    this.currentPoint = undefined;
+    this.currentLabel = undefined;
   }
 }

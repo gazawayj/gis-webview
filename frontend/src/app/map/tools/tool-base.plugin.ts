@@ -7,6 +7,9 @@ import type { FeatureLike } from 'ol/Feature';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { Tool } from './tool';
 import { LayerConfig } from '../models/layer-config.model';
+import { fromLonLat } from 'ol/proj';
+import { extend as extendExtent, boundingExtent } from 'ol/extent';
+import { LineString, Point } from 'ol/geom';
 
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;
@@ -71,6 +74,62 @@ export abstract class ToolPluginBase implements Tool {
     this.deactivate();
   }
 
+  /**
+   * Fly to coordinates (accepts WGS84 lon/lat) and animates sequentially.
+   */
+  protected async flyToCoordinates(
+    coords: [number, number][],
+    options?: {
+      addPointCallback?: (lon: number, lat: number) => void;
+      minZoom?: number;
+      maxZoom?: number;
+    }
+  ): Promise<void> {
+    if (!this.map || !coords.length) return;
+
+    const view = this.map.getView();
+    const projectedCoords: [number, number][] = [];
+    const minZoom = options?.minZoom ?? 6;
+    const maxZoom = options?.maxZoom ?? 12;
+
+    for (const [lon, lat] of coords) {
+      const projected = fromLonLat([lon, lat]) as [number, number];
+      projectedCoords.push(projected);
+
+      await new Promise<void>((resolve) => {
+        const targetZoom = Math.max(view.getZoom() ?? 2, minZoom);
+        view.animate(
+          { center: projected, duration: 800 },
+          { zoom: targetZoom, duration: 800 },
+          () => resolve()
+        );
+      });
+
+      if (options?.addPointCallback) options.addPointCallback(lon, lat);
+
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (projectedCoords.length > 1) {
+      let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
+      projectedCoords.forEach(coord => extendExtent(extent, coord));
+
+      view.fit(extent, {
+        padding: [50, 50, 50, 50],
+        duration: 800,
+        maxZoom
+      });
+    }
+  }
+
+  /**
+   * Save the current temp layer and return a resolved Promise
+   * Useful for awaiting after async flyTo sequences
+   */
+  protected saveAsync(name: string): Promise<LayerConfig | null> {
+    return Promise.resolve(this.save(name));
+  }
+
   protected registerInteraction(interaction: Interaction): void {
     if (!this.map) return;
     this.map.addInteraction(interaction);
@@ -99,9 +158,6 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
-  /**
-   * Standardized save() using LayerManagerService.cloneFeature
-   */
   save(name: string): LayerConfig | null {
     if (!this.tempSource) return null;
 
@@ -156,6 +212,14 @@ export abstract class ToolPluginBase implements Tool {
 
   getFeatures(): FeatureLike[] {
     return this.tempSource?.getFeatures() ?? [];
+  }
+
+  protected createLine(coords: [number, number][]): LineString {
+    return new LineString(coords.map(c => fromLonLat(c)));
+  }
+
+  protected createPoint(coord: [number, number]): Point {
+    return new Point(fromLonLat(coord));
   }
 
   protected abstract onActivate(): void;

@@ -5,6 +5,7 @@ import { PLANETS } from '../constants/map-constants';
 import { ToolPluginBase } from './tool-base.plugin';
 import { LayerConfig } from '../models/layer-config.model';
 import { OverlayRef } from '@angular/cdk/overlay';
+import { toLonLat } from 'ol/proj';
 
 /** Lightweight KD-tree for 2D points */
 class KDNode {
@@ -20,11 +21,7 @@ class KDNode {
 
 class KDTree {
     root: KDNode | null;
-
-    constructor(points: [number, number][]) {
-        this.root = this.build(points, 0);
-    }
-
+    constructor(points: [number, number][]) { this.root = this.build(points, 0); }
     private build(points: [number, number][], depth: number): KDNode | null {
         if (!points.length) return null;
         const axis: 0 | 1 = depth % 2 as 0 | 1;
@@ -35,31 +32,21 @@ class KDTree {
         node.right = this.build(points.slice(mid + 1), depth + 1);
         return node;
     }
-
     nearest(point: [number, number]): [number, number] | null {
         let best: [number, number] | null = null;
         let bestDist = Infinity;
-
-        const distance = (a: [number, number], b: [number, number]) =>
-            Math.hypot(a[0] - b[0], a[1] - b[1]);
-
+        const distance = (a: [number, number], b: [number, number]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
         const search = (node: KDNode | null) => {
             if (!node) return;
             const d = distance(point, node.point);
-            if (d < bestDist && d > 0) {
-                bestDist = d;
-                best = node.point;
-            }
-
+            if (d < bestDist && d > 0) { bestDist = d; best = node.point; }
             const axis = node.axis;
             const diff = point[axis] - node.point[axis];
             const first = diff <= 0 ? node.left : node.right;
             const second = diff <= 0 ? node.right : node.left;
-
             search(first);
             if (Math.abs(diff) < bestDist) search(second);
         };
-
         search(this.root);
         return best;
     }
@@ -71,13 +58,15 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     modalRef?: OverlayRef;
     onConfirmComplete?: () => void;
     private _closestPair: [[number, number], [number, number]] | null = null;
-
     private kdCache = new Map<string, KDTree>();
     private layerFeatureCounts = new Map<string, number>();
 
-    protected override onActivate(): void { }
+    protected override onActivate(): void {
+        this.selectedLayers = [null, null];
+        this._closestPair = null;
+    }
+
     protected override onDeactivate(): void {
-        super.onDeactivate();
         this.selectedLayers = [null, null];
         this._closestPair = null;
         this.kdCache.clear();
@@ -85,51 +74,36 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     }
 
     private createDistanceFeature(
-        geom: LineString | Point,
+        geom: any,
         featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
         text?: string,
-        parent?: Feature,
-        selectable?: boolean,
-        labelAbove?: boolean
+        parent?: Feature
     ): Feature {
-        // Use the base helper for consistent cloning
-        const f = this.createFeature(geom, featureType, text, parent, selectable, labelAbove);
+        const f = this.createFeature(geom, featureType, text, parent, true, true);
         f.set('isTempDistanceFeature', true);
         return f;
     }
 
+    /**
+     * Helper to get coordinates in Lon/Lat (EPSG:4326) 
+     * This ensures KDTree search and getLength math are consistent.
+     */
     private getLayerPoints(layer: LayerConfig): [number, number][] {
         const coords: [number, number][] = [];
+        const toLonLatFunc = (c: any) => toLonLat(c) as [number, number];
 
         (layer.features || [])
             .filter(f => !f.get('isTempDistanceFeature'))
             .forEach(f => {
                 const geom = f.getGeometry();
                 if (!geom) return;
-
                 const type = geom.getType();
-                switch (type) {
-                    case 'Point':
-                        coords.push((geom as Point).getCoordinates() as [number, number]);
-                        break;
-                    case 'LineString':
-                        coords.push(...(geom as LineString).getCoordinates() as [number, number][]);
-                        break;
-                    case 'Polygon':
-                        (geom as Polygon).getCoordinates().forEach(ring => {
-                            coords.push(...ring as [number, number][]);
-                        });
-                        break;
-                    case 'MultiPolygon':
-                        (geom as MultiPolygon).getCoordinates().forEach(poly => {
-                            poly.forEach(ring => coords.push(...ring as [number, number][]));
-                        });
-                        break;
-                    default:
-                        break;
-                }
+                
+                if (type === 'Point') coords.push(toLonLatFunc((geom as Point).getCoordinates()));
+                else if (type === 'LineString') coords.push(...(geom as LineString).getCoordinates().map(toLonLatFunc));
+                else if (type === 'Polygon') (geom as Polygon).getCoordinates().forEach(ring => coords.push(...ring.map(toLonLatFunc)));
+                else if (type === 'MultiPolygon') (geom as MultiPolygon).getCoordinates().forEach(p => p.forEach(r => coords.push(...r.map(toLonLatFunc))));
             });
-
         return coords;
     }
 
@@ -137,22 +111,20 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         const points = this.getLayerPoints(layer);
         const lastCount = this.layerFeatureCounts.get(layer.id) ?? -1;
         if (!this.kdCache.has(layer.id) || points.length !== lastCount) {
-            const tree = new KDTree(points);
-            this.kdCache.set(layer.id, tree);
+            this.kdCache.set(layer.id, new KDTree(points));
             this.layerFeatureCounts.set(layer.id, points.length);
         }
         return this.kdCache.get(layer.id)!;
     }
 
     computeDistance(layerA: LayerConfig, layerB: LayerConfig): number {
-        if (!this.tempSource) return 0;
-
         const pointsA = this.getLayerPoints(layerA);
         const pointsB = this.getLayerPoints(layerB);
         if (!pointsA.length || !pointsB.length) return 0;
 
-        const radius = PLANETS[this.layerManager.currentPlanet].radius;
         const treeB = this.getKDTree(layerB);
+        const planetKey = this.layerManager.currentPlanet;
+        const radius = PLANETS[planetKey].radius;
 
         let minDistance = Infinity;
         let closestPair: [[number, number], [number, number]] | null = null;
@@ -161,52 +133,44 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
             const nearest = treeB.nearest(pA);
             if (!nearest) continue;
 
-            const distanceMeters = getLength(new LineString([pA, nearest]), { radius });
-            if (distanceMeters < minDistance) {
-                minDistance = distanceMeters;
+            // These are already in Lon/Lat degrees
+            const line = new LineString([pA, nearest]);
+            const dist = getLength(line, { radius, projection: 'EPSG:4326' });
+
+            if (dist < minDistance) {
+                minDistance = dist;
                 closestPair = [pA, nearest];
             }
         }
-
         this._closestPair = closestPair;
         return minDistance === Infinity ? 0 : minDistance;
     }
 
-    confirm() {
+    async confirm(): Promise<void> {
         if (!this.tempSource || !this.selectedLayers[0] || !this.selectedLayers[1]) return;
-        const [layerA, layerB] = this.selectedLayers;
+        const [lA, lB] = this.selectedLayers;
+        const dist = this.computeDistance(lA, lB);
+        if (!this._closestPair || dist === 0) return;
 
-        this.tempSource.clear();
-
-        const distanceMeters = this.computeDistance(layerA, layerB);
-        const closestPair = this._closestPair;
-        if (!closestPair || distanceMeters === 0) return;
-
-        const [cA, cB] = closestPair;
-
-        // Use createDistanceFeature to ensure consistency
-        const lineFeature = this.createDistanceFeature(new LineString([cA, cB]), 'line');
-
+        const [cA, cB] = this._closestPair; // These are LonLat
+        
+        // Base tool helpers 'createLine' and 'createPoint' perform fromLonLat()
+        // Pass them LonLat coordinates so they project exactly once.
+        const lineFeature = this.createDistanceFeature(this.createLine([cA, cB]), 'line');
+        
         const midpoint: [number, number] = [(cA[0] + cB[0]) / 2, (cA[1] + cB[1]) / 2];
-        const formattedDistance = distanceMeters >= 1000
-            ? `${(distanceMeters / 1000).toFixed(2)} km`
-            : `${distanceMeters.toFixed(1)} m`;
+        const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
+        
+        const labelFeature = this.createDistanceFeature(this.createPoint(midpoint), 'label', text, lineFeature);
 
-        const labelFeature = this.createDistanceFeature(
-            new Point(midpoint),
-            'label',
-            formattedDistance,
-            lineFeature,
-            true,
-            true
-        );
-
-        this.tempSource.addFeature(lineFeature);
-        this.tempSource.addFeature(labelFeature);
-
-        const layerName = `dist: ${layerA.name || 'A'} ↔ ${layerB.name || 'B'}`;
-        this.save(layerName);
-
+        this.tempSource.addFeatures([lineFeature, labelFeature]);
+        
+        // flyToCoordinates also performs fromLonLat()
+        await this.flyToCoordinates([cA, cB, midpoint], { maxZoom: 12 });
+        
+        await this.saveAsync(`dist: ${lA.name} to ${lB.name}`);
+        
         this.onConfirmComplete?.();
+        this.deactivate();
     }
 }
