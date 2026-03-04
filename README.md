@@ -1,7 +1,7 @@
  # GIS WebView
 
-Interactive browser-based GIS platform for planetary-scale visualization and experimentation.  
-> If moon or mars basemaps are not loading, I've ran into data limits on the backend server.
+Interactive, browser-based GIS platform for planetary-scale visualization and experimentation.  
+> If moon or mars basemaps are not loading, it means I've ran into data limits on the backend server.
 
 **Live Demo:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
@@ -35,7 +35,7 @@ This platform is intended to be a foundation for professional GIS development.
 - Vector and raster layer rendering  
 - Interactive layer management with planned drag-and-drop, opacity, and grouping controls  
 - Temporal data visualization and animation (planned)  
-- Plain-language AI-assisted layer creation (planned)  
+- Plain-language AI-assisted layer creation 
 - Browser-native, standards-compliant spatial formats  
 
 ---
