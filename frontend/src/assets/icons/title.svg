@@ -1,0 +1,47 @@
+<g
+  class="planet-wireframe"
+  stroke="currentColor"
+  fill="none"
+  opacity="0.4"
+  mask="url(#radialFade)"
+>
+  <!-- Outer sphere (medium weight) -->
+  <circle
+    cx="110"
+    cy="110"
+    r="55"
+    class="sphere-outline"
+  />
+
+  <!-- Latitude lines (thin) -->
+  <ellipse cx="110" cy="110" rx="55" ry="35" class="grid-line" />
+  <ellipse cx="110" cy="110" rx="55" ry="20" class="grid-line" />
+
+  <!-- Longitude lines (thin) -->
+  <ellipse
+    cx="110"
+    cy="110"
+    rx="35"
+    ry="55"
+    transform="rotate(25 110 110)"
+    class="grid-line"
+  />
+  <ellipse
+    cx="110"
+    cy="110"
+    rx="35"
+    ry="55"
+    transform="rotate(-25 110 110)"
+    class="grid-line"
+  />
+
+  <!-- Ring (boldest) -->
+  <ellipse
+    cx="110"
+    cy="110"
+    rx="85"
+    ry="25"
+    transform="rotate(-18 110 110)"
+    class="planet-ring"
+  />
+</g>

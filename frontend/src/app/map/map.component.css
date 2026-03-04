@@ -517,6 +517,27 @@ body {
   background: var(--primary-color-lighter);
 }
 
+.title-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.title-planet {
+  position: absolute;
+  right: -5px;
+  bottom: -25px;
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
+  color: var(--primary-color);
+  z-index: 0;
+}
+
+.title-wrapper h1 {
+  position: relative;
+  z-index: 1;
+}
+
 /* ===================== ANIMATIONS ===================== */
 @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
 @keyframes fadeInOverlay { 0%{opacity:0;} 100%{opacity:1;} }

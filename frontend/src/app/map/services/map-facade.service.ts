@@ -1,7 +1,4 @@
 import { Injectable, NgZone, inject } from '@angular/core';
-import { BASEMAP_URLS } from '../constants/map-constants';
-import TileLayer from 'ol/layer/Tile';
-import XYZ from 'ol/source/XYZ';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
@@ -15,7 +12,10 @@ export class MapFacadeService {
   private layerManager = inject(LayerManagerService);
 
   map!: Map;
-  private currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
+
+  // Mars default
+  private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
+
   private activePlugin?: Tool;
   private aiModalOpener?: () => void;
 
@@ -38,22 +38,24 @@ export class MapFacadeService {
     });
   }
 
-  initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars') {
+  // Default planet is Mars
+  initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars' = 'mars') {
     this.currentPlanet = planet;
 
-    const view = new View({ center: [0, 0], zoom: 2 });
-    const basemapLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAP_URLS[planet] }),
-      zIndex: 0
+    const view = new View({
+      center: [0, 0],
+      zoom: 2
     });
 
     this.map = new Map({
       target: container,
-      layers: [basemapLayer],
+      layers: [],
       view
     });
 
     this.layerManager.attachMap(this.map);
+
+    // LayerManager handles basemap creation
     this.layerManager.loadPlanet(this.currentPlanet);
   }
 
@@ -64,11 +66,6 @@ export class MapFacadeService {
 
     this.currentPlanet = planet;
     this.layerManager.loadPlanet(planet);
-
-    const basemapLayer = this.map.getLayers().item(0) as TileLayer;
-    if (basemapLayer) {
-      basemapLayer.setSource(new XYZ({ url: BASEMAP_URLS[planet] }));
-    }
 
     const view = this.map.getView();
     view.setCenter([0, 0]);
