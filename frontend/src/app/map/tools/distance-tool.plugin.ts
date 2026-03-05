@@ -6,6 +6,7 @@ import { getLength } from 'ol/sphere';
 import { PLANETS } from '../constants/map-constants';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
+import { error } from 'console';
 
 export class DistanceToolPlugin extends ToolPluginBase {
   name = 'distance';
@@ -131,7 +132,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
   }
 
   private clearLiveLabels() {
-    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch {} });
+    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch { (error)} });
     this.liveSegmentLabels = [];
   }
 }
