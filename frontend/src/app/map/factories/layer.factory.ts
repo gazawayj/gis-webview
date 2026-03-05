@@ -72,10 +72,24 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
 }
 
 function detectGeometryType(features: Feature[]): GeometryType {
+  let hasLine = false;
+  let hasPolygon = false;
+
   for (const f of features) {
-    const geomType = f.getGeometry()?.getType();
-    if (geomType?.includes('LineString')) return 'line';
-    if (geomType?.includes('Polygon')) return 'polygon';
+    const geom = f.getGeometry();
+    if (!geom) continue;
+
+    const geomType = geom.getType();
+
+    // Ignore single points used as vertices (usually marked with 'vertex' featureType)
+    const fType = f.get('featureType') as string | undefined;
+    if (geomType === 'Point' && fType === 'vertex') continue;
+
+    if (geomType.includes('LineString')) hasLine = true;
+    else if (geomType.includes('Polygon')) hasPolygon = true;
   }
+
+  if (hasLine) return 'line';
+  if (hasPolygon) return 'polygon';
   return 'point';
 }

@@ -19,7 +19,13 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
     if (!this.map || !this.tempSource) return;
 
     // Hover vertex: purely UI, not saved
-    this.hoverFeature = this.createFeature(new Point([]), 'pointerVertex', undefined, undefined, false);
+    this.hoverFeature = this.createFeature(
+      new Point([0, 0]),
+      'pointerVertex',
+      undefined,
+      undefined,
+      false
+    );
     this.tempSource.addFeature(this.hoverFeature);
 
     this.registerMapListener('pointermove', (evt: any) => {
@@ -31,6 +37,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
     this.registerMapListener('singleclick', (evt: any) => {
       if (!this.tempSource) return;
 
+      // Remove previous features
       if (this.currentPoint) this.tempSource.removeFeature(this.currentPoint);
       if (this.currentLabel) this.tempSource.removeFeature(this.currentLabel);
 
@@ -38,6 +45,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
       const [lon, lat] = toLonLat(coord);
       const labelText = `${lon.toFixed(4)}, ${lat.toFixed(4)}`;
 
+      // Create new features using base styling pipeline
       this.currentPoint = this.createFeature(new Point(coord), 'point', undefined, undefined, true);
       this.currentLabel = this.createFeature(new Point(coord), 'label', labelText, this.currentPoint, true);
 
@@ -51,6 +59,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
   }
 
   public override save(name: string): any {
+    // Remove hover before saving
     if (this.hoverFeature && this.tempSource) {
       this.tempSource.removeFeature(this.hoverFeature);
       this.hoverFeature = undefined;

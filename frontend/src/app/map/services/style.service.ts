@@ -8,7 +8,6 @@ type Planet = 'earth' | 'moon' | 'mars';
 export class StyleService {
 
   // ----- Per-planet allocation tracking -----
-
   private planetColorUsage: Record<Planet, Set<string>> = {
     earth: new Set(),
     moon: new Set(),
@@ -23,7 +22,7 @@ export class StyleService {
 
   private layerShapeCache = new Map<string, ShapeType>();
 
-  constructor() {}
+  constructor() { }
 
   // Reset when switching planets if needed
   resetPlanet(planet: Planet) {
@@ -31,10 +30,9 @@ export class StyleService {
     this.planetShapeUsage[planet].clear();
   }
 
-  /**
-   * Allocate unique color+shape combination per planet.
-   * Called ONCE at layer creation.
-   */
+
+  // Allocate unique color+shape combination per planet.
+
   allocateLayerStyle(planet: Planet): { color: string; shape: ShapeType } {
     const usedColors = this.planetColorUsage[planet];
     const usedShapes = this.planetShapeUsage[planet];

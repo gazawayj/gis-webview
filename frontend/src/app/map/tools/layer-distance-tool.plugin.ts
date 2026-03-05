@@ -1,5 +1,5 @@
 import Feature from 'ol/Feature';
-import { LineString, MultiPolygon, Point, Polygon } from 'ol/geom';
+import { LineString, Point } from 'ol/geom';
 import { getLength } from 'ol/sphere';
 import { PLANETS } from '../constants/map-constants';
 import { ToolPluginBase } from './tool-base.plugin';
@@ -63,6 +63,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   selectedLayers: [LayerConfig | null, LayerConfig | null] = [null, null];
   modalRef?: OverlayRef;
   onConfirmComplete?: () => void;
+
   private _closestPair: [[number, number], [number, number]] | null = null;
   private kdCache = new Map<string, KDTree>();
   private layerFeatureCounts = new Map<string, number>();
@@ -70,6 +71,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   protected override onActivate(): void {
     this.selectedLayers = [null, null];
     this._closestPair = null;
+    // Automatically draw when layers are selected
   }
 
   protected override onDeactivate(): void {
@@ -77,19 +79,16 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     this._closestPair = null;
     this.kdCache.clear();
     this.layerFeatureCounts.clear();
+
+    // Remove any temporary distance features
+    if (this.tempSource) {
+      this.tempSource.getFeatures().forEach(f => {
+        if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
+      });
+    }
   }
 
-  private createDistanceFeature(
-    geom: LineString | Point,
-    featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
-    text?: string,
-    parent?: Feature
-  ): Feature {
-    const f = this.createFeature(geom, featureType, text, parent, true);
-    f.set('isTempDistanceFeature', true);
-    return f;
-  }
-
+  /** Collect all points from a layer */
   private getLayerPoints(layer: LayerConfig): [number, number][] {
     const coords: [number, number][] = [];
     const toLonLatFunc = (c: any) => toLonLat(c) as [number, number];
@@ -100,16 +99,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
         if (!geom) return;
         const type = geom.getType();
         if (type === 'Point') coords.push(toLonLatFunc((geom as Point).getCoordinates()));
-        else if (type === 'LineString')
-          coords.push(...(geom as LineString).getCoordinates().map(toLonLatFunc));
-        else if (type === 'Polygon')
-          (geom as Polygon).getCoordinates().forEach(ring =>
-            coords.push(...ring.map(toLonLatFunc))
-          );
-        else if (type === 'MultiPolygon')
-          (geom as MultiPolygon).getCoordinates().forEach(p =>
-            p.forEach(r => coords.push(...r.map(toLonLatFunc)))
-          );
+        else if (type === 'LineString') coords.push(...(geom as LineString).getCoordinates().map(toLonLatFunc));
       });
     return coords;
   }
@@ -124,42 +114,102 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     return this.kdCache.get(layer.id)!;
   }
 
+  /** Compute closest points and distance */
   computeDistance(layerA: LayerConfig, layerB: LayerConfig): number {
     const pointsA = this.getLayerPoints(layerA);
     const pointsB = this.getLayerPoints(layerB);
     if (!pointsA.length || !pointsB.length) return 0;
+
     const treeB = this.getKDTree(layerB);
-    const planetKey = this.layerManager.currentPlanet;
-    const radius = PLANETS[planetKey].radius;
+    const radius = PLANETS[this.layerManager.currentPlanet].radius;
     let minDistance = Infinity;
     let closestPair: [[number, number], [number, number]] | null = null;
+
     for (const pA of pointsA) {
       const nearest = treeB.nearest(pA);
       if (!nearest) continue;
-      const line = new LineString([pA, nearest]);
-      const dist = getLength(line, { radius, projection: 'EPSG:4326' });
+      const dist = getLength(new LineString([pA, nearest]), { radius, projection: 'EPSG:4326' });
       if (dist < minDistance) {
         minDistance = dist;
         closestPair = [pA, nearest];
       }
     }
+
     this._closestPair = closestPair;
     return minDistance === Infinity ? 0 : minDistance;
   }
 
-  async confirm(): Promise<void> {
+  private createDistanceFeature(
+    geom: LineString | Point,
+    featureType: 'point' | 'vertex' | 'line' | 'label',
+    text?: string,
+    parent?: Feature
+  ): Feature {
+    const f = this.createFeature(geom, featureType, text, parent, true);
+    f.set('isTempDistanceFeature', true);
+
+    // Add vertices for lines
+    if (featureType === 'line' && geom instanceof LineString) {
+      geom.getCoordinates().forEach(c => {
+        const vertex = this.createFeature(new Point(c), 'vertex', undefined, f, true);
+        this.tempSource?.addFeature(vertex);
+      });
+    }
+
+    return f;
+  }
+
+  private getMidpoint(p1: [number, number], p2: [number, number]): [number, number] {
+    return [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+  }
+
+  /** Draw line, vertices, and label immediately */
+  drawDistanceFeatures(cA: [number, number], cB: [number, number], dist: number) {
+    if (!this.tempSource) return;
+
+    // Remove previous distance features
+    this.tempSource.getFeatures().forEach(f => {
+      if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
+    });
+
+    const lineFeature = this.createDistanceFeature(this.createLine([cA, cB]), 'line');
+    const midpoint = this.getMidpoint(cA, cB);
+    const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
+    const labelFeature = this.createDistanceFeature(this.createPoint(midpoint), 'label', text, lineFeature);
+
+    this.tempSource.addFeatures([lineFeature, labelFeature]);
+  }
+
+  /** Update display whenever layers are selected or recomputed */
+  public async updateDistanceDisplay(): Promise<void> {
     if (!this.tempSource || !this.selectedLayers[0] || !this.selectedLayers[1]) return;
+
     const [lA, lB] = this.selectedLayers;
     const dist = this.computeDistance(lA, lB);
     if (!this._closestPair || dist === 0) return;
+
+    const [cA, cB] = this._closestPair;
+    this.drawDistanceFeatures(cA, cB, dist);
+
+    await this.flyToCoordinates([cA, cB, this.getMidpoint(cA, cB)], { maxZoom: 12 });
+  }
+
+  /** Save the distance layer */
+  async confirm(): Promise<void> {
+    if (!this.tempSource || !this.selectedLayers[0] || !this.selectedLayers[1]) return;
+
+    const [lA, lB] = this.selectedLayers;
+    const dist = this.computeDistance(lA, lB);
+    if (!this._closestPair || dist === 0) return;
+
     const [cA, cB] = this._closestPair;
     const lineFeature = this.createDistanceFeature(this.createLine([cA, cB]), 'line');
-    const midpoint: [number, number] = [(cA[0] + cB[0]) / 2, (cA[1] + cB[1]) / 2];
+    const midpoint = this.getMidpoint(cA, cB);
     const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
     const labelFeature = this.createDistanceFeature(this.createPoint(midpoint), 'label', text, lineFeature);
+
     this.tempSource.addFeatures([lineFeature, labelFeature]);
 
-    await this.flyToCoordinates([cA, cB, midpoint], { maxZoom: 12 });
     await this.saveAsync(`dist: ${lA.name} to ${lB.name}`);
 
     this.onConfirmComplete?.();

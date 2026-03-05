@@ -7,7 +7,7 @@ import type { FeatureLike } from 'ol/Feature';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { Tool } from './tool';
 import { LayerConfig } from '../models/layer-config.model';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { fromLonLat } from 'ol/proj';
 import { extend as extendExtent, boundingExtent } from 'ol/extent';
 import { LineString, Point } from 'ol/geom';
 
@@ -23,15 +23,22 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  constructor(protected layerManager: LayerManagerService) { }
+  constructor(protected layerManager: LayerManagerService) {}
 
+  // ----------------------- Activation -----------------------
   activate(map: OlMap): void {
     this.map = map;
 
+    // Allocate unique style for this tool layer using StyleService
+    const allocation = this.layerManager.styleService.allocateLayerStyle(this.layerManager.currentPlanet);
+
+    // Create temporary tool layer
     this.activeLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
       name: '__tool_temp__',
       isTemporary: true,
+      shape: allocation.shape,
+      color: allocation.color
     });
 
     if (!this.activeLayer) return;
@@ -41,6 +48,7 @@ export abstract class ToolPluginBase implements Tool {
     if (!source) return;
     this.tempSource = source;
 
+    // Apply dynamic style using StyleService pipeline
     olLayer.setStyle((feature) => {
       if (!this.activeLayer) return [];
 
@@ -52,7 +60,7 @@ export abstract class ToolPluginBase implements Tool {
         type: fType,
         baseColor: this.activeLayer.color,
         shape: this.activeLayer.shape,
-        text,
+        text
       });
     });
 
@@ -74,6 +82,7 @@ export abstract class ToolPluginBase implements Tool {
     this.deactivate();
   }
 
+  // ----------------------- Utilities -----------------------
   protected async flyToCoordinates(
     coords: [number, number][],
     options?: { addPointCallback?: (lon: number, lat: number) => void; minZoom?: number; maxZoom?: number }
@@ -137,9 +146,11 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
+  // ----------------------- Save / Feature Helpers -----------------------
   save(name: string): LayerConfig | null {
-    if (!this.tempSource) return null;
-    // Only save features explicitly marked by the tool
+    if (!this.tempSource || !this.activeLayer) return null;
+
+    // Save all tool features (including vertices) and preserve allocated style
     const allFeatures = this.tempSource.getFeatures()
       .filter(f => f.get('isToolFeature') === true)
       .map(f =>
@@ -155,7 +166,10 @@ export abstract class ToolPluginBase implements Tool {
       name,
       features: allFeatures,
       isTemporary: false,
+      shape: this.activeLayer.shape,
+      color: this.activeLayer.color
     });
+
     if (newLayer) this.layerManager.styleService.setLayerShape(newLayer.id, newLayer.shape);
     return newLayer ?? null;
   }
@@ -196,6 +210,6 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   protected abstract onActivate(): void;
-  protected onDeactivate(): void { }
-  protected onSave?(layer: LayerConfig): void { }
+  protected onDeactivate(): void {}
+  protected onSave?(layer: LayerConfig): void {}
 }

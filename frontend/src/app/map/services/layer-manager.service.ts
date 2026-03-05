@@ -279,19 +279,51 @@ export class LayerManagerService {
       const text = feat.get('text');
 
       if (fType === 'label') {
-        return [this.styleService.getLayerStyle({ type: 'label', text, baseColor: layer.color })];
+        return [
+          this.styleService.getLayerStyle({
+            type: 'label',
+            text,
+            baseColor: layer.color
+          })
+        ];
       }
 
-      switch (layer.geometryType) {
-        case 'line':
-          return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
-        case 'polygon':
-          return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
-        default:
-          return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
+      if (fType === 'vertex' || fType === 'point' || fType === 'pointerVertex') {
+        return [
+          this.styleService.getLayerStyle({
+            type: 'point',
+            baseColor: layer.color,
+            shape: layer.shape
+          })
+        ];
       }
+
+      if (fType === 'line') {
+        return [
+          this.styleService.getLayerStyle({
+            type: 'line',
+            baseColor: layer.color
+          })
+        ];
+      }
+
+      if (fType === 'polygon') {
+        return [
+          this.styleService.getLayerStyle({
+            type: 'polygon',
+            baseColor: layer.color
+          })
+        ];
+      }
+
+      return [
+        this.styleService.getLayerStyle({
+          type: 'point',
+          baseColor: layer.color,
+          shape: layer.shape
+        })
+      ];
     });
-
     layer.olLayer.changed();
   }
 
