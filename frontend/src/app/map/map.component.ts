@@ -377,6 +377,20 @@ export class MapComponent implements AfterViewInit {
   // ===================== UTILITIES =====================
   private detect(): void { this.cdr.detectChanges(); }
 
+  isToolAvailable(toolType: string): boolean {
+    if (toolType === 'highres-selection') return this.currentPlanet === 'mars';
+    return true; // all other tools are always available
+  }
+
+  getToolTooltip(tool: any): string {
+    if (!this.isToolAvailable(tool.type)) {
+      // Capitalize first letter
+      const planetName = this.currentPlanet.charAt(0).toUpperCase() + this.currentPlanet.slice(1);
+      return `Not available on ${planetName}`;
+    }
+    return tool.name;
+  }
+
   private showNotification(message: string): void {
     // Placeholder for UI notification (can be replaced with toast/snackbar)
     console.warn('Notification:', message);

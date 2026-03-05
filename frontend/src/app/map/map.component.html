@@ -35,7 +35,7 @@
     <!-- Planet buttons -->
     <div class="planet-buttons">
       <button (click)="setPlanet('mars')" [class.active]="currentPlanet==='mars'">Mars</button>
-            <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
+      <button (click)="setPlanet('earth')" [class.active]="currentPlanet==='earth'">Earth</button>
       <button (click)="setPlanet('moon')" [class.active]="currentPlanet==='moon'">Moon</button>
     </div>
 
@@ -71,8 +71,8 @@
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of regularTools; track tool.type) {
-        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-          [class.active]="toolList.includes(tool.type)">
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="getToolTooltip(tool)">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
         }
@@ -83,8 +83,8 @@
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of aiTools; track tool.type) {
-        <button class="tool-btn" (click)="activateTool(tool.type)" [title]="tool.name"
-          [class.active]="toolList.includes(tool.type)">
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="tool.name" [class.active]="toolList.includes(tool.type)">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
         }

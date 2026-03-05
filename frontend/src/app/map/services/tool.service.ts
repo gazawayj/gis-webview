@@ -68,7 +68,7 @@ export class ToolService {
       pluginFactory: (lm) => new AreaToolPlugin(lm)
     },
     {
-      name: 'High Resolution Mars Selector',
+      name: 'High-Res View Tool',
       type: 'highres-selection',
       icon: 'assets/icons/highres-selection.svg',
       pluginFactory: (lm) => new HighResSelectionPlugin(lm)

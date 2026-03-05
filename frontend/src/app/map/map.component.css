@@ -172,6 +172,27 @@ body {
   user-select: none;
 }
 
+/* Animate the outer sphere stroke to pulse slightly */
+/* Outer sphere pulse */
+.sphere-outline {
+  stroke-width: 4;
+  animation: pulseStroke 2.5s ease-in-out infinite alternate;
+  transform-origin: 110px 110px;
+}
+
+/* Grid rotation */
+.grid-line {
+  transform-origin: 110px 110px;
+  animation: rotateGrid 20s linear infinite;
+}
+
+
+/* Ring rotation (slower) */
+.planet-ring {
+  transform-origin: 110px 110px;
+  animation: rotateGrid 40s linear infinite reverse;
+}
+
 /* ===================== TOOLBARS & STATS ===================== */
 .toolbar-wrapper,
 .map-stats {
@@ -198,7 +219,7 @@ body {
   display: flex;
   flex-direction: row;
   gap: 4px;
-  margin-top: 4px;
+  margin: 8px;
   justify-content: flex-start;
 }
 
@@ -227,6 +248,30 @@ body {
 
 .tool-btn:hover .tool-icon {
   transform: scale(1.1);
+}
+
+.tool-btn.available {
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  background: var(--background-color-extra-light);
+  transition: all 0.2s ease;
+}
+
+/* Unavailable tools (Mars-only but planet != Mars) */
+.tool-btn:not(.available) {
+  border: 2px solid var(--panel-bg);
+  /* match toolbox background */
+  background: var(--panel-bg);
+  opacity: 0.6;
+  /* subtle dimming */
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Hover effect only for available tools */
+.tool-btn.available:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 .tool-btn.active .tool-icon {
@@ -276,7 +321,7 @@ body {
 .map-loading-overlay .spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255,255,255,0.3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -353,7 +398,7 @@ body {
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 20px 20px rgba(0,0,0,0.45);
+  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.45);
   position: relative;
   z-index: 1000;
 }
@@ -387,7 +432,7 @@ body {
 /* ===================== TOOLTIP & MEASURE ===================== */
 .measure-tooltip {
   position: relative;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0, 0, 0, 0.75);
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -411,7 +456,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
 }
 
@@ -422,16 +467,17 @@ body {
   background-color: var(--primary-color);
   border: 1px solid white;
   pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* ===================== AI MODAL ===================== */
 .ai-modal-backdrop {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   z-index: 10000;
 }
 
@@ -533,15 +579,142 @@ body {
   z-index: 0;
 }
 
+/* Ensure CSS applies to inline SVG elements */
+.title-planet circle.sphere-outline,
+.title-planet ellipse.grid-line,
+.title-planet ellipse.planet-ring {
+  transform-box: fill-box;
+  transform-origin: 110px 110px;
+}
+
+/* Pulse outer sphere */
+.title-planet circle.sphere-outline {
+  stroke-width: 4;
+  animation: pulseStroke 2.5s ease-in-out infinite alternate;
+}
+
+/* Rotate grid lines */
+.title-planet ellipse.grid-line {
+  animation: rotateGrid 20s linear infinite;
+}
+
+/* Rotate planet ring slower and reverse */
+.title-planet ellipse.planet-ring {
+  animation: rotateGrid 40s linear infinite reverse;
+}
+
 .title-wrapper h1 {
   position: relative;
   z-index: 1;
 }
 
 /* ===================== ANIMATIONS ===================== */
-@keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
-@keyframes fadeInOverlay { 0%{opacity:0;} 100%{opacity:1;} }
-@keyframes scaleUp { 0%{transform:scale(0.7);opacity:0;} 100%{transform:scale(1);opacity:1;} }
-@keyframes fadeInText { 0%{opacity:0;transform:translateY(4px);} 100%{opacity:1;transform:translateY(0);} }
-@keyframes slideDown { from{transform:translateY(-20px);opacity:0;} to{transform:translateY(0);opacity:1;} }
-@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInOverlay {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInText {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseStroke {
+  0% {
+    stroke-width: 3;
+    opacity: 0.35;
+  }
+
+  50% {
+    stroke-width: 5;
+    opacity: 0.5;
+  }
+
+  100% {
+    stroke-width: 4;
+    opacity: 0.4;
+  }
+}
+
+@keyframes rotateGrid {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulseStroke {
+  0% {
+    stroke-width: 3;
+    opacity: 0.35;
+  }
+
+  50% {
+    stroke-width: 5;
+    opacity: 0.5;
+  }
+
+  100% {
+    stroke-width: 4;
+    opacity: 0.4;
+  }
+}
