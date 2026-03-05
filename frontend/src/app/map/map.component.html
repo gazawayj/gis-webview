@@ -22,20 +22,20 @@
         </div>
 
         <div class="layer-items-container">
-          <div *ngFor="let layer of dragOrder; trackBy: trackLayer" class="layer-item-wrapper" cdkDrag>
-            <app-layer-item 
-              [layer]="layer" 
-              (itemToggle)="toggleLayer(layer)" 
-              (remove)="removeLayer(layer)"
-              (colorPicked)="onColorPicked(layer, $event)" 
-              (shapeSelected)="selectShape(layer, $event)">
+          @for (layer of dragOrder; track layer.id) {
+          <div class="layer-item-wrapper" cdkDrag>
+            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
+              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
             </app-layer-item>
           </div>
+          }
         </div>
 
-        <div *ngIf="dragOrder.length === 0" class="no-layers-tooltip">
+        @if (dragOrder.length === 0) {
+        <div class="no-layers-tooltip">
           No layers added.
         </div>
+        }
       </div>
     </div>
 
@@ -43,57 +43,48 @@
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
-        <button *ngFor="let tool of regularTools; trackBy: trackByTool" 
-                class="tool-btn"
-                [class.available]="isToolAvailable(tool.type)" 
-                (click)="activateTool(tool.type)"
-                [title]="getToolTooltip(tool)" 
-                [class.active]="activeTool === tool.type">
+        @for (tool of regularTools; track tool.type) {
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
+        }
       </div>
     </div>
 
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
-        <button *ngFor="let tool of aiTools; trackBy: trackByTool" 
-                class="tool-btn"
-                [class.available]="isToolAvailable(tool.type)" 
-                (click)="activateTool(tool.type)" 
-                [title]="tool.name"
-                [class.active]="activeTool === tool.type">
+        @for (tool of aiTools; track tool.type) {
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="tool.name" [class.active]="activeTool === tool.type">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
+        }
       </div>
     </div>
 
     <!-- Map stats -->
     <div class="map-stats">
-      <div class="stat-item">
-        <span class="stat-label">{{ latLabel }}:</span> 
-        <span class="stat-value">{{ formattedLat }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">{{ lonLabel }}:</span> 
-        <span class="stat-value">{{ formattedLon }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Zoom:</span> 
-        <span class="stat-value">{{ zoomDisplay }}</span>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
       </div>
     </div>
   </aside>
 
   <!-- Map -->
   <div #mapContainer class="map-container">
-    <!-- Bottom-left spinner -->
-    <div *ngIf="isLoading" class="map-loading-overlay">
+    @if (isLoading) {
+    <div class="map-loading-overlay">
       <div class="spinner-container">
         <div class="spinner"></div>
         <div class="loading-text">{{ loadingMessage }}</div>
       </div>
     </div>
+    }
   </div>
 
   <!-- Plugin Save Modal -->
@@ -106,9 +97,8 @@
       <div class="layer-modal-body">
         <label>
           Layer Name
-          <input [(ngModel)]="pluginLayerName" 
-                 (keydown.enter)="confirmSavePlugin(pluginLayerName)"
-                 placeholder="Enter custom layer name..." />
+          <input [(ngModel)]="pluginLayerName" (keydown.enter)="confirmSavePlugin(pluginLayerName)"
+            placeholder="Enter custom layer name..." />
         </label>
       </div>
       <div class="modal-buttons">
@@ -133,17 +123,14 @@
             <li>“Locate Olympus Mons” (Mars)</li>
             <li>“Where is the biggest volcano?” (Moon)</li>
           </ul>
-          <textarea #aiPromptTextarea 
-                    rows="4" 
-                    placeholder="Describe the feature..." 
-                    [(ngModel)]="aiPrompt"
-                    (keydown)="handleAiKeydown($event)" 
-                    [disabled]="isLoading"></textarea>
+          <textarea #aiPromptTextarea rows="4" placeholder="Describe the feature..." [(ngModel)]="aiPrompt" autofocus
+            (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
+        </textarea>
         </div>
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
           <button class="confirm" [disabled]="!aiPrompt.trim() || isLoading"
-                  (click)="confirmAiFeatureFind()">Search</button>
+            (click)="confirmAiFeatureFind()">Search</button>
         </div>
       </div>
     </div>
@@ -162,22 +149,27 @@
           <label>
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
-              <option *ngFor="let layer of dragOrder; trackBy: trackLayer" [ngValue]="layer">{{ layer.name }}</option>
+              @for (layer of dragOrder; track layer.id) {
+              <option [ngValue]="layer">{{ layer.name }}</option>
+              }
             </select>
           </label>
           <label>
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
-              <option *ngFor="let layer of dragOrder; trackBy: trackLayer" [ngValue]="layer">{{ layer.name }}</option>
+              @for (layer of dragOrder; track layer.id) {
+              <option [ngValue]="layer">{{ layer.name }}</option>
+              }
             </select>
           </label>
-          <p *ngIf="distanceLayerA && distanceLayerB">Distance: {{ formattedDistance }}</p>
+          @if (distanceLayerA && distanceLayerB) {
+          <p>Distance: {{ formattedDistance }}</p>
+          }
         </div>
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
-          <button class="confirm" 
-                  [disabled]="!distanceLayerA || !distanceLayerB" 
-                  (click)="confirmLayerDistance()">Draw Line</button>
+          <button class="confirm" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
+            Line</button>
         </div>
       </div>
     </div>
