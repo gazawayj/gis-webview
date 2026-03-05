@@ -1,0 +1,28 @@
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Selection rectangle -->
+  <rect x="25" y="25" width="50" height="40"
+        stroke="currentColor"
+        stroke-width="4"
+        fill="none"
+        stroke-dasharray="8 6"
+        stroke-linejoin="round"/>
+
+  <!-- Corner handles -->
+  <circle cx="25" cy="25" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="75" cy="25" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="25" cy="65" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+  <circle cx="75" cy="65" r="4" fill="currentColor" stroke="white" stroke-width="2"/>
+
+  <!-- Magnifier -->
+  <circle cx="63" cy="63" r="10"
+          stroke="currentColor"
+          stroke-width="4"
+          fill="none"/>
+
+  <line x1="70" y1="70" x2="82" y2="82"
+        stroke="currentColor"
+        stroke-width="4"
+        stroke-linecap="round"/>
+
+</svg>

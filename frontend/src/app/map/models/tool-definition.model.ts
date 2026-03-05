@@ -6,6 +6,7 @@ export type ToolType =
   | 'area'
   | 'none'
   | 'ai-analysis'
+  | 'highres-selection'
   | 'layer-distance';
 
 export interface ToolDefinition {

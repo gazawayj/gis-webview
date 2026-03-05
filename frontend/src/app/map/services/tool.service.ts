@@ -9,6 +9,7 @@ import { AreaToolPlugin } from '../tools/area-tool.plugin';
 import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 import { HttpClient } from '@angular/common/http';
 import { LayerDistanceToolPlugin } from '../tools/layer-distance-tool.plugin';
+import { HighResSelectionPlugin } from '../tools/highres-selection.plugin';
 
 @Injectable({ providedIn: 'root' })
 export class ToolService {
@@ -65,6 +66,12 @@ export class ToolService {
       type: 'area',
       icon: 'assets/icons/area-tool.svg',
       pluginFactory: (lm) => new AreaToolPlugin(lm)
+    },
+    {
+      name: 'High Resolution Mars Selector',
+      type: 'highres-selection',
+      icon: 'assets/icons/highres-selection.svg',
+      pluginFactory: (lm) => new HighResSelectionPlugin(lm)
     },
     {
       name: 'AI Feature Find Tool',
