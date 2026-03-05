@@ -7,7 +7,7 @@ import type { FeatureLike } from 'ol/Feature';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { Tool } from './tool';
 import { LayerConfig } from '../models/layer-config.model';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import { extend as extendExtent, boundingExtent } from 'ol/extent';
 import { LineString, Point } from 'ol/geom';
 
@@ -74,16 +74,9 @@ export abstract class ToolPluginBase implements Tool {
     this.deactivate();
   }
 
-  /**
-   * Fly to coordinates (accepts WGS84 lon/lat) and animates sequentially.
-   */
   protected async flyToCoordinates(
     coords: [number, number][],
-    options?: {
-      addPointCallback?: (lon: number, lat: number) => void;
-      minZoom?: number;
-      maxZoom?: number;
-    }
+    options?: { addPointCallback?: (lon: number, lat: number) => void; minZoom?: number; maxZoom?: number }
   ): Promise<void> {
     if (!this.map || !coords.length) return;
 
@@ -98,34 +91,20 @@ export abstract class ToolPluginBase implements Tool {
 
       await new Promise<void>((resolve) => {
         const targetZoom = Math.max(view.getZoom() ?? 2, minZoom);
-        view.animate(
-          { center: projected, duration: 800 },
-          { zoom: targetZoom, duration: 800 },
-          () => resolve()
-        );
+        view.animate({ center: projected, duration: 800 }, { zoom: targetZoom, duration: 800 }, () => resolve());
       });
 
       if (options?.addPointCallback) options.addPointCallback(lon, lat);
-
       await new Promise(r => setTimeout(r, 200));
     }
 
     if (projectedCoords.length > 1) {
       let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
       projectedCoords.forEach(coord => extendExtent(extent, coord));
-
-      view.fit(extent, {
-        padding: [50, 50, 50, 50],
-        duration: 800,
-        maxZoom
-      });
+      view.fit(extent, { padding: [50, 50, 50, 50], duration: 800, maxZoom });
     }
   }
 
-  /**
-   * Save the current temp layer and return a resolved Promise
-   * Useful for awaiting after async flyTo sequences
-   */
   protected saveAsync(name: string): Promise<LayerConfig | null> {
     return Promise.resolve(this.save(name));
   }
@@ -160,14 +139,16 @@ export abstract class ToolPluginBase implements Tool {
 
   save(name: string): LayerConfig | null {
     if (!this.tempSource) return null;
-
-    const allFeatures = this.tempSource.getFeatures().map(f =>
-      this.layerManager.cloneFeature(f, {
-        isToolFeature: !(f.get('featureType') === 'label' || f.get('featureType') === 'vertex' || f.get('featureType') === 'pointerVertex'),
-        parentFeatureId: f.get('parentFeature')?.getId ? String(f.get('parentFeature').getId()) : undefined,
-        shape: this.activeLayer?.shape
-      })
-    );
+    // Only save features explicitly marked by the tool
+    const allFeatures = this.tempSource.getFeatures()
+      .filter(f => f.get('isToolFeature') === true)
+      .map(f =>
+        this.layerManager.cloneFeature(f, {
+          isToolFeature: true,
+          parentFeatureId: f.get('parentFeature')?.getId ? String(f.get('parentFeature').getId()) : undefined,
+          shape: this.activeLayer?.shape,
+        })
+      );
 
     const newLayer = this.layerManager.createLayer({
       planet: this.layerManager.currentPlanet,
@@ -175,9 +156,7 @@ export abstract class ToolPluginBase implements Tool {
       features: allFeatures,
       isTemporary: false,
     });
-
     if (newLayer) this.layerManager.styleService.setLayerShape(newLayer.id, newLayer.shape);
-
     return newLayer ?? null;
   }
 
@@ -186,8 +165,7 @@ export abstract class ToolPluginBase implements Tool {
     featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
     text?: string,
     parentFeature?: Feature,
-    isToolFeature: boolean = true,
-    persistLabel: boolean = false
+    isToolFeature: boolean = true
   ): Feature {
     const f = new Feature(geom);
     if (!f.getId()) f.setId(crypto.randomUUID());
@@ -201,11 +179,6 @@ export abstract class ToolPluginBase implements Tool {
 
     if (text) f.set('text', text);
     if (parentFeature) f.set('parentFeature', parentFeature);
-
-    if (featureType === 'label' && persistLabel) {
-      f.set('isToolFeature', false);
-      this.liveLabels.push(f);
-    }
 
     return f;
   }

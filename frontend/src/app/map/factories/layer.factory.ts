@@ -24,20 +24,16 @@ export type LayerFactory = (
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
   return (planet, options, idGenerator) => {
     const { name = `Layer-${Date.now()}`, features = [], color, shape, isTemporary = false, styleFn, geometryType: optGeometryType } = options || {};
-
     if (!color || !shape) throw new Error('LayerFactory requires color and shape.');
-
     const geometryType: GeometryType = optGeometryType ?? detectGeometryType(features);
     let configRef!: LayerConfig;
 
-    // FIX: Removed clonedFeatures mapping. Triple-cloning destroys geometry refs.
     const vectorLayer = new VectorLayer({
       source: new VectorSource({ features }),
       style: (feature: FeatureLike) => {
         if (styleFn) return styleFn(feature);
         const feat = feature as Feature;
         const fType = feat.get('featureType') as string | undefined;
-
         if (fType === 'label') {
           return styleService.getLayerStyle({
             type: 'label',
@@ -49,7 +45,6 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
         let type: GeometryType = 'point';
         if (fType === 'line' || configRef.geometryType === 'line') type = 'line';
         else if (fType === 'polygon' || configRef.geometryType === 'polygon') type = 'polygon';
-
         return styleService.getLayerStyle({
           type,
           baseColor: configRef.color,
@@ -60,9 +55,17 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
 
     const config: LayerConfig = {
       id: idGenerator ? idGenerator() : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
-      name, color, shape, visible: true, olLayer: vectorLayer, isTemporary, planet, styleFn, features, geometryType,
+      name,
+      color,
+      shape,
+      visible: true,
+      olLayer: vectorLayer,
+      isTemporary,
+      planet,
+      styleFn,
+      features,
+      geometryType,
     };
-
     configRef = config;
     return config;
   };

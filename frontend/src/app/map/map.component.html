@@ -3,33 +3,6 @@
   <aside class="sidebar">
     <div class="title-wrapper">
       <h1>GIS Web Viewer</h1>
-
-      <!-- Decorative wireframe planetoid -->
-      <svg class="title-planet" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <radialGradient id="fadeGradient" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stop-color="white" stop-opacity="1" />
-            <stop offset="70%" stop-color="white" stop-opacity="0.6" />
-            <stop offset="100%" stop-color="white" stop-opacity="0" />
-          </radialGradient>
-
-          <mask id="radialFade">
-            <rect width="100%" height="100%" fill="url(#fadeGradient)" />
-          </mask>
-        </defs>
-
-        <g stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.4" mask="url(#radialFade)">
-          <circle cx="110" cy="110" r="55" />
-
-          <ellipse cx="110" cy="110" rx="55" ry="35" />
-          <ellipse cx="110" cy="110" rx="55" ry="20" />
-
-          <ellipse cx="110" cy="110" rx="35" ry="55" transform="rotate(25 110 110)" />
-          <ellipse cx="110" cy="110" rx="35" ry="55" transform="rotate(-25 110 110)" />
-
-          <ellipse cx="110" cy="110" rx="85" ry="25" transform="rotate(-18 110 110)" />
-        </g>
-      </svg>
     </div>
 
     <!-- Planet buttons -->
@@ -42,52 +15,46 @@
     <div class="sidebar-content">
 
       <!-- Layer list -->
-      <div class="layer-list" cdkDropList [cdkDropListData]="sidebarLayers"
-        (cdkDropListDropped)="onLayerDropped($event)">
+      <div class="layer-list" cdkDropList [cdkDropListData]="dragOrder" (cdkDropListDropped)="onLayerDropped($event)">
 
         <div class="add-layer">
           <button (click)="onAddLayer()">Add Layer</button>
         </div>
 
         <div class="layer-items-container">
-          @for (layer of sidebarLayers; track layer.id) {
-          <div class="layer-item-wrapper" cdkDrag>
+          <div *ngFor="let layer of dragOrder; trackBy: trackLayer" class="layer-item-wrapper" cdkDrag>
             <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
               (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
             </app-layer-item>
           </div>
-          }
         </div>
 
-        @if (sidebarLayers.length === 0) {
-        <div class="no-layers-tooltip">No layers added.</div>
-        }
+        <div *ngIf="dragOrder.length === 0" class="no-layers-tooltip">
+          No layers added.
+        </div>
       </div>
-
     </div>
 
     <!-- Toolboxes -->
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
-        @for (tool of regularTools; track tool.type) {
-        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-          [title]="getToolTooltip(tool)">
+        <button *ngFor="let tool of regularTools; trackBy: trackByTool" class="tool-btn"
+          [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
-        }
       </div>
     </div>
 
     <div class="toolbar-wrapper horizontal-toolbar">
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
-        @for (tool of aiTools; track tool.type) {
-        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-          [title]="tool.name" [class.active]="toolList.includes(tool.type)">
+        <button *ngFor="let tool of aiTools; trackBy: trackByTool" class="tool-btn"
+          [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)" [title]="tool.name"
+          [class.active]="activeTool === tool.type">
           <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
         </button>
-        }
       </div>
     </div>
 
@@ -100,7 +67,6 @@
       <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
       </div>
     </div>
-
   </aside>
 
   <!-- Map -->
@@ -177,7 +143,7 @@
           <label>
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
-              @for (layer of sidebarLayers; track layer.id) {
+              @for (layer of dragOrder; track layer.id) {
               <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
@@ -185,7 +151,7 @@
           <label>
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
-              @for (layer of sidebarLayers; track layer.id) {
+              @for (layer of dragOrder; track layer.id) {
               <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>

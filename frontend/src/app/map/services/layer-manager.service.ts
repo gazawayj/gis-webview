@@ -204,29 +204,32 @@ export class LayerManagerService {
     const allocation = !shape || !color ? this.styleService.allocateLayerStyle(planet) : { shape, color };
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
-
     const layerFeatures: Feature[] = features
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => this.cloneFeature(f, { shape: finalShape }));
 
     const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
 
-    const layerConfig = this.layerFactory(planet, { name: resolvedName, features: layerFeatures, shape: finalShape, color: finalColor, styleFn, isTemporary, geometryType });
+    const layerConfig = this.layerFactory(planet, {
+      name: resolvedName,
+      features: layerFeatures,
+      shape: finalShape,
+      color: finalColor,
+      styleFn,
+      isTemporary,
+      geometryType,
+    });
 
     layerConfig.id = id || this.generateLayerId(layerConfig, planet, isTemporary);
-
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
-
       if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
       this.dragOrder.unshift(layerConfig);
       if (this._map) this._map.addLayer(layerConfig.olLayer);
-
       this.updateStyle(layerConfig);
       this.applyZOrder();
       this.refreshLayersForPlanet(planet);
     }
-
     return this.registry.get(layerConfig.id)!;
   }
 
