@@ -71,7 +71,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   protected override onActivate(): void {
     this.selectedLayers = [null, null];
     this._closestPair = null;
-    // Automatically draw when layers are selected
+    // nothing else needed here
   }
 
   protected override onDeactivate(): void {
@@ -80,7 +80,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     this.kdCache.clear();
     this.layerFeatureCounts.clear();
 
-    // Remove any temporary distance features
     if (this.tempSource) {
       this.tempSource.getFeatures().forEach(f => {
         if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
@@ -148,7 +147,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     const f = this.createFeature(geom, featureType, text, parent, true);
     f.set('isTempDistanceFeature', true);
 
-    // Add vertices for lines
     if (featureType === 'line' && geom instanceof LineString) {
       geom.getCoordinates().forEach(c => {
         const vertex = this.createFeature(new Point(c), 'vertex', undefined, f, true);
@@ -167,7 +165,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   drawDistanceFeatures(cA: [number, number], cB: [number, number], dist: number) {
     if (!this.tempSource) return;
 
-    // Remove previous distance features
     this.tempSource.getFeatures().forEach(f => {
       if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
     });

@@ -127,7 +127,7 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     public override save(name: string): LayerConfig | null {
         if (!this.highResLayer || !this.activeLayer) return null;
 
-        // 1. Find the selection box geometry from our temp features
+        // Find the selection box geometry from our temp features
         const features = this.getFeatures().filter(f => f.get('isToolFeature'));
         const tileFeature = features.find(f => f.get('tileLayer'));
 
@@ -135,24 +135,22 @@ export class HighResSelectionPlugin extends ToolPluginBase {
         const geom = (tileFeature?.getGeometry() || this.selectionFeature?.getGeometry()) as Polygon;
         const extent = geom ? geom.getExtent() : undefined;
 
-        // 2. Explicitly call createLayer with Tile metadata
+        // Explicitly call createLayer with Tile metadata
         const newLayer = this.layerManager.createLayer({
             planet: this.layerManager.currentPlanet,
             name: name,
             isTemporary: false,
-            isTileLayer: true,           // Tells LayerManager this is a TileLayer
-            olLayer: this.highResLayer,   // Hand off the live instance
-            tileUrl: this.HIGH_RES_URL,  // Save the URL for persistence
-            tileExtent: extent,          // Save the clip area
+            isTileLayer: true,
+            olLayer: this.highResLayer,
+            tileUrl: this.HIGH_RES_URL,
+            tileExtent: extent,
             color: this.activeLayer.color,
             shape: 'none',
-            cache: true                  // Add to sidebar/registry
+            cache: true
         });
 
-        // 3. Mark for onDeactivate bypass
+        // Mark for onDeactivate bypass
         (this as any)._justSavedLayer = this.highResLayer;
-
         return newLayer;
     }
-
 }
