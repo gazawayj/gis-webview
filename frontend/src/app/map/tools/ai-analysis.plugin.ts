@@ -56,6 +56,7 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     this.aiResults = [];
   }
 
+
   addPoints(coords: [number, number][]) {
     if (!this.tempSource) return;
 

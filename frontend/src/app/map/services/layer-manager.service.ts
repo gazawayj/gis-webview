@@ -195,43 +195,108 @@ export class LayerManagerService {
     color?: string;
     id?: string;
     cache?: boolean;
+    olLayer?: TileLayer<any> | VectorLayer<any>;
     isTemporary?: boolean;
     styleFn?: (f: FeatureLike) => Style | Style[];
     geometryType?: GeometryType;
+    // New Metadata Fields
+    isTileLayer?: boolean;
+    tileUrl?: string;
+    tileExtent?: number[];
   }): LayerConfig {
-    const { planet, name: incomingName, features = [], shape, color, id, cache = true, isTemporary = false, styleFn, geometryType } = params;
+    const {
+      planet,
+      name: incomingName,
+      features = [],
+      shape,
+      color,
+      id,
+      cache = true,
+      isTemporary = false,
+      styleFn,
+      geometryType,
+      isTileLayer,
+      tileUrl,
+      tileExtent
+    } = params;
 
     const allocation = !shape || !color ? this.styleService.allocateLayerStyle(planet) : { shape, color };
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
+
+    // Clone features only if we are dealing with a vector-capable layer
     const layerFeatures: Feature[] = features
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => this.cloneFeature(f, { shape: finalShape }));
 
     const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
 
-    const layerConfig = this.layerFactory(planet, {
-      name: resolvedName,
-      features: layerFeatures,
-      shape: finalShape,
-      color: finalColor,
-      styleFn,
-      isTemporary,
-      geometryType,
-    });
+    let layerConfig: LayerConfig;
 
+    // Check if we are handling a TileLayer (either via explicit flag or instance type)
+    const isActuallyTile = isTileLayer || (params.olLayer instanceof TileLayer);
+
+    if (params.olLayer) {
+      layerConfig = {
+        id: id || this.generateLayerId({ name: resolvedName } as LayerConfig, planet, isTemporary),
+        planet,
+        name: resolvedName,
+        features: layerFeatures,
+        shape: finalShape,
+        color: finalColor,
+        geometryType,
+        isTemporary,
+        olLayer: params.olLayer,
+        styleFn,
+        visible: true,
+        isBasemap: false,
+        // Persist the tile metadata
+        isTileLayer: isActuallyTile,
+        tileUrl: tileUrl,
+        tileExtent: tileExtent
+      };
+    } else {
+      // Default to Vector Layer Factory
+      layerConfig = this.layerFactory(planet, {
+        name: resolvedName,
+        features: layerFeatures,
+        shape: finalShape,
+        color: finalColor,
+        styleFn,
+        isTemporary,
+        geometryType,
+      });
+    }
+
+    // Ensure unique ID
     layerConfig.id = id || this.generateLayerId(layerConfig, planet, isTemporary);
+
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
-      if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
+
+      if (cache && !isTemporary) {
+        this.planetCache[planet].unshift(layerConfig);
+      }
+
       this.dragOrder.unshift(layerConfig);
-      if (this._map) this._map.addLayer(layerConfig.olLayer);
-      this.updateStyle(layerConfig);
+
+      // Add to map if not present
+      if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) {
+        this._map.addLayer(layerConfig.olLayer);
+      }
+
+      // Only apply Vector styles if it's NOT a TileLayer
+      if (!isActuallyTile) {
+        this.updateStyle(layerConfig);
+      }
+
       this.applyZOrder();
       this.refreshLayersForPlanet(planet);
     }
+
     return this.registry.get(layerConfig.id)!;
   }
+
 
   addManualLayer(
     planet: Planet,
@@ -269,15 +334,23 @@ export class LayerManagerService {
   }
 
   updateStyle(layer: LayerConfig) {
-    if (!(layer.olLayer instanceof VectorLayer)) return;
+    // If this is a TileLayer or not a VectorLayer, skip styling entirely.
+    // TileLayers use an XYZ source and don't support OpenLayers Feature Styles.
+    if (layer.isTileLayer || !(layer.olLayer instanceof VectorLayer)) {
+      return;
+    }
 
+    const vectorLayer = layer.olLayer as VectorLayer<VectorSource<Feature>>;
+
+    // Sync shape metadata to features so the style service knows what to draw
     layer.features?.forEach(f => f.set('shape', layer.shape));
 
-    layer.olLayer.setStyle((feature: FeatureLike): Style | Style[] => {
+    vectorLayer.setStyle((feature: FeatureLike): Style | Style[] => {
       const feat = feature as Feature;
       const fType = feat.get('featureType');
       const text = feat.get('text');
 
+      // Handle Label Features
       if (fType === 'label') {
         return [
           this.styleService.getLayerStyle({
@@ -288,6 +361,7 @@ export class LayerManagerService {
         ];
       }
 
+      // Handle Point/Vertex Features
       if (fType === 'vertex' || fType === 'point' || fType === 'pointerVertex') {
         return [
           this.styleService.getLayerStyle({
@@ -298,6 +372,7 @@ export class LayerManagerService {
         ];
       }
 
+      // Handle Line Features
       if (fType === 'line') {
         return [
           this.styleService.getLayerStyle({
@@ -307,6 +382,7 @@ export class LayerManagerService {
         ];
       }
 
+      // Handle Polygon Features
       if (fType === 'polygon') {
         return [
           this.styleService.getLayerStyle({
@@ -316,6 +392,7 @@ export class LayerManagerService {
         ];
       }
 
+      // Default Fallback Style
       return [
         this.styleService.getLayerStyle({
           type: 'point',
@@ -324,8 +401,11 @@ export class LayerManagerService {
         })
       ];
     });
-    layer.olLayer.changed();
+
+    // Force OpenLayers to re-render the layer with the new style settings
+    vectorLayer.changed();
   }
+
 
   remove(layer?: LayerConfig) {
     if (!layer || !this._map) return;

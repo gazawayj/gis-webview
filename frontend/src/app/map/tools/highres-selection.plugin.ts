@@ -4,9 +4,10 @@ import TileLayer from 'ol/layer/Tile';
 import Feature from 'ol/Feature';
 import { XYZ } from 'ol/source';
 import TileGrid from 'ol/tilegrid/TileGrid';
-import { get as getProjection } from 'ol/proj';
 import { ToolPluginBase } from './tool-base.plugin';
 import { LayerManagerService } from '../services/layer-manager.service';
+import VectorLayer from 'ol/layer/Vector';
+import { LayerConfig } from '../models/layer-config.model';
 
 export class HighResSelectionPlugin extends ToolPluginBase {
     name = 'highres-selection';
@@ -14,7 +15,6 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     private drawInteraction?: Draw;
     private selectionFeature?: Feature<Geometry>;
     private highResLayer?: TileLayer<XYZ>;
-
 
     private readonly HIGH_RES_URL =
         'https://astro.arcgis.com/arcgis/rest/services/OnMars/CTX1/MapServer/tile/{z}/{y}/{x}';
@@ -27,31 +27,43 @@ export class HighResSelectionPlugin extends ToolPluginBase {
         if (!this.map || !this.tempSource) return;
         if (this.layerManager.currentPlanet !== 'mars') return;
 
+        // Draw interaction for box selection
         this.drawInteraction = new Draw({
             source: this.tempSource,
             type: 'Circle',
             geometryFunction: createBox()
         });
-
         this.registerInteraction(this.drawInteraction);
 
         this.drawInteraction.on('drawstart', (evt: any) => {
-            this.selectionFeature = evt.feature as Feature;
+            this.selectionFeature = evt.feature as Feature<Geometry>;
             this.selectionFeature.set('featureType', 'polygon');
         });
 
         this.drawInteraction.on('drawend', () => {
-            if (!this.selectionFeature) return;
+            if (!this.selectionFeature || !this.map) return;
 
             const geom = this.selectionFeature.getGeometry() as Polygon;
             if (!geom) return;
 
-            const extent = geom.getExtent();
             this.ensureHighResLayer();
 
             if (this.highResLayer) {
-                this.highResLayer.setExtent(extent);
+                this.highResLayer.setExtent(geom.getExtent());
                 this.highResLayer.setVisible(true);
+
+                // Wrap high-res TileLayer as a single tool feature
+                const highResFeature = this.createFeature(
+                    geom,               // polygon geometry
+                    'polygon',          // featureType
+                    'High-Res Clip',    // label
+                    undefined,
+                    true                // isToolFeature
+                );
+                highResFeature.set('tileLayer', this.highResLayer);
+
+                // Add to tempSource for save()
+                this.tempSource?.addFeature(highResFeature);
             }
 
             this.selectionFeature = undefined;
@@ -65,13 +77,9 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     private ensureHighResLayer(): void {
         if (!this.map || this.highResLayer) return;
 
-        // Define resolutions for EPSG:4326 (Degrees per pixel)
-        // Level 0 for a 180-degree normalized map usually covers 180 degrees in 1 tile (180/256 or 180/512)
-        const resolutions = [];
+        const resolutions: number[] = [];
         const maxResolution = 180 / 256;
-        for (let i = 0; i < 20; i++) {
-            resolutions.push(maxResolution / Math.pow(2, i));
-        }
+        for (let i = 0; i < 20; i++) resolutions.push(maxResolution / Math.pow(2, i));
 
         this.highResLayer = new TileLayer({
             source: new XYZ({
@@ -80,7 +88,7 @@ export class HighResSelectionPlugin extends ToolPluginBase {
                 projection: 'EPSG:4326',
                 tileGrid: new TileGrid({
                     origin: [-180, 90],
-                    resolutions: resolutions,
+                    resolutions,
                     tileSize: [256, 256]
                 }),
                 wrapX: true
@@ -93,16 +101,58 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     }
 
     protected override onDeactivate(): void {
+        // 1. Abort and remove drawing interactions
         if (this.drawInteraction) {
             this.drawInteraction.abortDrawing();
             this.drawInteraction.setActive(false);
             this.map?.removeInteraction(this.drawInteraction);
         }
-        if (this.tempSource) this.tempSource.clear();
-        if (this.highResLayer && this.map) this.map.removeLayer(this.highResLayer);
 
-        this.drawInteraction = undefined;
-        this.selectionFeature = undefined;
-        this.highResLayer = undefined;
+        // 2. Clear the drawing preview source
+        if (this.tempSource) {
+            this.tempSource.clear();
+        }
+
+        // 3. Tile Layer Cleanup Logic
+        if (this.highResLayer && this.map) {
+            // Only remove from map if it's NOT the layer we just saved to the LayerManager
+            const savedLayer = (this as any)._justSavedLayer;
+            if (this.highResLayer !== savedLayer) {
+                this.map.removeLayer(this.highResLayer);
+            }
+        }
     }
+
+    // Add this inside your HighResSelectionPlugin class
+    public override save(name: string): LayerConfig | null {
+        if (!this.highResLayer || !this.activeLayer) return null;
+
+        // 1. Find the selection box geometry from our temp features
+        const features = this.getFeatures().filter(f => f.get('isToolFeature'));
+        const tileFeature = features.find(f => f.get('tileLayer'));
+
+        // Fallback to the selection feature if the temp source was cleared
+        const geom = (tileFeature?.getGeometry() || this.selectionFeature?.getGeometry()) as Polygon;
+        const extent = geom ? geom.getExtent() : undefined;
+
+        // 2. Explicitly call createLayer with Tile metadata
+        const newLayer = this.layerManager.createLayer({
+            planet: this.layerManager.currentPlanet,
+            name: name,
+            isTemporary: false,
+            isTileLayer: true,           // Tells LayerManager this is a TileLayer
+            olLayer: this.highResLayer,   // Hand off the live instance
+            tileUrl: this.HIGH_RES_URL,  // Save the URL for persistence
+            tileExtent: extent,          // Save the clip area
+            color: this.activeLayer.color,
+            shape: 'none',
+            cache: true                  // Add to sidebar/registry
+        });
+
+        // 3. Mark for onDeactivate bypass
+        (this as any)._justSavedLayer = this.highResLayer;
+
+        return newLayer;
+    }
+
 }

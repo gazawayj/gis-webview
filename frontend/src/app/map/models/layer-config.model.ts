@@ -16,6 +16,9 @@ export interface LayerConfig {
   visible: boolean;
   olLayer: Layer<any>;
   features?: Feature[];
+  isTileLayer?: boolean;
+  tileUrl?: string;
+  tileExtent?: number[];
 
   planet: 'earth' | 'moon' | 'mars';
 

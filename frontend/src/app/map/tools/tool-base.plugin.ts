@@ -10,6 +10,8 @@ import { LayerConfig } from '../models/layer-config.model';
 import { fromLonLat } from 'ol/proj';
 import { extend as extendExtent, boundingExtent } from 'ol/extent';
 import { LineString, Point } from 'ol/geom';
+import TileLayer from 'ol/layer/Tile';
+import { XYZ } from 'ol/source';
 
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;
@@ -23,7 +25,7 @@ export abstract class ToolPluginBase implements Tool {
   private mapListeners: Array<{ type: string; handler: any }> = [];
   private domListeners: Array<{ target: EventTarget; type: string; handler: any }> = [];
 
-  constructor(protected layerManager: LayerManagerService) {}
+  constructor(protected layerManager: LayerManagerService) { }
 
   // ----------------------- Activation -----------------------
   activate(map: OlMap): void {
@@ -150,28 +152,51 @@ export abstract class ToolPluginBase implements Tool {
   save(name: string): LayerConfig | null {
     if (!this.tempSource || !this.activeLayer) return null;
 
-    // Save all tool features (including vertices) and preserve allocated style
     const allFeatures = this.tempSource.getFeatures()
-      .filter(f => f.get('isToolFeature') === true)
-      .map(f =>
-        this.layerManager.cloneFeature(f, {
-          isToolFeature: true,
-          parentFeatureId: f.get('parentFeature')?.getId ? String(f.get('parentFeature').getId()) : undefined,
-          shape: this.activeLayer?.shape,
-        })
-      );
+      .filter(f => f.get('isToolFeature') === true);
 
-    const newLayer = this.layerManager.createLayer({
-      planet: this.layerManager.currentPlanet,
-      name,
-      features: allFeatures,
-      isTemporary: false,
-      shape: this.activeLayer.shape,
-      color: this.activeLayer.color
+    if (!allFeatures.length) return null;
+
+    // Separate TileLayer from vector features
+    let tileLayer: TileLayer<XYZ> | undefined;
+    const vectorFeatures: Feature[] = [];
+
+    allFeatures.forEach(f => {
+      const tl = f.get('tileLayer') as TileLayer<XYZ> | undefined;
+      if (tl) tileLayer = tl;
+      else vectorFeatures.push(this.layerManager.cloneFeature(f, {
+        isToolFeature: true,
+        parentFeatureId: f.get('parentFeature')?.getId ? String(f.get('parentFeature').getId()) : undefined,
+        shape: this.activeLayer?.shape
+      }));
     });
 
-    if (newLayer) this.layerManager.styleService.setLayerShape(newLayer.id, newLayer.shape);
-    return newLayer ?? null;
+    // Prepare layer creation parameters
+    const layerParams: Parameters<typeof this.layerManager.createLayer>[0] = {
+      planet: this.layerManager.currentPlanet,
+      name,
+      features: vectorFeatures,
+      isTemporary: false,
+      shape: this.activeLayer?.shape,
+      color: this.activeLayer?.color,
+      geometryType: this.activeLayer?.geometryType
+    };
+
+    // Pass TileLayer directly if present
+    if (tileLayer) layerParams.olLayer = tileLayer;
+
+    // Create a single layer (TileLayer + vector features combined)
+    const newLayer = this.layerManager.createLayer(layerParams);
+
+    // Ensure TileLayer is on the map
+    if (tileLayer && this.map && !this.map.getLayers().getArray().includes(tileLayer)) {
+      this.map.addLayer(tileLayer);
+    }
+
+    // Optional plugin hook
+    if (this.onSave) this.onSave(newLayer);
+
+    return newLayer;
   }
 
   protected createFeature(
@@ -210,6 +235,6 @@ export abstract class ToolPluginBase implements Tool {
   }
 
   protected abstract onActivate(): void;
-  protected onDeactivate(): void {}
-  protected onSave?(layer: LayerConfig): void {}
+  protected onDeactivate(): void { }
+  protected onSave?(layer: LayerConfig): void { }
 }
