@@ -92,27 +92,61 @@ export abstract class ToolPluginBase implements Tool {
     if (!this.map || !coords.length) return;
 
     const view = this.map.getView();
-    const projectedCoords: [number, number][] = [];
     const minZoom = options?.minZoom ?? 6;
     const maxZoom = options?.maxZoom ?? 12;
 
-    for (const [lon, lat] of coords) {
-      const projected = fromLonLat([lon, lat]) as [number, number];
-      projectedCoords.push(projected);
+    const projectedCoords = coords.map(c => fromLonLat(c) as [number, number]);
+
+    const easeInOut = (t: number) => {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    for (let i = 0; i < projectedCoords.length; i++) {
+      const center = projectedCoords[i];
 
       await new Promise<void>((resolve) => {
-        const targetZoom = Math.max(view.getZoom() ?? 2, minZoom);
-        view.animate({ center: projected, duration: 800 }, { zoom: targetZoom, duration: 800 }, () => resolve());
+        const currentZoom = view.getZoom() ?? 2;
+        const targetZoom = Math.max(currentZoom, minZoom);
+
+        view.animate(
+          {
+            center,
+            duration: 1200,
+            easing: easeInOut
+          },
+          {
+            zoom: targetZoom,
+            duration: 800,
+            easing: easeInOut
+          },
+          () => resolve()
+        );
       });
 
-      if (options?.addPointCallback) options.addPointCallback(lon, lat);
-      await new Promise(r => setTimeout(r, 200));
+      if (options?.addPointCallback) {
+        const [lon, lat] = coords[i];
+        options.addPointCallback(lon, lat);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    if (projectedCoords.length > 1) {
+    // Only fit if this represents an area, not animation steps
+    if (projectedCoords.length > 2) {
       let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
-      projectedCoords.forEach(coord => extendExtent(extent, coord));
-      view.fit(extent, { padding: [50, 50, 50, 50], duration: 800, maxZoom });
+      projectedCoords.forEach(c => extendExtent(extent, c));
+
+      await new Promise<void>((resolve) => {
+        view.fit(extent, {
+          padding: [50, 50, 50, 50],
+          duration: 1200,
+          maxZoom,
+          easing: easeInOut
+        });
+        setTimeout(() => resolve(), 1200);
+      });
     }
   }
 
