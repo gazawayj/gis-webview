@@ -25,44 +25,53 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   async execute(prompt: string): Promise<void> {
-  if (!prompt) return;
+    if (!prompt) return;
 
-  const results = await this.runAIQuery(prompt);
-  if (!results.length) return;
+    // Query the AI backend
+    const results = await this.runAIQuery(prompt);
+    if (!results.length) return;
 
-  const coords: [number, number][] = results
-    .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
-    .map(r => [r.lon, r.lat]);
+    // Collect coordinates and names
+    const coords: [number, number][] = [];
+    const names: string[] = [];
 
-  if (!coords.length) return;
+    results
+      .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
+      .forEach(r => {
+        coords.push([r.lon, r.lat]);
+        names.push(r.name);
+      });
 
-  // Draw features
-  this.addPoints(coords);
+    if (!coords.length) return;
 
-  // Fly to each point individually
-  for (const c of coords) {
-    await this.flyToCoordinates([c], { minZoom: 6, maxZoom: 12 });
+    // Draw points with labels
+    this.addPoints(coords, names);
+
+    // Fly to each point individually
+    for (const c of coords) {
+      await this.flyToCoordinates([c], { minZoom: 6, maxZoom: 12 });
+    }
+
+    // Compute full extent of all features for final zoom
+    const features = this.tempSource?.getFeatures() || [];
+    const projectedCoords: [number, number][] = features.map(f => {
+      const geom = f.getGeometry();
+      if (!geom) return [0, 0] as [number, number];
+      return (geom as any).getCoordinates() as [number, number];
+    });
+
+    if (projectedCoords.length > 1) {
+      let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
+      projectedCoords.forEach(c => extendExtent(extent, c));
+      this.map?.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 12, duration: 800 });
+    }
+
+    // Save layer with sanitized name
+    const baseLayerName = 'AI Analysis';
+    const timestamp = Date.now();
+    const sanitizedName = baseLayerName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+    await this.saveAsync(`${sanitizedName}_${timestamp}`);
   }
-
-  // Compute full extent of all features for final zoom
-  const features = this.tempSource?.getFeatures() || [];
-  const projectedCoords: [number, number][] = features.map(f => {
-    const geom = f.getGeometry();
-    if (!geom) return [0, 0] as [number, number];
-    return (geom as any).getCoordinates() as [number, number];
-  });
-
-  if (projectedCoords.length > 1) {
-    let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
-    projectedCoords.forEach(c => extendExtent(extent, c));
-    this.map?.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 12, duration: 800 });
-  }
-
-  // Save layer
-  const preferredName = results[0]?.name || prompt;
-  const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-  await this.saveAsync(`${sanitizedName}-AI`);
-}
 
   protected override onActivate(): void {
     if (!this.map || !this.tempSource || !this.activeLayer) return;
@@ -74,12 +83,26 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
 
-  addPoints(coords: [number, number][]) {
+  addPoints(coords: [number, number][], names?: string[]) {
     if (!this.tempSource) return;
 
-    coords.forEach(c => {
-      const f = this.createFeature(this.createPoint(c), 'point');
-      this.tempSource?.addFeature(f);
+    coords.forEach((c, i) => {
+      const name = names?.[i];
+
+      // Create the point feature
+      const pointFeature = this.createFeature(this.createPoint(c), 'point');
+      this.tempSource?.addFeature(pointFeature);
+
+      // If we have a name, also create a label feature
+      if (name) {
+        const labelFeature = this.createFeature(
+          this.createPoint(c),
+          'label',
+          name,       // text for the label
+          pointFeature // parentFeature
+        );
+        this.tempSource?.addFeature(labelFeature);
+      }
     });
   }
 
