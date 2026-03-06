@@ -24,20 +24,15 @@ export class StyleService {
 
   constructor() { }
 
-  // Reset when switching planets if needed
   resetPlanet(planet: Planet) {
     this.planetColorUsage[planet].clear();
     this.planetShapeUsage[planet].clear();
   }
 
-
-  // Allocate unique color+shape combination per planet.
-
   allocateLayerStyle(planet: Planet): { color: string; shape: ShapeType } {
     const usedColors = this.planetColorUsage[planet];
     const usedShapes = this.planetShapeUsage[planet];
 
-    // Reset pools if exhausted
     if (usedColors.size >= COLOR_PALETTE.length) usedColors.clear();
     if (usedShapes.size >= SHAPES.length) usedShapes.clear();
 
@@ -62,6 +57,7 @@ export class StyleService {
     baseColor: string,
     shape?: ShapeType,
     text?: string,
+    position?: 'top' | 'bottom' // NEW: label position
   }): Style {
 
     const color = options.baseColor;
@@ -88,13 +84,17 @@ export class StyleService {
       }
 
       case 'label': {
+        // Default: top label
+        const offsetY = options.position === 'bottom' ? 15 : -15;
+
         return new Style({
           text: new Text({
             text: options.text || '',
             font: 'bold 14px sans-serif',
             fill: new Fill({ color }),
             stroke: new Stroke({ color: '#000', width: 3 }),
-            offsetY: -15
+            offsetY,
+            textAlign: 'center'
           })
         });
       }

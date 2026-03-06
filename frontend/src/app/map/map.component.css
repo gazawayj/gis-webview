@@ -389,7 +389,7 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--text-color-light);
-  width: 440px;
+  width: 480px;
   max-height: 85vh;
   border-radius: 12px;
   border: 1.5px solid var(--primary-color);

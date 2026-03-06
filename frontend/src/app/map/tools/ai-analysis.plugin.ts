@@ -10,6 +10,7 @@ export interface AIResult {
   lat: number;
   lon: number;
   planet: string;
+  details: string;
 }
 
 export class AIAnalysisPlugin extends ToolPluginBase {
@@ -31,21 +32,23 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     const results = await this.runAIQuery(prompt);
     if (!results.length) return;
 
-    // Collect coordinates and names
+    // Collect coordinates, names, and details
     const coords: [number, number][] = [];
     const names: string[] = [];
+    const details: string[] = [];
 
     results
       .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
       .forEach(r => {
         coords.push([r.lon, r.lat]);
         names.push(r.name);
+        details.push(r.details ?? '');
       });
 
     if (!coords.length) return;
 
-    // Draw points with labels
-    this.addPoints(coords, names);
+    // Draw points with both labels
+    this.addPoints(coords, names, details);
 
     // Fly to each point individually
     for (const c of coords) {
@@ -82,27 +85,31 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     this.aiResults = [];
   }
 
-
-  addPoints(coords: [number, number][], names?: string[]) {
+  addPoints(coords: [number, number][], names?: string[], details?: string[]) {
     if (!this.tempSource) return;
 
     coords.forEach((c, i) => {
       const name = names?.[i];
+      const detail = details?.[i];
 
-      // Create the point feature
+      // Main point
       const pointFeature = this.createFeature(this.createPoint(c), 'point');
+      if (detail) pointFeature.set('details', detail);
       this.tempSource?.addFeature(pointFeature);
 
-      // If we have a name, also create a label feature
+      // Name label above the point (offset handled by style)
       if (name) {
-        const labelFeature = this.createFeature(
-          this.createPoint(c),
+        const nameLabelPoint = this.createPoint(c); // separate geometry
+        const nameLabel = this.createFeature(
+          nameLabelPoint,
           'label',
-          name,       // text for the label
-          pointFeature // parentFeature
+          name,
+          pointFeature
         );
-        this.tempSource?.addFeature(labelFeature);
+        nameLabel.set('labelPosition', 'top');
+        this.tempSource?.addFeature(nameLabel);
       }
+      console.log(detail);
     });
   }
 

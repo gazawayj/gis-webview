@@ -18,7 +18,7 @@ export type LayerFactory = (
     isTemporary: boolean;
     styleFn: (f: FeatureLike) => Style | Style[];
     geometryType: GeometryType;
-    useVectorImage?: boolean; // NEW: high-performance option
+    useVectorImage?: boolean;
   }>,
   idGenerator?: () => string
 ) => LayerConfig;
@@ -48,33 +48,31 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
 
     const vectorLayer = new LayerConstructor({
       source: new VectorSource({ features }),
-
       style: (feature: FeatureLike) => {
         if (styleFn) return styleFn(feature);
 
         const feat = feature as Feature;
         const fType = feat.get('featureType') as string | undefined;
 
+        // Label features: respect the feature's labelPosition property
         if (fType === 'label') {
+          const text = feat.get('text') as string | undefined;
+          const position = feat.get('labelPosition') as 'top' | 'bottom' | undefined;
           return styleService.getLayerStyle({
             type: 'label',
             baseColor: configRef.color,
-            text: feat.get('text') as string | undefined,
+            text,
+            position
           });
         }
 
-        // Resolve geometry type priority:
-        // 1. Explicit featureType
-        // 2. Actual geometry
-        // 3. Layer geometry fallback
+        // Resolve geometry type priority
         let resolvedType: GeometryType;
-
         if (fType === 'line' || fType === 'polygon' || fType === 'point') {
           resolvedType = fType as GeometryType;
         } else {
           const geom = feat.getGeometry();
           const geomType = geom?.getType();
-
           if (geomType?.includes('LineString')) resolvedType = 'line';
           else if (geomType?.includes('Polygon')) resolvedType = 'polygon';
           else resolvedType = configRef.geometryType ?? 'point';
@@ -102,7 +100,6 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
       styleFn,
       features,
       geometryType,
-      // Optional flag for VectorImage layers
       isTileLayer: false
     };
 
