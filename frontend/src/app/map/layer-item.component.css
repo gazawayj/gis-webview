@@ -5,7 +5,7 @@
   padding: 6px 10px;
   background: white;
   border: 1px solid var(--border-color-light);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: background 0.2s ease;
 }
 
@@ -17,8 +17,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 auto;    /* expands to fill remaining space */
-  min-width: 0;       /* allow truncation */
+  flex: 1 1 auto;
+  /* expands to fill remaining space */
+  min-width: 0;
+  /* allow truncation */
 }
 
 .layer-name {
@@ -66,7 +68,7 @@
   background: white;
   border: 1px solid var(--primary-color);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
@@ -91,7 +93,6 @@
 
 .layer-controls button,
 .layer-controls input[type="color"] {
-  border: none;
   border-radius: 4px;
   padding: 2px 4px;
   cursor: pointer;
@@ -107,7 +108,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 input[type="color"] {
-  border: 1px solid var(--border-color-light);
+  border: 1px solid var(--primary-color-lighter);
   width: 24px;
   height: 24px;
   padding: 0;
