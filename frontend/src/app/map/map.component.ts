@@ -261,14 +261,18 @@ export class MapComponent implements AfterViewInit {
 
   openAiFeatureFindModal(): void {
     this.aiPrompt = '';
-    this.zone.runOutsideAngular(() => {
-      this.aiModalRef = this.modalFactory.open({
-        template: this.aiFeatureFindModal,
-        vcr: this.vcr,
-        panelClass: 'layer-modal',
-        width: '420px'
-      });
-      setTimeout(() => this.aiPromptTextarea?.nativeElement.focus(), 0);
+
+    this.aiModalRef = this.modalFactory.open({
+      template: this.aiFeatureFindModal,
+      vcr: this.vcr,
+      panelClass: 'layer-modal',
+      width: '420px'
+    });
+
+    // Focus the textarea reliably via DOM query
+    requestAnimationFrame(() => {
+      const textarea = this.aiModalRef?.overlayElement.querySelector('textarea') as HTMLTextAreaElement | null;
+      if (textarea) textarea.focus();
     });
   }
 

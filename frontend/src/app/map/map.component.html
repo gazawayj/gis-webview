@@ -123,9 +123,9 @@
             <li>“Locate Olympus Mons” (Mars)</li>
             <li>“Where is the biggest volcano?” (Moon)</li>
           </ul>
-          <textarea #aiPromptTextarea rows="4" placeholder="Describe the feature..." [(ngModel)]="aiPrompt" autofocus
-            (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
-        </textarea>
+          <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
+            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
+</textarea>
         </div>
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
