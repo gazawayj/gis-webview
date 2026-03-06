@@ -2,6 +2,7 @@
 
 Interactive, browser-based GIS platform for planetary-scale visualization and experimentation.  
 > If moon or mars basemaps are not loading, it means I've ran into data limits on the backend server.
+> This project is worked on constantly, changes happen a lot.
 
 **Live Demo:** [gazawayj.github.io/](https://gazawayj.github.io/)
 
