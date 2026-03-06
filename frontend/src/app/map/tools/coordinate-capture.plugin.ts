@@ -20,7 +20,7 @@ export class CoordinateCapturePlugin extends ToolPluginBase {
 
     // Hover vertex: purely UI, not saved
     this.hoverFeature = this.createFeature(
-      new Point([0, 0]),
+      new Point([]),
       'pointerVertex',
       undefined,
       undefined,
