@@ -82,33 +82,31 @@ body {
 }
 
 .sidebar-content {
+  flex: 1;
+  min-height: 0; /* Required for nested scrollable areas */
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  min-height: 0;
 }
 
 /* ===================== LAYER LIST ===================== */
 .layer-list {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  min-height: 0;
+  flex-grow: 1; /* Fills all space between planets and toolboxes */
+  overflow: hidden;
   background-color: var(--panel-bg);
   border-radius: 8px;
-  padding: 5px 8px 8px;
+  padding: 8px;
   gap: 4px;
-  overflow: visible;
-}
-
-.layer-list * {
-  pointer-events: auto;
 }
 
 .add-layer {
-  flex-shrink: 0;
-  width: 100%;
+  flex-shrink: 0; 
   margin-bottom: 8px;
+}
+
+.layer-list-spacer {
+  flex-grow: 1; /* This acts as a 'spring' pushing items down */
 }
 
 .add-layer button {
@@ -128,17 +126,30 @@ body {
 }
 
 .layer-items-container {
-  margin-top: auto !important;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow: visible;
-  width: 100%;
+  overflow-y: auto;
+  /* This ensures the list itself stays at the bottom of the spacer */
+  margin-top: auto; 
+}
+
+.layer-items-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.layer-items-container::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+  border-radius: 4px;
+}
+
+.layer-items-container::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  border-radius: 4px;
 }
 
 .layer-item-wrapper {
   width: 100%;
-  overflow: visible;
 }
 
 .layer-item {
@@ -152,7 +163,6 @@ body {
   color: var(--primary-color);
   cursor: grab;
   user-select: none;
-  overflow: visible;
 }
 
 .drag-handle {
@@ -172,27 +182,6 @@ body {
   user-select: none;
 }
 
-/* Animate the outer sphere stroke to pulse slightly */
-/* Outer sphere pulse */
-.sphere-outline {
-  stroke-width: 4;
-  animation: pulseStroke 2.5s ease-in-out infinite alternate;
-  transform-origin: 110px 110px;
-}
-
-/* Grid rotation */
-.grid-line {
-  transform-origin: 110px 110px;
-  animation: rotateGrid 20s linear infinite;
-}
-
-
-/* Ring rotation (slower) */
-.planet-ring {
-  transform-origin: 110px 110px;
-  animation: rotateGrid 40s linear infinite reverse;
-}
-
 /* ===================== TOOLBARS & STATS ===================== */
 .toolbar-wrapper,
 .map-stats {
@@ -205,6 +194,15 @@ body {
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.05);
   background: var(--panel-bg);
+}
+
+.horizontal-toolbar .toolbar-buttons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap; 
+  justify-content: flex-start;
+  padding: 4px;
+  gap: 8px;
 }
 
 .toolbar-label {
@@ -257,18 +255,14 @@ body {
   transition: all 0.2s ease;
 }
 
-/* Unavailable tools (Mars-only but planet != Mars) */
 .tool-btn:not(.available) {
   border: 2px solid var(--panel-bg);
-  /* match toolbox background */
   background: var(--panel-bg);
   opacity: 0.6;
-  /* subtle dimming */
   cursor: default;
   box-shadow: none;
 }
 
-/* Hover effect only for available tools */
 .tool-btn.available:hover {
   transform: scale(1.05);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
@@ -346,7 +340,16 @@ body {
   color: var(--primary-color);
   cursor: grab;
   user-select: none;
-  overflow: visible;
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  border: 2px dashed var(--primary-color);
+  background: transparent;
 }
 
 .cdk-drag-preview {
@@ -373,13 +376,6 @@ body {
   justify-content: space-between;
   flex-grow: 1;
   gap: 4px;
-}
-
-.cdk-drag-preview .close-btn,
-.cdk-drag-dragging .close-btn {
-  margin-left: 4px;
-  justify-content: space-between;
-  flex-shrink: 0;
 }
 
 .cdk-drag-preview .layer-name,
@@ -422,6 +418,36 @@ body {
   color: var(--primary-color);
 }
 
+.ai-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.ai-modal-card {
+  background: white;
+  width: 450px;
+  border-radius: 12px;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+  padding: 20px;
+}
+
+.ai-modal-body textarea {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: inherit;
+}
+
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
@@ -431,292 +457,8 @@ body {
   border-top: 1px solid var(--border-color-light);
 }
 
-/* ===================== TOOLTIP & MEASURE ===================== */
-.measure-tooltip {
-  position: relative;
-  background: rgba(0, 0, 0, 0.75);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.measure-tooltip-static {
-  background: var(--primary-color);
-  color: white;
-  border: 1px solid black;
-}
-
-.measure-segment,
-.coordinate-label {
-  padding: 2px 4px;
-  background-color: white;
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 3px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-}
-
-.tool-vertex {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--primary-color);
-  border: 1px solid white;
-  pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* ===================== AI MODAL ===================== */
-.ai-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 10000;
-}
-
-.ai-modal-card {
-  background: var(--background-color-extra-light);
-  border-radius: 12px;
-  width: 500px;
-  max-width: 90%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: var(--primary-color);
-  min-height: 280px;
-}
-
-.ai-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  background: var(--background-color-medium-light);
-  border-bottom: 1px solid var(--border-color-light);
-  font-weight: 600;
-  font-size: 1.2rem;
-}
-
-.ai-modal-body {
-  padding: 1rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  font-size: 0.95rem;
-  color: var(--text-color-dark);
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.ai-modal-body textarea {
-  width: 100%;
-  min-height: 100px;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color-light);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  resize: vertical;
-  color: var(--text-color-dark);
-  background: var(--background-color-extra-light);
-}
-
-.ai-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--background-color-medium-light);
-  border-top: 1px solid var(--border-color-light);
-}
-
-.ai-modal-actions button {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--primary-color);
-}
-
-.ai-modal-actions button.cancel {
-  background: var(--background-color-extra-light);
-  color: var(--primary-color);
-}
-
-.ai-modal-actions button.cancel:hover {
-  background: var(--button-color-highlight);
-}
-
-.ai-modal-actions button.confirm {
-  background: var(--primary-color);
-  color: var(--text-color-light);
-}
-
-.ai-modal-actions button.confirm:hover {
-  background: var(--primary-color-lighter);
-}
-
-.title-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.title-planet {
-  position: absolute;
-  right: -5px;
-  bottom: -25px;
-  width: 100px;
-  height: 100px;
-  pointer-events: none;
-  color: var(--primary-color);
-  z-index: 0;
-}
-
-/* Ensure CSS applies to inline SVG elements */
-.title-planet circle.sphere-outline,
-.title-planet ellipse.grid-line,
-.title-planet ellipse.planet-ring {
-  transform-box: fill-box;
-  transform-origin: 110px 110px;
-}
-
-/* Pulse outer sphere */
-.title-planet circle.sphere-outline {
-  stroke-width: 4;
-  animation: pulseStroke 2.5s ease-in-out infinite alternate;
-}
-
-/* Rotate grid lines */
-.title-planet ellipse.grid-line {
-  animation: rotateGrid 20s linear infinite;
-}
-
-/* Rotate planet ring slower and reverse */
-.title-planet ellipse.planet-ring {
-  animation: rotateGrid 40s linear infinite reverse;
-}
-
-.title-wrapper h1 {
-  position: relative;
-  z-index: 1;
-}
-
 /* ===================== ANIMATIONS ===================== */
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes fadeInOverlay {
-  0% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleUp {
-  0% {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeInText {
-  0% {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes pulseStroke {
-  0% {
-    stroke-width: 3;
-    opacity: 0.35;
-  }
-
-  50% {
-    stroke-width: 5;
-    opacity: 0.5;
-  }
-
-  100% {
-    stroke-width: 4;
-    opacity: 0.4;
-  }
-}
-
-@keyframes rotateGrid {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulseStroke {
-  0% {
-    stroke-width: 3;
-    opacity: 0.35;
-  }
-
-  50% {
-    stroke-width: 5;
-    opacity: 0.5;
-  }
-
-  100% {
-    stroke-width: 4;
-    opacity: 0.4;
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

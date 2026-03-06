@@ -16,26 +16,31 @@
 
       <!-- Layer list -->
       <div class="layer-list" cdkDropList [cdkDropListData]="dragOrder" (cdkDropListDropped)="onLayerDropped($event)">
-
+        
+        <!-- Add Layer button stays fixed at top -->
         <div class="add-layer">
           <button (click)="onAddLayer()">Add Layer</button>
         </div>
 
+        <!-- Scrollable container for layers -->
         <div class="layer-items-container">
           @for (layer of dragOrder; track layer.id) {
           <div class="layer-item-wrapper" cdkDrag>
-            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
-              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
+            <app-layer-item [layer]="layer"
+              (itemToggle)="toggleLayer(layer)"
+              (remove)="removeLayer(layer)"
+              (colorPicked)="onColorPicked(layer, $event)"
+              (shapeSelected)="selectShape(layer, $event)">
             </app-layer-item>
           </div>
           }
-        </div>
 
-        @if (dragOrder.length === 0) {
-        <div class="no-layers-tooltip">
-          No layers added.
+          @if (dragOrder.length === 0) {
+          <div class="no-layers-tooltip">
+            No layers added.
+          </div>
+          }
         </div>
-        }
       </div>
     </div>
 
@@ -125,7 +130,7 @@
           </ul>
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
             [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
-</textarea>
+          </textarea>
         </div>
         <div class="ai-modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>

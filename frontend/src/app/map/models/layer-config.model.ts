@@ -19,6 +19,7 @@ export interface LayerConfig {
   isTileLayer?: boolean;
   tileUrl?: string;
   tileExtent?: number[];
+  allowLine?: boolean;
 
   planet: 'earth' | 'moon' | 'mars';
 

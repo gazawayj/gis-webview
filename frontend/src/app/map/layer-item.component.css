@@ -1,14 +1,16 @@
 .layer-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-  background-color: var(--text-color-light);
-  color: var(--primary-color);
-  border-radius: 6px;
-  cursor: grab;
-  user-select: none;
+  gap: 8px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid var(--border-color-light);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: background 0.2s ease;
+}
+
+.layer-item:hover {
+  background: var(--background-color-extra-light);
 }
 
 .layer-item-left {
@@ -27,11 +29,60 @@
   text-overflow: ellipsis;
 }
 
+/* Controls & Buttons */
 .layer-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;     /* stays compact */
+  gap: 4px;
+}
+
+.layer-controls button {
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s;
+  color: var(--primary-color);
+  opacity: 0.7;
+}
+
+.layer-controls button:hover {
+  background: var(--button-color-highlight);
+  border-color: var(--primary-color-lighter);
+  opacity: 1;
+  border-radius: 4px;
+}
+
+.remove-btn {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Shape Dropdown Overlay */
+.shape-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 8px;
+  z-index: 1000;
+}
+
+.shape-dropdown button {
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 6px;
+}
+
+.shape-dropdown button:hover {
+  background: var(--button-color-highlight);
+  border-color: var(--primary-color);
 }
 
 :host input[type="checkbox"] {
@@ -44,6 +95,24 @@
   border-radius: 4px;
   padding: 2px 4px;
   cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+input[type="color"] {
+  border: 1px solid var(--border-color-light);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
 }
 
 .layer-controls button:hover {
