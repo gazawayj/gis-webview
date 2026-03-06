@@ -39,6 +39,7 @@ export class LayerManagerService {
   dragOrder: LayerConfig[] = [];
   private layerFactory: LayerFactory;
 
+  // Create layer observable
   private layersSubject = new BehaviorSubject<LayerConfig[]>([]);
   layers$ = this.layersSubject.asObservable();
 
@@ -168,10 +169,10 @@ export class LayerManagerService {
     this.beginLoad('Loading Mars surface ice...');
     this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
       next: content => {
-        const features = new GeoJSON().readFeatures(content, {
+        const features = new GeoJSON().readFeatures(content , {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
-        });
+        } );
         this.createLayer({ planet: 'mars', name: 'Surface Ice', features, geometryType: 'polygon', color: '#00ffff', shape: 'none' });
         this.refreshLayersForPlanet('mars');
         this.endLoad();

@@ -198,7 +198,7 @@ body {
 .map-stats {
   flex-shrink: 0;
   margin-top: var(--sidebar-gap);
-  padding: 4px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -218,7 +218,7 @@ body {
 .toolbar-buttons {
   display: flex;
   flex-direction: row;
-  gap: 4px;
+  gap: 8px;
   margin: 8px;
   justify-content: flex-start;
 }
@@ -227,7 +227,7 @@ body {
   border: none;
   background: none;
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
   width: 32px;
   height: 32px;
   display: flex;
@@ -236,8 +236,8 @@ body {
 }
 
 .tool-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: block;
   transition: transform 0.15s ease;
   color: var(--primary-color);
@@ -286,11 +286,13 @@ body {
 }
 
 .stat-label {
+  margin-left: 8px;
   font-weight: 600;
   color: var(--primary-color);
 }
 
 .stat-value {
+  margin-right: 8px;
   color: var(--text-color-dark);
 }
 

@@ -23,11 +23,12 @@ export type LayerFactory = (
 
 export function createVectorLayerFactory(styleService: StyleService): LayerFactory {
   return (planet, options, idGenerator) => {
-    const { name = `Layer-${Date.now()}`, features = [], color, shape, isTemporary = false, styleFn, geometryType: optGeometryType } = options || {};
+    const { name = `Layer-${Date.now()}`, features = [], color, shape, isTemporary = false, styleFn, geometryType: givenGeometryType } = options || {};
     if (!color || !shape) throw new Error('LayerFactory requires color and shape.');
-    const geometryType: GeometryType = optGeometryType ?? detectGeometryType(features);
+    const geometryType: GeometryType = givenGeometryType ?? detectGeometryType(features);
     let configRef!: LayerConfig;
 
+    // Create new vector layer dynamically
     const vectorLayer = new VectorLayer({
       source: new VectorSource({ features }),
       style: (feature: FeatureLike) => {
@@ -81,7 +82,7 @@ function detectGeometryType(features: Feature[]): GeometryType {
 
     const geomType = geom.getType();
 
-    // Ignore single points used as vertices (usually marked with 'vertex' featureType)
+    // Ignore single points used as vertices and points
     const fType = f.get('featureType') as string | undefined;
     if (geomType === 'Point' && fType === 'vertex') continue;
 

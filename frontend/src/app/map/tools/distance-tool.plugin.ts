@@ -131,7 +131,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
   }
 
   private clearLiveLabels() {
-    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch { } finally { } });
+    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch (err) { console.error('Error: ', err) }  });
     this.liveSegmentLabels = [];
   }
 }

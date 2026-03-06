@@ -81,6 +81,8 @@ export class AIAnalysisPlugin extends ToolPluginBase {
         .toPromise();
 
       const resultsArray: AIResult[] = Array.isArray(res) ? res : [res];
+      this.layerManager.endExternalLoad();
+      this.layerManager.startExternalLoad('Deciphering results...');
 
       this.aiResults = resultsArray
         .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
