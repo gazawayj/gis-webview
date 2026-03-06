@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import VectorImageLayer from 'ol/layer/VectorImage';
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
@@ -39,7 +40,6 @@ export class LayerManagerService {
   dragOrder: LayerConfig[] = [];
   private layerFactory: LayerFactory;
 
-  // Create layer observable
   private layersSubject = new BehaviorSubject<LayerConfig[]>([]);
   layers$ = this.layersSubject.asObservable();
 
@@ -54,9 +54,7 @@ export class LayerManagerService {
     this.layerFactory = createVectorLayerFactory(this.styleService);
   }
 
-  attachMap(map: OlMap) {
-    this._map = map;
-  }
+  attachMap(map: OlMap) { this._map = map; }
 
   private beginLoad(message?: string) {
     this.activeLoads++;
@@ -80,11 +78,8 @@ export class LayerManagerService {
   public startExternalLoad(message?: string) { this.beginLoad(message); }
   public endExternalLoad() { this.endLoad(); }
 
-  getLayersForPlanet(planet: Planet) {
-    return this.planetCache[planet].slice();
-  }
+  getLayersForPlanet(planet: Planet) { return this.planetCache[planet].slice(); }
 
-  /** Helper to refresh sidebar for a planet */
   private refreshLayersForPlanet(planet: Planet) {
     if (this.currentPlanet === planet) {
       this.layersSubject.next(this.getLayersForPlanet(planet));
@@ -98,45 +93,23 @@ export class LayerManagerService {
       this.beginLoad('Loading FIRMS Fires...');
       this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe({
         next: csv => {
-          this.addManualLayer(
-            'earth',
-            'FIRMS Fires',
-            'FIRMS CSV',
-            csv,
-            'CSV',
-            'latitude',
-            'longitude',
-            'system-firms'
-          );
+          this.addManualLayer('earth', 'FIRMS Fires', 'FIRMS CSV', csv, 'CSV', 'latitude', 'longitude', 'system-firms');
           this.refreshLayersForPlanet('earth');
           this.endLoad();
-        },
-        error: () => this.endLoad()
+        }, error: () => this.endLoad()
       });
 
       this.beginLoad('Loading USGS Earthquakes...');
       this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe({
         next: g => {
-          this.addManualLayer(
-            'earth',
-            'Earthquakes',
-            'USGS Earthquakes',
-            g,
-            'GeoJSON',
-            undefined,
-            undefined,
-            'system-earthquakes'
-          );
+          this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes');
           this.refreshLayersForPlanet('earth');
           this.endLoad();
-        },
-        error: () => this.endLoad()
+        }, error: () => this.endLoad()
       });
     }
 
-    if (planet === 'mars') {
-      this.addMarsBuiltInLayers();
-    }
+    if (planet === 'mars') { this.addMarsBuiltInLayers(); }
 
     this.planetInitialized[planet] = true;
   }
@@ -151,14 +124,9 @@ export class LayerManagerService {
     const basemap = this.createBasemap(planet);
     this._map.addLayer(basemap.olLayer);
 
-    this.dragOrder
-      .filter(l => l.planet === planet && !l.isBasemap)
-      .slice()
-      .reverse()
-      .forEach(layer => {
-        this._map!.addLayer(layer.olLayer);
-        layer.olLayer.setVisible(layer.visible);
-      });
+    this.dragOrder.filter(l => l.planet === planet && !l.isBasemap)
+      .slice().reverse()
+      .forEach(layer => { this._map!.addLayer(layer.olLayer); layer.olLayer.setVisible(layer.visible); });
 
     this.applyZOrder();
     this.layersSubject.next(this.getLayersForPlanet(this.currentPlanet));
@@ -169,23 +137,17 @@ export class LayerManagerService {
     this.beginLoad('Loading Mars surface ice...');
     this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
       next: content => {
-        const features = new GeoJSON().readFeatures(content , {
-          dataProjection: 'EPSG:4326',
-          featureProjection: 'EPSG:3857'
-        } );
+        const features = new GeoJSON().readFeatures(content, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
         features.forEach(f => f.set('featureType', 'polygon'));
         this.createLayer({ planet: 'mars', name: 'Surface Ice', features, geometryType: 'polygon', color: '#00ffff', shape: 'none' });
         this.refreshLayersForPlanet('mars');
         this.endLoad();
-      },
-      error: () => this.endLoad()
+      }, error: () => this.endLoad()
     });
   }
 
   private generateLayerId(layer: LayerConfig, planet: Planet, isTemporary?: boolean): string {
-    if (!isTemporary) {
-      return `${planet}:${layer.name.replace(/\s+/g, '_')}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-    }
+    if (!isTemporary) return `${planet}:${layer.name.replace(/\s+/g, '_')}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     return `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
   }
 
@@ -197,45 +159,26 @@ export class LayerManagerService {
     color?: string;
     id?: string;
     cache?: boolean;
-    olLayer?: TileLayer<any> | VectorLayer<any>;
+    olLayer?: TileLayer<any> | VectorLayer<any> | VectorImageLayer<any>;
     isTemporary?: boolean;
     styleFn?: (f: FeatureLike) => Style | Style[];
     geometryType?: GeometryType;
-    // New Metadata Fields
     isTileLayer?: boolean;
     tileUrl?: string;
     tileExtent?: number[];
+    useVectorImage?: boolean;
   }): LayerConfig {
-    const {
-      planet,
-      name: incomingName,
-      features = [],
-      shape,
-      color,
-      id,
-      cache = true,
-      isTemporary = false,
-      styleFn,
-      geometryType,
-      isTileLayer,
-      tileUrl,
-      tileExtent
-    } = params;
+    const { planet, name: incomingName, features = [], shape, color, id, cache = true, isTemporary = false,
+      styleFn, geometryType, isTileLayer, tileUrl, tileExtent, useVectorImage } = params;
 
     const allocation = !shape || !color ? this.styleService.allocateLayerStyle(planet) : { shape, color };
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
 
-    // Clone features only if we are dealing with a vector-capable layer
-    const layerFeatures: Feature[] = features
-      .filter((f): f is Feature => f instanceof Feature)
-      .map(f => this.cloneFeature(f, { shape: finalShape }));
-
+    const layerFeatures: Feature[] = features.filter((f): f is Feature => f instanceof Feature).map(f => this.cloneFeature(f, { shape: finalShape }));
     const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
 
     let layerConfig: LayerConfig;
-
-    // Check if we are handling a TileLayer (either via explicit flag or instance type)
     const isActuallyTile = isTileLayer || (params.olLayer instanceof TileLayer);
 
     if (params.olLayer) {
@@ -252,45 +195,47 @@ export class LayerManagerService {
         styleFn,
         visible: true,
         isBasemap: false,
-        // Persist the tile metadata
         isTileLayer: isActuallyTile,
-        tileUrl: tileUrl,
-        tileExtent: tileExtent
+        tileUrl,
+        tileExtent
       };
     } else {
-      // Default to Vector Layer Factory
-      layerConfig = this.layerFactory(planet, {
-        name: resolvedName,
-        features: layerFeatures,
-        shape: finalShape,
-        color: finalColor,
-        styleFn,
-        isTemporary,
-        geometryType,
-      });
+      // Use VectorImageLayer automatically for FIRMS/Earthquake if requested
+      if (useVectorImage) {
+        const vectorImageLayer = new VectorImageLayer({
+          source: new VectorSource({ features: layerFeatures }),
+          style: styleFn || ((feature: FeatureLike) => this.styleService.getLayerStyle({ type: 'point', baseColor: finalColor, shape: finalShape }))
+        });
+        layerConfig = {
+          id: id || this.generateLayerId({ name: resolvedName } as LayerConfig, planet, isTemporary),
+          planet,
+          name: resolvedName,
+          features: layerFeatures,
+          shape: finalShape,
+          color: finalColor,
+          geometryType,
+          isTemporary,
+          olLayer: vectorImageLayer,
+          styleFn,
+          visible: true,
+          isBasemap: false,
+          isTileLayer: false
+        };
+      } else {
+        layerConfig = this.layerFactory(planet, { name: resolvedName, features: layerFeatures, shape: finalShape, color: finalColor, styleFn, isTemporary, geometryType });
+      }
     }
 
-    // Ensure unique ID
     layerConfig.id = id || this.generateLayerId(layerConfig, planet, isTemporary);
 
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
-
-      if (cache && !isTemporary) {
-        this.planetCache[planet].unshift(layerConfig);
-      }
-
+      if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
       this.dragOrder.unshift(layerConfig);
 
-      // Add to map if not present
-      if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) {
-        this._map.addLayer(layerConfig.olLayer);
-      }
+      if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) this._map.addLayer(layerConfig.olLayer);
 
-      // Only apply Vector styles if it's NOT a TileLayer
-      if (!isActuallyTile) {
-        this.updateStyle(layerConfig);
-      }
+      if (!isActuallyTile) this.updateStyle(layerConfig);
 
       this.applyZOrder();
       this.refreshLayersForPlanet(planet);
@@ -299,17 +244,9 @@ export class LayerManagerService {
     return this.registry.get(layerConfig.id)!;
   }
 
+  addManualLayer(planet: Planet, name: string, description: string, fileContent?: string,
+    sourceType: 'CSV' | 'GeoJSON' = 'CSV', latField?: string, lonField?: string, id?: string): LayerConfig | undefined {
 
-  addManualLayer(
-    planet: Planet,
-    name: string,
-    description: string,
-    fileContent?: string,
-    sourceType: 'CSV' | 'GeoJSON' = 'CSV',
-    latField?: string,
-    lonField?: string,
-    id?: string
-  ): LayerConfig | undefined {
     const features: Feature[] = [];
 
     if (fileContent) {
@@ -330,21 +267,19 @@ export class LayerManagerService {
       }
     }
 
-    const layer = this.createLayer({ planet, name, features, id });
+    const useVectorImage = description.toLowerCase().includes('firms') || description.toLowerCase().includes('earthquake');
+
+    const layer = this.createLayer({ planet, name, features, id, color: undefined, shape: undefined, useVectorImage });
+
     this.refreshLayersForPlanet(planet);
     return layer;
   }
 
   updateStyle(layer: LayerConfig) {
-    // If this is a TileLayer or not a VectorLayer, skip styling entirely.
-    // TileLayers use an XYZ source and don't support OpenLayers Feature Styles.
-    if (layer.isTileLayer || !(layer.olLayer instanceof VectorLayer)) {
-      return;
-    }
+    if (layer.isTileLayer || !(layer.olLayer instanceof VectorLayer || layer.olLayer instanceof VectorImageLayer)) return;
 
-    const vectorLayer = layer.olLayer as VectorLayer<VectorSource<Feature>>;
+    const vectorLayer = layer.olLayer as VectorLayer<VectorSource<Feature>> | VectorImageLayer<VectorSource<Feature>>;
 
-    // Sync shape metadata to features so the style service knows what to draw
     layer.features?.forEach(f => f.set('shape', layer.shape));
 
     vectorLayer.setStyle((feature: FeatureLike): Style | Style[] => {
@@ -352,74 +287,26 @@ export class LayerManagerService {
       const fType = feat.get('featureType');
       const text = feat.get('text');
 
-      // Handle Label Features
-      if (fType === 'label') {
-        return [
-          this.styleService.getLayerStyle({
-            type: 'label',
-            text,
-            baseColor: layer.color
-          })
-        ];
-      }
+      if (fType === 'label') return [this.styleService.getLayerStyle({ type: 'label', text, baseColor: layer.color })];
+      if (fType === 'vertex' || fType === 'point' || fType === 'pointerVertex')
+        return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
+      if (fType === 'line') return [this.styleService.getLayerStyle({ type: 'line', baseColor: layer.color })];
+      if (fType === 'polygon') return [this.styleService.getLayerStyle({ type: 'polygon', baseColor: layer.color })];
 
-      // Handle Point/Vertex Features
-      if (fType === 'vertex' || fType === 'point' || fType === 'pointerVertex') {
-        return [
-          this.styleService.getLayerStyle({
-            type: 'point',
-            baseColor: layer.color,
-            shape: layer.shape
-          })
-        ];
-      }
-
-      // Handle Line Features
-      if (fType === 'line') {
-        return [
-          this.styleService.getLayerStyle({
-            type: 'line',
-            baseColor: layer.color
-          })
-        ];
-      }
-
-      // Handle Polygon Features
-      if (fType === 'polygon') {
-        return [
-          this.styleService.getLayerStyle({
-            type: 'polygon',
-            baseColor: layer.color
-          })
-        ];
-      }
-
-      // Default Fallback Style
-      return [
-        this.styleService.getLayerStyle({
-          type: 'point',
-          baseColor: layer.color,
-          shape: layer.shape
-        })
-      ];
+      return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
     });
 
-    // Force OpenLayers to re-render the layer with the new style settings
     vectorLayer.changed();
   }
 
-
   remove(layer?: LayerConfig) {
     if (!layer || !this._map) return;
-
     this._map.removeLayer(layer.olLayer);
     this.registry.delete(layer.id);
     this.dragOrder = this.dragOrder.filter(l => l.id !== layer.id);
-
     Object.keys(this.planetCache).forEach(p => {
       this.planetCache[p as Planet] = this.planetCache[p as Planet].filter(l => l.id !== layer.id);
     });
-
     this.refreshLayersForPlanet(this.currentPlanet);
   }
 
@@ -435,22 +322,8 @@ export class LayerManagerService {
 
   private createBasemap(planet: Planet): LayerConfig {
     if (this.basemapRegistry[planet]) return this.basemapRegistry[planet];
-
     const layer = new TileLayer({ source: new XYZ({ url: BASEMAP_URLS[planet] }), zIndex: 0 });
-
-    const config: LayerConfig = {
-      id: `basemap-${planet}`,
-      geometryType: 'line',
-      name: 'Basemap',
-      color: '#fff',
-      shape: 'none',
-      visible: true,
-      olLayer: layer,
-      features: [],
-      planet,
-      isBasemap: true
-    };
-
+    const config: LayerConfig = { id: `basemap-${planet}`, geometryType: 'line', name: 'Basemap', color: '#fff', shape: 'none', visible: true, olLayer: layer, features: [], planet, isBasemap: true };
     this.basemapRegistry[planet] = config;
     return config;
   }
@@ -468,13 +341,9 @@ export class LayerManagerService {
   private ensureUniqueName(planet: Planet, baseName: string): string {
     const existing = this.planetCache[planet].map(l => l.name);
     if (!existing.includes(baseName)) return baseName;
-
     let counter = 2;
     let candidate = `${baseName}_${counter}`;
-    while (existing.includes(candidate)) {
-      counter++;
-      candidate = `${baseName}_${counter}`;
-    }
+    while (existing.includes(candidate)) { counter++; candidate = `${baseName}_${counter}`; }
     return candidate;
   }
 
