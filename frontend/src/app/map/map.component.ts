@@ -333,7 +333,6 @@ export class MapComponent implements AfterViewInit {
   confirmLayerDistance(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     plugin?.confirm();
-    this.cancelLayerDistance();
   }
 
   cancelLayerDistance(plugin?: LayerDistanceToolPlugin): void {

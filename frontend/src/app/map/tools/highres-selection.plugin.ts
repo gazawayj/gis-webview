@@ -54,11 +54,11 @@ export class HighResSelectionPlugin extends ToolPluginBase {
 
                 // Wrap high-res TileLayer as a single tool feature
                 const highResFeature = this.createFeature(
-                    geom,               // polygon geometry
-                    'polygon',          // featureType
-                    'High-Res Clip',    // label
+                    geom,              
+                    'polygon',       
+                    'High-Res Clip', 
                     undefined,
-                    true                // isToolFeature
+                    true          
                 );
                 highResFeature.set('tileLayer', this.highResLayer);
 
@@ -101,21 +101,21 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     }
 
     protected override onDeactivate(): void {
-        // 1. Abort and remove drawing interactions
+        // Abort and remove drawing interactions
         if (this.drawInteraction) {
             this.drawInteraction.abortDrawing();
             this.drawInteraction.setActive(false);
             this.map?.removeInteraction(this.drawInteraction);
         }
 
-        // 2. Clear the drawing preview source
+        // Clear the drawing preview source
         if (this.tempSource) {
             this.tempSource.clear();
         }
 
-        // 3. Tile Layer Cleanup Logic
+        // Tile Layer Cleanup Logic
         if (this.highResLayer && this.map) {
-            // Only remove from map if it's NOT the layer we just saved to the LayerManager
+            // Only remove from map if it's NOT the layer just saved to the LayerManager
             const savedLayer = (this as any)._justSavedLayer;
             if (this.highResLayer !== savedLayer) {
                 this.map.removeLayer(this.highResLayer);
@@ -123,11 +123,10 @@ export class HighResSelectionPlugin extends ToolPluginBase {
         }
     }
 
-    // Add this inside your HighResSelectionPlugin class
     public override save(name: string): LayerConfig | null {
         if (!this.highResLayer || !this.activeLayer) return null;
 
-        // Find the selection box geometry from our temp features
+        // Find the selection box geometry from temp features
         const features = this.getFeatures().filter(f => f.get('isToolFeature'));
         const tileFeature = features.find(f => f.get('tileLayer'));
 

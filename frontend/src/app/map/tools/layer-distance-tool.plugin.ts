@@ -187,8 +187,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
 
     const [cA, cB] = this._closestPair;
     this.drawDistanceFeatures(cA, cB, dist);
-
-    await this.flyToCoordinates([cA, cB, this.getMidpoint(cA, cB)], { maxZoom: 12 });
+    await this.flyToCoordinates([cA, cB, this.getMidpoint(cA, cB)], { maxZoom: 10 });
   }
 
   /** Save the distance layer */
@@ -200,15 +199,31 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     if (!this._closestPair || dist === 0) return;
 
     const [cA, cB] = this._closestPair;
-    const lineFeature = this.createDistanceFeature(this.createLine([cA, cB]), 'line');
+
+    // Draw line and label
+    const lineFeature = this.createFeature(this.createLine([cA, cB]), 'line');
     const midpoint = this.getMidpoint(cA, cB);
     const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
-    const labelFeature = this.createDistanceFeature(this.createPoint(midpoint), 'label', text, lineFeature);
-
+    const labelFeature = this.createFeature(this.createPoint(midpoint), 'label', text);
     this.tempSource.addFeatures([lineFeature, labelFeature]);
 
-    await this.saveAsync(`dist: ${lA.name} to ${lB.name}`);
+    // Save layer
+    const savedLayer = await this.saveAsync(`dist: ${lA.name} to ${lB.name}`);
+    if (!savedLayer) {
+      console.error('Distance layer was not saved!');
+      return;
+    }
 
+    // Close modal immediately
+    if (this.modalRef) {
+      this.modalRef.dispose();
+      this.modalRef = undefined;
+    }
+
+    // Fly to the line coordinates **before deactivating**
+    await this.flyToCoordinates([cA, cB], { maxZoom: 12 }).catch(console.error);
+
+    // Deactivate plugin after fly completes
     this.onConfirmComplete?.();
     this.deactivate();
   }

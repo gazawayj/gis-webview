@@ -3,6 +3,7 @@ import { ToolPluginBase } from './tool-base.plugin';
 import { HttpClient } from '@angular/common/http';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { StyleService } from '../services/style.service';
+import { boundingExtent, extend as extendExtent } from 'ol/extent';
 
 export interface AIResult {
   name: string;
@@ -24,28 +25,44 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   }
 
   async execute(prompt: string): Promise<void> {
-    if (!prompt) return;
+  if (!prompt) return;
 
-    const results = await this.runAIQuery(prompt);
-    if (!results.length) return;
+  const results = await this.runAIQuery(prompt);
+  if (!results.length) return;
 
-    const coords: [number, number][] = results
-      .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
-      .map(r => [r.lon, r.lat]);
+  const coords: [number, number][] = results
+    .filter(r => typeof r.lat === 'number' && typeof r.lon === 'number')
+    .map(r => [r.lon, r.lat]);
 
-    if (!coords.length) return;
+  if (!coords.length) return;
 
-    // Draw
-    this.addPoints(coords);
+  // Draw features
+  this.addPoints(coords);
 
-    // Fly
-    await this.flyToCoordinates(coords, { minZoom: 6, maxZoom: 12 });
-
-    // Save layer
-    const preferredName = results[0]?.name || prompt;
-    const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-    await this.saveAsync(`${sanitizedName}-AI`);
+  // Fly to each point individually
+  for (const c of coords) {
+    await this.flyToCoordinates([c], { minZoom: 6, maxZoom: 12 });
   }
+
+  // Compute full extent of all features for final zoom
+  const features = this.tempSource?.getFeatures() || [];
+  const projectedCoords: [number, number][] = features.map(f => {
+    const geom = f.getGeometry();
+    if (!geom) return [0, 0] as [number, number];
+    return (geom as any).getCoordinates() as [number, number];
+  });
+
+  if (projectedCoords.length > 1) {
+    let extent = boundingExtent([projectedCoords[0], projectedCoords[0]]);
+    projectedCoords.forEach(c => extendExtent(extent, c));
+    this.map?.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 12, duration: 800 });
+  }
+
+  // Save layer
+  const preferredName = results[0]?.name || prompt;
+  const sanitizedName = preferredName.trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+  await this.saveAsync(`${sanitizedName}-AI`);
+}
 
   protected override onActivate(): void {
     if (!this.map || !this.tempSource || !this.activeLayer) return;
