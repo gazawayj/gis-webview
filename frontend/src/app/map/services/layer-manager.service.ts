@@ -173,6 +173,7 @@ export class LayerManagerService {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
         } );
+        features.forEach(f => f.set('featureType', 'polygon'));
         this.createLayer({ planet: 'mars', name: 'Surface Ice', features, geometryType: 'polygon', color: '#00ffff', shape: 'none' });
         this.refreshLayersForPlanet('mars');
         this.endLoad();
