@@ -30,6 +30,7 @@ export class LayerManagerService {
   private _map?: OlMap;
 
   currentPlanet: Planet = 'mars';
+  private intendedPlanet: Planet | null = null; // Track intended planet per load
 
   private registry = new Map<string, LayerConfig>();
   planetCache: Record<Planet, LayerConfig[]> = { earth: [], moon: [], mars: [] };
@@ -89,23 +90,29 @@ export class LayerManagerService {
   private initializePlanet(planet: Planet) {
     if (this.planetInitialized[planet]) return;
 
+    this.intendedPlanet = planet; // Track intended planet for async loads
+
     if (planet === 'earth') {
       this.beginLoad('Loading FIRMS Fires...');
       this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe({
         next: csv => {
+          if (this.intendedPlanet !== 'earth') return this.endLoad();
           this.addManualLayer('earth', 'FIRMS Fires', 'FIRMS CSV', csv, 'CSV', 'latitude', 'longitude', 'system-firms');
           this.refreshLayersForPlanet('earth');
           this.endLoad();
-        }, error: () => this.endLoad()
+        },
+        error: () => this.endLoad()
       });
 
       this.beginLoad('Loading USGS Earthquakes...');
       this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe({
         next: g => {
+          if (this.intendedPlanet !== 'earth') return this.endLoad();
           this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes');
           this.refreshLayersForPlanet('earth');
           this.endLoad();
-        }, error: () => this.endLoad()
+        },
+        error: () => this.endLoad()
       });
     }
 
@@ -118,6 +125,8 @@ export class LayerManagerService {
     if (!this._map) return;
 
     this.currentPlanet = planet;
+    this.intendedPlanet = planet; // Track intended planet
+
     this.initializePlanet(planet);
 
     this._map.getLayers().clear();
@@ -137,12 +146,14 @@ export class LayerManagerService {
     this.beginLoad('Loading Mars surface ice...');
     this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
       next: content => {
+        if (this.intendedPlanet !== 'mars') return this.endLoad();
         const features = new GeoJSON().readFeatures(content, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
         features.forEach(f => f.set('featureType', 'polygon'));
         this.createLayer({ planet: 'mars', name: 'Surface Ice', features, geometryType: 'polygon', color: '#00ffff', shape: 'none' });
         this.refreshLayersForPlanet('mars');
         this.endLoad();
-      }, error: () => this.endLoad()
+      },
+      error: () => this.endLoad()
     });
   }
 
@@ -200,7 +211,6 @@ export class LayerManagerService {
         tileExtent
       };
     } else {
-      // Use VectorImageLayer automatically for FIRMS/Earthquake if requested
       if (useVectorImage) {
         const vectorImageLayer = new VectorImageLayer({
           source: new VectorSource({ features: layerFeatures }),
@@ -246,6 +256,9 @@ export class LayerManagerService {
 
   addManualLayer(planet: Planet, name: string, description: string, fileContent?: string,
     sourceType: 'CSV' | 'GeoJSON' = 'CSV', latField?: string, lonField?: string, id?: string): LayerConfig | undefined {
+
+    // Check intended planet before adding
+    if (this.intendedPlanet !== planet) return undefined;
 
     const features: Feature[] = [];
 
