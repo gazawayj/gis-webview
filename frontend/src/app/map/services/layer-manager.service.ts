@@ -52,7 +52,7 @@ export class LayerManagerService {
   public loadingMessage$ = this.messageSubject.asObservable();
 
   // ---------------- Subdivision color ----------------
-  private subdivisionColor$ = new BehaviorSubject<string>('#271804');
+  private subdivisionColor$ = new BehaviorSubject<string>('rgb(56, 32, 0)');
 
   constructor() {
     this.layerFactory = createVectorLayerFactory(this.styleService);
