@@ -19,6 +19,7 @@ import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
 import VectorSource from 'ol/source/Vector';
+import { MapFacadeService } from './map-facade.service';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
@@ -29,7 +30,7 @@ export class LayerManagerService {
 
   private _map?: OlMap;
 
-  currentPlanet: Planet = 'mars';
+  currentPlanet!: Planet;
   private intendedPlanet: Planet | null = null; // Track intended planet per load
 
   private registry = new Map<string, LayerConfig>();

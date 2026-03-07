@@ -501,6 +501,24 @@ body {
   filter: grayscale(1);
 }
 
+.modal-instructions p,
+.modal-instructions ul {
+  margin: 0;
+}
+
+.modal-instructions p {
+  margin-bottom: 8px;
+}
+
+.modal-instructions ul {
+  padding-left: 1.25rem;
+}
+
+.modal-instructions li {
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
 /* ===================== ANIMATIONS ===================== */
 @keyframes fadeIn {
   from { opacity: 0; }

@@ -49,7 +49,10 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('layerDistanceModal') distanceModalTemplate!: TemplateRef<any>;
 
   aiPrompt = '';
-  currentPlanet: 'earth' | 'moon' | 'mars' = 'earth';
+
+  // Planet value sourced from MapFacade
+  currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
+
   activeTool: ToolType = 'none';
 
   zoomDisplay = '2';
@@ -101,7 +104,11 @@ export class MapComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.mapFacade.initMap(this.mapContainer.nativeElement, this.currentPlanet);
+
+    // Obtain planet from facade (single source of truth)
+    this.currentPlanet = this.mapFacade.getCurrentPlanet();
+
+    this.mapFacade.initMap(this.mapContainer.nativeElement);
 
     this.layerManager.layers$.subscribe(layers => {
       this.dragOrder = [...layers];

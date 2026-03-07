@@ -13,7 +13,7 @@ export class MapFacadeService {
 
   map!: Map;
 
-  // Mars default
+  // Single source of truth for planet
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
 
   private activePlugin?: Tool;
@@ -21,6 +21,10 @@ export class MapFacadeService {
 
   getActivePlugin(): Tool | undefined {
     return this.activePlugin;
+  }
+
+  getCurrentPlanet(): 'earth' | 'moon' | 'mars' {
+    return this.currentPlanet;
   }
 
   trackPointer(callback: (lon: number, lat: number, zoom: number) => void) {
@@ -38,10 +42,7 @@ export class MapFacadeService {
     });
   }
 
-  // Default planet is Mars
-  initMap(container: HTMLElement, planet: 'earth' | 'moon' | 'mars' = 'mars') {
-    this.currentPlanet = planet;
-
+  initMap(container: HTMLElement) {
     const view = new View({
       center: [0, 0],
       zoom: 2
@@ -55,7 +56,7 @@ export class MapFacadeService {
 
     this.layerManager.attachMap(this.map);
 
-    // LayerManager handles basemap creation
+    // Initialize planet using the facade state
     this.layerManager.loadPlanet(this.currentPlanet);
   }
 

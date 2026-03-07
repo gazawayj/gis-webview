@@ -25,19 +25,16 @@
         <!-- Scrollable container for layers -->
         <div class="layer-items-container">
           @for (layer of dragOrder; track layer.id) {
-            <div class="layer-item-wrapper" cdkDrag>
-              <app-layer-item [layer]="layer"
-                (itemToggle)="toggleLayer(layer)"
-                (remove)="removeLayer(layer)"
-                (colorPicked)="onColorPicked(layer, $event)"
-                (shapeSelected)="selectShape(layer, $event)">
-              </app-layer-item>
-            </div>
+          <div class="layer-item-wrapper" cdkDrag>
+            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
+              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
+            </app-layer-item>
+          </div>
           }
           @if (dragOrder.length === 0) {
-            <div class="no-layers-tooltip">
-              No layers added.
-            </div>
+          <div class="no-layers-tooltip">
+            No layers added.
+          </div>
           }
         </div>
       </div>
@@ -48,10 +45,10 @@
       <div class="toolbar-label">Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of regularTools; track tool.type) {
-          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-            [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
@@ -60,29 +57,32 @@
       <div class="toolbar-label">AI Toolbox</div>
       <div class="toolbar-buttons">
         @for (tool of aiTools; track tool.type) {
-          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-            [title]="tool.name" [class.active]="activeTool === tool.type">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+          [title]="tool.name" [class.active]="activeTool === tool.type">
+          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+        </button>
         }
       </div>
     </div>
 
     <!-- Map stats -->
     <div class="map-stats">
-      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
-      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
-      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
+      </div>
     </div>
   </aside>
 
   <!-- Map -->
   <div #mapContainer class="map-container">
     @if (isLoading) {
-      <div class="map-loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">{{ loadingMessage }}</div>
-      </div>
+    <div class="map-loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">{{ loadingMessage }}</div>
+    </div>
     }
   </div>
 
@@ -102,7 +102,8 @@
           </label>
         </div>
         <div class="modal-actions">
-          <button class="primary" [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">Save</button>
+          <button class="primary" [disabled]="!pluginLayerName.trim()"
+            (click)="confirmSavePlugin(pluginLayerName)">Save</button>
           <button class="cancel" (click)="cancelPluginSave()">Cancel</button>
         </div>
       </div>
@@ -118,18 +119,23 @@
           <button class="close-btn" (click)="cancelAiFeatureFind()" [disabled]="isLoading">✕</button>
         </div>
         <div class="modal-body">
-          <p>Use natural language to find a feature or a list of features on the <strong>currently selected planet</strong>.</p>
-          <ul><li>“Find the country with the highest happiness score” (Earth)</li>
-            <li>“Five most interesting locations” (Mars)</li>
-            <li>“Where is the biggest volcano?” (Moon)</li>
-          </ul>
+          <div class="modal-instructions"> <!-- Wrapper for spacing fix -->
+            <p>Use natural language to find a feature or a list of features on the <strong>currently selected
+                planet</strong>.</p>
+            <ul>
+              <li>“Find the country with the highest happiness score” (Earth)</li>
+              <li>“Five most interesting locations” (Mars)</li>
+              <li>“Where is the biggest volcano?” (Moon)</li>
+            </ul>
+          </div> <!-- End instructions -->
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
             [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
-          </textarea>
-        </div>
+        </textarea>
+        </div> <!-- End body -->
         <div class="modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading" (click)="confirmAiFeatureFind()">Search</button>
+          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading"
+            (click)="confirmAiFeatureFind()">Search</button>
         </div>
       </div>
     </div>
@@ -149,7 +155,7 @@
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
               @for (layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{ layer.name }}</option>
+              <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
@@ -157,17 +163,18 @@
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
               @for (layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{ layer.name }}</option>
+              <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
           @if (distanceLayerA && distanceLayerB) {
-            <p>Distance: {{ formattedDistance }}</p>
+          <p>Distance: {{ formattedDistance }}</p>
           }
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw Line</button>
+          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
+            Line</button>
         </div>
       </div>
     </div>
