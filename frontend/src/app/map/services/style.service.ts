@@ -7,7 +7,6 @@ type Planet = 'earth' | 'moon' | 'mars';
 @Injectable({ providedIn: 'root' })
 export class StyleService {
 
-  // ----- Per-planet allocation tracking -----
   private planetColorUsage: Record<Planet, Set<string>> = {
     earth: new Set(),
     moon: new Set(),
@@ -57,7 +56,7 @@ export class StyleService {
     baseColor: string,
     shape?: ShapeType,
     text?: string,
-    position?: 'top' | 'bottom' // NEW: label position
+    position?: 'top' | 'bottom'
   }): Style {
 
     const color = options.baseColor;

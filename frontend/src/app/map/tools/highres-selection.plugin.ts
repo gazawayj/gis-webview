@@ -27,11 +27,13 @@ export class HighResSelectionPlugin extends ToolPluginBase {
         if (!this.map || !this.tempSource) return;
         if (this.layerManager.currentPlanet !== 'mars') return;
 
-        // Draw interaction for box selection
+        // Draw interaction using mouse drag (box)
         this.drawInteraction = new Draw({
             source: this.tempSource,
             type: 'Circle',
-            geometryFunction: createBox()
+            geometryFunction: createBox(),
+            // Disable double click finish
+            freehand: false
         });
         this.registerInteraction(this.drawInteraction);
 
@@ -54,13 +56,16 @@ export class HighResSelectionPlugin extends ToolPluginBase {
 
                 // Wrap high-res TileLayer as a single tool feature
                 const highResFeature = this.createFeature(
-                    geom,              
-                    'polygon',       
-                    'High-Res Clip', 
+                    geom,
+                    'polygon',
+                    'High-Res Clip',
                     undefined,
-                    true          
+                    true
                 );
+
+                // Attach the tile layer and a local high-res flag for z-order
                 highResFeature.set('tileLayer', this.highResLayer);
+                (highResFeature as any)._isHighRes = true;
 
                 // Add to tempSource for save()
                 this.tempSource?.addFeature(highResFeature);
@@ -101,21 +106,17 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     }
 
     protected override onDeactivate(): void {
-        // Abort and remove drawing interactions
         if (this.drawInteraction) {
             this.drawInteraction.abortDrawing();
             this.drawInteraction.setActive(false);
             this.map?.removeInteraction(this.drawInteraction);
         }
 
-        // Clear the drawing preview source
         if (this.tempSource) {
             this.tempSource.clear();
         }
 
-        // Tile Layer Cleanup Logic
         if (this.highResLayer && this.map) {
-            // Only remove from map if it's NOT the layer just saved to the LayerManager
             const savedLayer = (this as any)._justSavedLayer;
             if (this.highResLayer !== savedLayer) {
                 this.map.removeLayer(this.highResLayer);
@@ -126,15 +127,12 @@ export class HighResSelectionPlugin extends ToolPluginBase {
     public override save(name: string): LayerConfig | null {
         if (!this.highResLayer || !this.activeLayer) return null;
 
-        // Find the selection box geometry from temp features
         const features = this.getFeatures().filter(f => f.get('isToolFeature'));
         const tileFeature = features.find(f => f.get('tileLayer'));
 
-        // Fallback to the selection feature if the temp source was cleared
         const geom = (tileFeature?.getGeometry() || this.selectionFeature?.getGeometry()) as Polygon;
         const extent = geom ? geom.getExtent() : undefined;
 
-        // Explicitly call createLayer with Tile metadata
         const newLayer = this.layerManager.createLayer({
             planet: this.layerManager.currentPlanet,
             name: name,
@@ -148,8 +146,12 @@ export class HighResSelectionPlugin extends ToolPluginBase {
             cache: true
         });
 
-        // Mark for onDeactivate bypass
+        // Mark this layer so onDeactivate won't remove it
         (this as any)._justSavedLayer = this.highResLayer;
+
+        // Attach local high-res flag for z-order
+        (newLayer as any)._isHighRes = true;
+
         return newLayer;
     }
 }

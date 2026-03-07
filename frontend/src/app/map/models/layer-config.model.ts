@@ -20,11 +20,9 @@ export interface LayerConfig {
   tileUrl?: string;
   tileExtent?: number[];
   allowLine?: boolean;
-
   planet: 'earth' | 'moon' | 'mars';
-
   isTemporary?: boolean;
   isBasemap?: boolean;
-
+  isHighRes?: boolean;
   styleFn?: (f: FeatureLike) => Style | Style[];
 }

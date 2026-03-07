@@ -186,7 +186,8 @@ export class LayerManagerService {
     const finalShape = shape || allocation.shape;
     const finalColor = color || allocation.color;
 
-    const layerFeatures: Feature[] = features.filter((f): f is Feature => f instanceof Feature).map(f => this.cloneFeature(f, { shape: finalShape }));
+    const layerFeatures: Feature[] = features.filter((f): f is Feature => f instanceof Feature)
+      .map(f => this.cloneFeature(f, { shape: finalShape }));
     const resolvedName = incomingName ? this.resolveLayerName(planet, incomingName) : `Layer_${Date.now()}`;
 
     let layerConfig: LayerConfig;
@@ -214,7 +215,8 @@ export class LayerManagerService {
       if (useVectorImage) {
         const vectorImageLayer = new VectorImageLayer({
           source: new VectorSource({ features: layerFeatures }),
-          style: styleFn || ((feature: FeatureLike) => this.styleService.getLayerStyle({ type: 'point', baseColor: finalColor, shape: finalShape }))
+          style: styleFn || ((feature: FeatureLike) =>
+            this.styleService.getLayerStyle({ type: 'point', baseColor: finalColor, shape: finalShape }))
         });
         layerConfig = {
           id: id || this.generateLayerId({ name: resolvedName } as LayerConfig, planet, isTemporary),
@@ -232,7 +234,15 @@ export class LayerManagerService {
           isTileLayer: false
         };
       } else {
-        layerConfig = this.layerFactory(planet, { name: resolvedName, features: layerFeatures, shape: finalShape, color: finalColor, styleFn, isTemporary, geometryType });
+        layerConfig = this.layerFactory(planet, {
+          name: resolvedName,
+          features: layerFeatures,
+          shape: finalShape,
+          color: finalColor,
+          styleFn,
+          isTemporary,
+          geometryType
+        });
       }
     }
 
@@ -240,13 +250,28 @@ export class LayerManagerService {
 
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
-      if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
-      this.dragOrder.unshift(layerConfig);
 
-      if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) this._map.addLayer(layerConfig.olLayer);
+      // Insert high-res tile layer immediately above the basemap
+      if (isActuallyTile && resolvedName === 'High-Res Clip') {
+        const basemapIndex = this.dragOrder.findIndex(l => l.isBasemap && l.planet === planet);
+        if (basemapIndex >= 0) {
+          this.dragOrder.splice(basemapIndex + 1, 0, layerConfig);
+        } else {
+          this.dragOrder.unshift(layerConfig); // fallback
+        }
+      } else {
+        if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
+        this.dragOrder.unshift(layerConfig);
+      }
+
+      // Add to map if not already present
+      if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) {
+        this._map.addLayer(layerConfig.olLayer);
+      }
 
       if (!isActuallyTile) this.updateStyle(layerConfig);
 
+      // Re-apply z-order using dragOrder
       this.applyZOrder();
       this.refreshLayersForPlanet(planet);
     }
@@ -308,7 +333,6 @@ export class LayerManagerService {
 
       return [this.styleService.getLayerStyle({ type: 'point', baseColor: layer.color, shape: layer.shape })];
     });
-
     vectorLayer.changed();
   }
 
@@ -342,9 +366,25 @@ export class LayerManagerService {
   }
 
   applyZOrder() {
-    const nonBasemap = this.dragOrder.filter(l => !l.isBasemap);
-    nonBasemap.slice().reverse().forEach((layer, idx) => layer.olLayer.setZIndex(idx + 1));
-    this.dragOrder.filter(l => l.isBasemap).forEach(l => l.olLayer.setZIndex(0));
+    // Get basemap(s)
+    const basemaps = this.dragOrder.filter(l => l.isBasemap);
+    basemaps.forEach(l => l.olLayer.setZIndex(0));
+    const basemapZ = 0;
+
+    // Get high-res layers (tool layers named "High-Res Clip") and put them right above basemap
+    const highResLayers = this.dragOrder.filter(l => l.name === 'High-Res Clip' && l.isTileLayer);
+    highResLayers.forEach(l => l.olLayer.setZIndex(basemapZ + 1));
+
+    // All other layers above the high-res layers
+    const otherLayers = this.dragOrder.filter(l =>
+      !l.isBasemap &&
+      !(l.name === 'High-Res Clip' && l.isTileLayer)
+    );
+
+    otherLayers.slice().reverse().forEach((layer, idx) => {
+      // Start stacking above high-res layer
+      layer.olLayer.setZIndex(basemapZ + 2 + idx);
+    });
   }
 
   private sanitizeLayerName(name: string): string {
