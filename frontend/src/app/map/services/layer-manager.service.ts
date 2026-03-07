@@ -175,7 +175,7 @@ export class LayerManagerService {
             })
           });
 
-          // Labels (small font, declutter)
+          // Labels (small font, declutter) - now default hidden
           if (labelFeatures.length > 0) {
             const labelLayer = new VectorLayer({
               source: new VectorSource({ features: labelFeatures }),
@@ -193,7 +193,7 @@ export class LayerManagerService {
               })
             });
 
-            this.createLayer({
+            const labelLayerConfig = this.createLayer({
               planet: 'earth',
               name: 'SubdivisionLabels',
               features: labelFeatures,
@@ -203,6 +203,10 @@ export class LayerManagerService {
               color: '#ffffff',
               styleFn: labelStyleFn
             });
+
+            // Hide labels by default
+            labelLayerConfig.visible = false;
+            labelLayerConfig.olLayer.setVisible(false);
           }
 
           this.refreshLayersForPlanet('earth');
