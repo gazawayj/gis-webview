@@ -5,7 +5,6 @@ import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
 import { Map as OlMap } from 'ol';
 import Feature, { FeatureLike } from 'ol/Feature';
-import { Style } from 'ol/style';
 import GeoJSON from 'ol/format/GeoJSON';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
@@ -19,7 +18,8 @@ import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
 import VectorSource from 'ol/source/Vector';
-import { MapFacadeService } from './map-facade.service';
+import { Polygon, MultiPolygon } from 'ol/geom';
+import { Style, Text, Fill, Stroke } from 'ol/style';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
@@ -31,11 +31,10 @@ export class LayerManagerService {
   private _map?: OlMap;
 
   currentPlanet!: Planet;
-  private intendedPlanet: Planet | null = null; // Track intended planet per load
+  private intendedPlanet: Planet | null = null;
 
   private registry = new Map<string, LayerConfig>();
   planetCache: Record<Planet, LayerConfig[]> = { earth: [], moon: [], mars: [] };
-
   private basemapRegistry: Record<Planet, LayerConfig> = { earth: null!, moon: null!, mars: null! };
   private planetInitialized: Record<Planet, boolean> = { earth: false, moon: false, mars: false };
 
@@ -52,8 +51,23 @@ export class LayerManagerService {
   private messageSubject = new BehaviorSubject<string>('Loading...');
   public loadingMessage$ = this.messageSubject.asObservable();
 
+  // ---------------- Subdivision color ----------------
+  private subdivisionColor$ = new BehaviorSubject<string>('#633e0f'); // default brown
+
   constructor() {
     this.layerFactory = createVectorLayerFactory(this.styleService);
+  }
+
+  // Allow external components to set subdivision color
+  setSubdivisionColor(color: string) {
+    this.subdivisionColor$.next(color);
+
+    // Find the subdivision layer
+    const layer = this.planetCache['earth'].find(l => l.name === 'SubdivisionData');
+    if (!layer) return;
+
+    layer.color = color;
+    this.updateStyle(layer);
   }
 
   attachMap(map: OlMap) { this._map = map; }
@@ -91,9 +105,10 @@ export class LayerManagerService {
   private initializePlanet(planet: Planet) {
     if (this.planetInitialized[planet]) return;
 
-    this.intendedPlanet = planet; // Track intended planet for async loads
+    this.intendedPlanet = planet;
 
     if (planet === 'earth') {
+      // FIRMS CSV
       this.beginLoad('Loading FIRMS Fires...');
       this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe({
         next: csv => {
@@ -105,6 +120,98 @@ export class LayerManagerService {
         error: () => this.endLoad()
       });
 
+      // Subdivision GeoJSON
+      this.beginLoad('Loading Subdivision GeoJSON...');
+      const geojsonPath = 'assets/layers/Subdivision.geojson';
+      this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
+        next: content => {
+          if (this.intendedPlanet !== 'earth') return this.endLoad();
+
+          const features = new GeoJSON().readFeatures(content, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857'
+          });
+
+          const polygonFeatures: Feature[] = [];
+          const labelFeatures: Feature[] = [];
+
+          features.forEach(f => {
+            const geom = f.getGeometry();
+            if (!geom) return;
+
+            f.set('featureType', 'polygon');
+            polygonFeatures.push(f);
+
+            // Label coordinate fallback (centroid)
+            let labelCoord: [number, number] | undefined;
+            if (geom instanceof Polygon || geom instanceof MultiPolygon) {
+              const extent = geom.getExtent();
+              labelCoord = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+            }
+
+            const subname = f.get('SUBNAME') || f.get('properties')?.SUBNAME;
+            if (subname && labelCoord) {
+              labelFeatures.push(new Feature({
+                geometry: new Point(labelCoord),
+                featureType: 'label',
+                shape: 'none',
+                text: subname
+              }));
+            }
+          });
+
+          // Use the BehaviorSubject for dynamic color
+          const polygonLayer = this.createLayer({
+            planet: 'earth',
+            name: 'SubdivisionData',
+            features: polygonFeatures,
+            geometryType: 'polygon',
+            useVectorImage: true,
+            shape: 'none',
+            color: this.subdivisionColor$.value,
+            styleFn: (f: FeatureLike) => this.styleService.getLayerStyle({
+              type: 'polygon',
+              baseColor: this.subdivisionColor$.value
+            })
+          });
+
+          // Labels (small font, declutter)
+          if (labelFeatures.length > 0) {
+            const labelLayer = new VectorLayer({
+              source: new VectorSource({ features: labelFeatures }),
+              declutter: true
+            });
+
+            const labelStyleFn = (feature: FeatureLike) => new Style({
+              text: new Text({
+                text: (feature as Feature).get('text'),
+                font: '8px Calibri,sans-serif',
+                fill: new Fill({ color: '#ffffff' }),
+                stroke: new Stroke({ color: '#000000', width: 1 }),
+                offsetY: -10,
+                textAlign: 'center'
+              })
+            });
+
+            this.createLayer({
+              planet: 'earth',
+              name: 'SubdivisionLabels',
+              features: labelFeatures,
+              geometryType: 'point',
+              olLayer: labelLayer,
+              shape: 'none',
+              color: '#ffffff',
+              styleFn: labelStyleFn
+            });
+          }
+
+          this.refreshLayersForPlanet('earth');
+          this.endLoad();
+        },
+        error: () => this.endLoad()
+      });
+
+      // USGS Earthquakes
       this.beginLoad('Loading USGS Earthquakes...');
       this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe({
         next: g => {
@@ -126,7 +233,7 @@ export class LayerManagerService {
     if (!this._map) return;
 
     this.currentPlanet = planet;
-    this.intendedPlanet = planet; // Track intended planet
+    this.intendedPlanet = planet;
 
     this.initializePlanet(planet);
 
@@ -252,27 +359,24 @@ export class LayerManagerService {
     if (!this.registry.has(layerConfig.id)) {
       this.registry.set(layerConfig.id, layerConfig);
 
-      // Insert high-res tile layer immediately above the basemap
       if (isActuallyTile && resolvedName === 'High-Res Clip') {
         const basemapIndex = this.dragOrder.findIndex(l => l.isBasemap && l.planet === planet);
         if (basemapIndex >= 0) {
           this.dragOrder.splice(basemapIndex + 1, 0, layerConfig);
         } else {
-          this.dragOrder.unshift(layerConfig); // fallback
+          this.dragOrder.unshift(layerConfig);
         }
       } else {
         if (cache && !isTemporary) this.planetCache[planet].unshift(layerConfig);
         this.dragOrder.unshift(layerConfig);
       }
 
-      // Add to map if not already present
       if (this._map && !this._map.getLayers().getArray().includes(layerConfig.olLayer)) {
         this._map.addLayer(layerConfig.olLayer);
       }
 
       if (!isActuallyTile) this.updateStyle(layerConfig);
 
-      // Re-apply z-order using dragOrder
       this.applyZOrder();
       this.refreshLayersForPlanet(planet);
     }
@@ -283,7 +387,6 @@ export class LayerManagerService {
   addManualLayer(planet: Planet, name: string, description: string, fileContent?: string,
     sourceType: 'CSV' | 'GeoJSON' = 'CSV', latField?: string, lonField?: string, id?: string): LayerConfig | undefined {
 
-    // Check intended planet before adding
     if (this.intendedPlanet !== planet) return undefined;
 
     const features: Feature[] = [];
@@ -367,23 +470,19 @@ export class LayerManagerService {
   }
 
   applyZOrder() {
-    // Get basemap(s)
     const basemaps = this.dragOrder.filter(l => l.isBasemap);
     basemaps.forEach(l => l.olLayer.setZIndex(0));
     const basemapZ = 0;
 
-    // Get high-res layers (tool layers named "High-Res Clip") and put them right above basemap
     const highResLayers = this.dragOrder.filter(l => l.name === 'High-Res Clip' && l.isTileLayer);
     highResLayers.forEach(l => l.olLayer.setZIndex(basemapZ + 1));
 
-    // All other layers above the high-res layers
     const otherLayers = this.dragOrder.filter(l =>
       !l.isBasemap &&
       !(l.name === 'High-Res Clip' && l.isTileLayer)
     );
 
     otherLayers.slice().reverse().forEach((layer, idx) => {
-      // Start stacking above high-res layer
       layer.olLayer.setZIndex(basemapZ + 2 + idx);
     });
   }

@@ -4,6 +4,8 @@ import { HttpClient } from '@angular/common/http';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { StyleService } from '../services/style.service';
 import { boundingExtent, extend as extendExtent } from 'ol/extent';
+// Added OpenLayers Style imports
+import { Style, Fill, Stroke } from 'ol/style';
 
 export interface AIResult {
   name: string;
@@ -28,11 +30,9 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   async execute(prompt: string): Promise<void> {
     if (!prompt) return;
 
-    // Query the AI backend
     const results = await this.runAIQuery(prompt);
     if (!results.length) return;
 
-    // Collect coordinates, names, and details
     const coords: [number, number][] = [];
     const names: string[] = [];
     const details: string[] = [];
@@ -47,15 +47,12 @@ export class AIAnalysisPlugin extends ToolPluginBase {
 
     if (!coords.length) return;
 
-    // Draw points with both labels
     this.addPoints(coords, names, details);
 
-    // Fly to each point individually
     for (const c of coords) {
       await this.flyToCoordinates([c], { minZoom: 6, maxZoom: 12 });
     }
 
-    // Compute full extent of all features for final zoom
     const features = this.tempSource?.getFeatures() || [];
     const projectedCoords: [number, number][] = features.map(f => {
       const geom = f.getGeometry();
@@ -69,7 +66,6 @@ export class AIAnalysisPlugin extends ToolPluginBase {
       this.map?.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 12, duration: 800 });
     }
 
-    // Save layer with sanitized name
     const baseLayerName = 'AI Analysis';
     const timestamp = Date.now();
     const sanitizedName = baseLayerName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
@@ -88,18 +84,31 @@ export class AIAnalysisPlugin extends ToolPluginBase {
   addPoints(coords: [number, number][], names?: string[], details?: string[]) {
     if (!this.tempSource) return;
 
+    // Define the transparent style
+    const transparentStyle = new Style({
+      fill: new Fill({
+        color: 'rgba(0, 0, 0, 0)' // Fully transparent fill
+      }),
+      stroke: new Stroke({
+        color: '#3399CC', // Blue outline so you can still see the shape
+        width: 1
+      })
+    });
+
     coords.forEach((c, i) => {
       const name = names?.[i];
       const detail = details?.[i];
 
-      // Main point
       const pointFeature = this.createFeature(this.createPoint(c), 'point');
       if (detail) pointFeature.set('details', detail);
+      
+      // Apply the transparent style here
+      pointFeature.setStyle(transparentStyle);
+      
       this.tempSource?.addFeature(pointFeature);
 
-      // Name label above the point (offset handled by style)
       if (name) {
-        const nameLabelPoint = this.createPoint(c); // separate geometry
+        const nameLabelPoint = this.createPoint(c);
         const nameLabel = this.createFeature(
           nameLabelPoint,
           'label',
@@ -109,7 +118,6 @@ export class AIAnalysisPlugin extends ToolPluginBase {
         nameLabel.set('labelPosition', 'top');
         this.tempSource?.addFeature(nameLabel);
       }
-      console.log(detail);
     });
   }
 

@@ -53,44 +53,52 @@ export class StyleService {
 
   getLayerStyle(options: {
     type: 'point' | 'line' | 'label' | 'polygon',
-    baseColor: string,
+    baseColor?: string,  // optional
     shape?: ShapeType,
     text?: string,
     position?: 'top' | 'bottom'
   }): Style {
 
-    const color = options.baseColor;
+    let color = options.baseColor;
 
     switch (options.type) {
 
       case 'point': {
         return new Style({
-          image: this.createShapeImage(options.shape!, color)
+          image: this.createShapeImage(options.shape!, color || '#ff6600')
         });
       }
 
       case 'line': {
         return new Style({
-          stroke: new Stroke({ color, width: 3 })
+          stroke: new Stroke({ color: color || '#ff6600', width: 3 })
         });
       }
 
       case 'polygon': {
+        // Subdivision-specific style
+        if (color === 'subdivision') {
+          return new Style({
+            fill: new Fill({ color: 'rgba(99,62,15,0.25)' }),      // soft brown, 25% opacity
+            stroke: new Stroke({ color: 'rgba(50,30,10,0.6)', width: 2.5 }) // slightly darker outline
+          });
+        }
+
+        // default polygon style
+        const fillColor = color ? color + '33' : 'rgba(100,200,150,0.25)'; // 20% opacity
         return new Style({
-          stroke: new Stroke({ color, width: 2 }),
-          fill: new Fill({ color: color + '33' })
+          fill: new Fill({ color: fillColor }),
+          stroke: new Stroke({ color: color || '#333', width: 1 })
         });
       }
 
       case 'label': {
-        // Default: top label
         const offsetY = options.position === 'bottom' ? 15 : -15;
-
         return new Style({
           text: new Text({
             text: options.text || '',
             font: 'bold 14px sans-serif',
-            fill: new Fill({ color }),
+            fill: new Fill({ color: color || '#ffffff' }),
             stroke: new Stroke({ color: '#000', width: 3 }),
             offsetY,
             textAlign: 'center'
@@ -102,7 +110,7 @@ export class StyleService {
         return new Style({
           image: new CircleStyle({
             radius: 5,
-            fill: new Fill({ color }),
+            fill: new Fill({ color: color || '#ff6600' }),
             stroke: new Stroke({ color: '#000', width: 1 })
           })
         });

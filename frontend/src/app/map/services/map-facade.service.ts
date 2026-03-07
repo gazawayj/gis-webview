@@ -10,7 +10,6 @@ import { Tool } from '../tools/tool';
 export class MapFacadeService {
   private zone = inject(NgZone);
   private layerManager = inject(LayerManagerService);
-
   map!: Map;
 
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
@@ -19,7 +18,7 @@ export class MapFacadeService {
 
   // Cache per planet: center + zoom
   private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
-    earth: { center: fromLonLat([-105.0814, 39.7047]) as [number, number], zoom: 11.51 },
+    earth: { center: fromLonLat([-105.0814, 39.7047]) as [number, number], zoom: 13 },
     moon: { center: [0, 0], zoom: 2 },
     mars: { center: [0, 0], zoom: 2 }
   };
@@ -64,11 +63,7 @@ export class MapFacadeService {
   }
 
   initMap(container: HTMLElement) {
-    const view = new View({
-      center: [0, 0],
-      zoom: 2
-    });
-
+    const view = new View();
     this.map = new Map({
       target: container,
       layers: [],
@@ -76,22 +71,17 @@ export class MapFacadeService {
     });
 
     this.layerManager.attachMap(this.map);
-
     // Initialize planet using current state
     this.layerManager.loadPlanet(this.currentPlanet);
-
     // Restore cached/default view
     this.applyPlanetView(this.currentPlanet);
   }
 
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
     if (!this.map || planet === this.currentPlanet) return;
-
     this.cancelActivePlugin();
-
     this.currentPlanet = planet;
     this.layerManager.loadPlanet(planet);
-
     // Restore last view for planet
     this.applyPlanetView(planet);
   }
@@ -99,7 +89,6 @@ export class MapFacadeService {
   private applyPlanetView(planet: 'earth' | 'moon' | 'mars') {
     const view = this.map.getView();
     const cached = this.planetViewCache[planet];
-
     if (cached) {
       view.setCenter(cached.center);
       view.setZoom(cached.zoom);
