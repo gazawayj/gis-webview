@@ -19,7 +19,7 @@ export class MapFacadeService {
 
   // Cache per planet: center + zoom
   private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
-    earth: { center: fromLonLat([-105.0814, 39.7047]) as [number, number], zoom: 10 },
+    earth: { center: fromLonLat([-105.0814, 39.7047]) as [number, number], zoom: 11.51 },
     moon: { center: [0, 0], zoom: 2 },
     mars: { center: [0, 0], zoom: 2 }
   };
