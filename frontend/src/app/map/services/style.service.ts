@@ -83,7 +83,6 @@ export class StyleService {
             stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.68)', width: 2.5 })
           });
         }
-
         const fillColor = color ? color + '33' : 'rgba(100,200,150,0.25)';
         return new Style({
           fill: new Fill({ color: fillColor }),
