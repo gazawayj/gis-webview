@@ -79,16 +79,15 @@ export class StyleService {
         // Subdivision-specific style
         if (color === 'subdivision') {
           return new Style({
-            fill: new Fill({ color: 'rgba(99,62,15,0.25)' }),      // soft brown, 25% opacity
-            stroke: new Stroke({ color: 'rgba(50,30,10,0.6)', width: 2.5 }) // slightly darker outline
+            fill: new Fill({ color: options.baseColor || 'rgb(0,0,0)' }),
+            stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.68)', width: 2.5 })
           });
         }
 
-        // default polygon style
-        const fillColor = color ? color + '33' : 'rgba(100,200,150,0.25)'; // 20% opacity
+        const fillColor = color ? color + '33' : 'rgba(100,200,150,0.25)';
         return new Style({
           fill: new Fill({ color: fillColor }),
-          stroke: new Stroke({ color: color || '#333', width: 1 })
+          stroke: new Stroke({ color: color || '#000000', width: 2 })
         });
       }
 

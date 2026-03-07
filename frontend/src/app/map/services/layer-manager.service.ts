@@ -52,7 +52,7 @@ export class LayerManagerService {
   public loadingMessage$ = this.messageSubject.asObservable();
 
   // ---------------- Subdivision color ----------------
-  private subdivisionColor$ = new BehaviorSubject<string>('#633e0f'); // default brown
+  private subdivisionColor$ = new BehaviorSubject<string>('#271804');
 
   constructor() {
     this.layerFactory = createVectorLayerFactory(this.styleService);
@@ -121,7 +121,8 @@ export class LayerManagerService {
       });
 
       // Subdivision GeoJSON
-      this.beginLoad('Loading Subdivision GeoJSON...');
+      this.beginLoad('Loading Subdivision Boundaries...');
+
       const geojsonPath = 'assets/layers/Subdivision.geojson';
       this.http.get(geojsonPath, { responseType: 'text' }).subscribe({
         next: content => {
@@ -142,7 +143,7 @@ export class LayerManagerService {
             f.set('featureType', 'polygon');
             polygonFeatures.push(f);
 
-            // Label coordinate fallback (centroid)
+            // Compute centroid for label
             let labelCoord: [number, number] | undefined;
             if (geom instanceof Polygon || geom instanceof MultiPolygon) {
               const extent = geom.getExtent();
@@ -151,63 +152,83 @@ export class LayerManagerService {
 
             const subname = f.get('SUBNAME') || f.get('properties')?.SUBNAME;
             if (subname && labelCoord) {
-              labelFeatures.push(new Feature({
+              const labelFeature = new Feature({
                 geometry: new Point(labelCoord),
                 featureType: 'label',
                 shape: 'none',
                 text: subname
-              }));
+              });
+
+              labelFeature.set('parentPolygon', f.getId() || crypto.randomUUID());
+              labelFeatures.push(labelFeature);
             }
           });
 
-          // Use the BehaviorSubject for dynamic color
-          const polygonLayer = this.createLayer({
+          // ---------------- Polygon Layer ----------------
+          const polygonLayer = new VectorImageLayer({
+            source: new VectorSource({ features: polygonFeatures }),
+            declutter: true,
+            style: (feature: FeatureLike) => {
+              // Read color dynamically from layer config
+              const layerConfig = this.planetCache['earth'].find(l => l.name === 'SubdivisionData');
+              const color = layerConfig?.color || '#000000'; // fallback black
+              return this.styleService.getLayerStyle({ type: 'polygon', baseColor: color });
+            }
+          });
+
+          const polygonLayerConfig = this.createLayer({
             planet: 'earth',
             name: 'SubdivisionData',
             features: polygonFeatures,
             geometryType: 'polygon',
             useVectorImage: true,
-            shape: 'none',
-            color: this.subdivisionColor$.value,
-            styleFn: (f: FeatureLike) => this.styleService.getLayerStyle({
-              type: 'polygon',
-              baseColor: this.subdivisionColor$.value
-            })
+            shape: 'subdivision',
+            color: this.subdivisionColor$.value, // starts as black
+            styleFn: (feature: FeatureLike) => {
+              const layerConfig = this.planetCache['earth'].find(l => l.name === 'SubdivisionData');
+              const color = layerConfig?.color || '#000000';
+              return this.styleService.getLayerStyle({ type: 'polygon', baseColor: color });
+            },
+            olLayer: polygonLayer
           });
 
-          // Labels (small font, declutter) - now default hidden
-          if (labelFeatures.length > 0) {
-            const labelLayer = new VectorLayer({
-              source: new VectorSource({ features: labelFeatures }),
-              declutter: true
-            });
+          // ---------------- Label Layer ----------------
+          const labelLayer = new VectorImageLayer({
+            source: new VectorSource({ features: labelFeatures }),
+            declutter: true
+          });
 
-            const labelStyleFn = (feature: FeatureLike) => new Style({
+          const labelStyleFn = (feature: FeatureLike) => {
+            const text = (feature as Feature).get('text') || '';
+            return new Style({
               text: new Text({
-                text: (feature as Feature).get('text'),
-                font: '8px Calibri,sans-serif',
+                text,
+                font: '9px Calibri,sans-serif',
                 fill: new Fill({ color: '#ffffff' }),
                 stroke: new Stroke({ color: '#000000', width: 1 }),
-                offsetY: -10,
-                textAlign: 'center'
+                offsetY: -5,
+                textAlign: 'center',
+                overflow: false
               })
             });
+          };
 
-            const labelLayerConfig = this.createLayer({
-              planet: 'earth',
-              name: 'SubdivisionLabels',
-              features: labelFeatures,
-              geometryType: 'point',
-              olLayer: labelLayer,
-              shape: 'none',
-              color: '#ffffff',
-              styleFn: labelStyleFn
-            });
+          labelLayer.setStyle(labelStyleFn);
 
-            // Hide labels by default
-            labelLayerConfig.visible = false;
-            labelLayerConfig.olLayer.setVisible(false);
-          }
+          const labelLayerConfig = this.createLayer({
+            planet: 'earth',
+            name: 'SubdivisionLabels',
+            features: labelFeatures,
+            geometryType: 'point',
+            olLayer: labelLayer,
+            shape: 'none',
+            color: '#ffffff',
+            styleFn: labelStyleFn
+          });
+
+          // Hide labels by default
+          labelLayerConfig.visible = false;
+          labelLayerConfig.olLayer.setVisible(false);
 
           this.refreshLayersForPlanet('earth');
           this.endLoad();
