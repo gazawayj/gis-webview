@@ -1,7 +1,7 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { toLonLat } from 'ol/proj';
+import { toLonLat, fromLonLat } from 'ol/proj';
 import { LayerManagerService } from './layer-manager.service';
 import { LayerConfig } from '../models/layer-config.model';
 import { Tool } from '../tools/tool';
@@ -13,11 +13,16 @@ export class MapFacadeService {
 
   map!: Map;
 
-  // Single source of truth for planet
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
-
   private activePlugin?: Tool;
   private aiModalOpener?: () => void;
+
+  // Cache per planet: center + zoom
+  private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
+    earth: { center: fromLonLat([-105.0814, 39.7047]) as [number, number], zoom: 10 },
+    moon: { center: [0, 0], zoom: 2 },
+    mars: { center: [0, 0], zoom: 2 }
+  };
 
   getActivePlugin(): Tool | undefined {
     return this.activePlugin;
@@ -31,6 +36,18 @@ export class MapFacadeService {
     if (!this.map) return;
     const view = this.map.getView();
 
+    const updateCache = () => {
+      const center = view.getCenter();
+      const zoom = view.getZoom();
+      if (center && center.length >= 2 && zoom !== undefined) {
+        this.planetViewCache[this.currentPlanet] = {
+          center: [center[0], center[1]],
+          zoom
+        };
+      }
+    };
+
+    // Track pointer move for display
     this.map.on('pointermove', (evt: any) => {
       const coord = evt.coordinate;
       if (!coord) return;
@@ -38,8 +55,12 @@ export class MapFacadeService {
       this.zone.run(() => {
         const [lon, lat] = toLonLat(coord);
         callback(+lon.toFixed(6), +lat.toFixed(6), +(view.getZoom() ?? 2));
+        updateCache();
       });
     });
+
+    // Track panning/zooming
+    this.map.on('moveend', () => updateCache());
   }
 
   initMap(container: HTMLElement) {
@@ -56,8 +77,11 @@ export class MapFacadeService {
 
     this.layerManager.attachMap(this.map);
 
-    // Initialize planet using the facade state
+    // Initialize planet using current state
     this.layerManager.loadPlanet(this.currentPlanet);
+
+    // Restore cached/default view
+    this.applyPlanetView(this.currentPlanet);
   }
 
   setPlanet(planet: 'earth' | 'moon' | 'mars') {
@@ -68,9 +92,18 @@ export class MapFacadeService {
     this.currentPlanet = planet;
     this.layerManager.loadPlanet(planet);
 
+    // Restore last view for planet
+    this.applyPlanetView(planet);
+  }
+
+  private applyPlanetView(planet: 'earth' | 'moon' | 'mars') {
     const view = this.map.getView();
-    view.setCenter([0, 0]);
-    view.setZoom(2);
+    const cached = this.planetViewCache[planet];
+
+    if (cached) {
+      view.setCenter(cached.center);
+      view.setZoom(cached.zoom);
+    }
   }
 
   activateTool(plugin?: Tool) {
