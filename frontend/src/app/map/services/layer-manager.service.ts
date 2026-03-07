@@ -108,18 +108,6 @@ export class LayerManagerService {
     this.intendedPlanet = planet;
 
     if (planet === 'earth') {
-      // FIRMS CSV
-      this.beginLoad('Loading FIRMS Fires...');
-      this.http.get(FIRMS_CSV_URL, { responseType: 'text' }).subscribe({
-        next: csv => {
-          if (this.intendedPlanet !== 'earth') return this.endLoad();
-          this.addManualLayer('earth', 'FIRMS Fires', 'FIRMS CSV', csv, 'CSV', 'latitude', 'longitude', 'system-firms');
-          this.refreshLayersForPlanet('earth');
-          this.endLoad();
-        },
-        error: () => this.endLoad()
-      });
-
       // Subdivision GeoJSON
       this.beginLoad('Loading Subdivision Boundaries...');
 
