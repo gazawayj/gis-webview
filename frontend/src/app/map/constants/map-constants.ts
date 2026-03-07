@@ -1,7 +1,7 @@
 export const BASEMAP_URLS: Record<string, string> = {
   earth: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   moon: 'https://moon-gis.netlify.app/tiles/{z}/{x}/{y}.png',
-  mars: 'http://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/viking_mdim21_global/{z}/{x}/{-y}.png'
+  mars: 'https://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/viking_mdim21_global/{z}/{x}/{-y}.png'
 };
 
 export const PLANETS = {
