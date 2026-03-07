@@ -32,7 +32,7 @@
     "@angular/compiler-cli": "21.1.5",
     "@angular/ssr": "21.1.4",
     "@types/express": "^5.0.1",
-    "@types/node": "^20.17.19",
+    "@types/node": "^20.19.37",
     "@types/papaparse": "^5.5.2",
     "@types/supertest": "^6.0.3",
     "angular-eslint": "21.2.0",
