@@ -7,25 +7,27 @@ import { Map as OlMap } from 'ol';
 import Feature, { FeatureLike } from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
 import Point from 'ol/geom/Point';
-import { Polygon, MultiPolygon, LineString, LinearRing } from 'ol/geom';
+import { Polygon, MultiPolygon, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import VectorLayer from 'ol/layer/Vector';
 import VectorImageLayer from 'ol/layer/VectorImage';
 import TileLayer from 'ol/layer/Tile';
 import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
-import { Style, Text, Fill, Stroke } from 'ol/style';
+import { Style } from 'ol/style';
 
 import { GeometryType, LayerConfig } from '../models/layer-config.model';
 import { BASEMAP_URLS, EARTHQUAKE_GEOJSON_URL } from '../constants/map-constants';
 import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
+import { formatAreaPerimeter } from '../utils/map-utils';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
 @Injectable({ providedIn: 'root' })
 export class LayerManagerService {
+
   public styleService = inject(StyleService);
   private http = inject(HttpClient);
 
@@ -88,28 +90,43 @@ export class LayerManagerService {
   }
 
   applyHoverStyle(feature: Feature | null): void {
+
     if (!feature) return;
+
     if (this.previousHoverFeature && this.previousHoverFeature !== feature) {
       this.resetFeatureStyle(this.previousHoverFeature);
     }
+
     const layer = this.getLayerForFeature(feature);
     if (!layer) return;
+
     const baseColor = feature.get('color') || layer.color || '#888888';
-    feature.set('hoverColor', this.styleService.brightenHex(baseColor, 2.5));
+
+    feature.set(
+      'hoverColor',
+      this.styleService.brightenHex(baseColor, 2.5)
+    );
+
     layer.olLayer.changed();
     this._map?.renderSync();
+
     this.previousHoverFeature = feature;
     this.hoverFeatureSubject.next(feature);
   }
 
   resetFeatureStyle(feature: Feature | null): void {
+
     if (!feature) return;
+
     feature.set('hoverColor', null);
+
     const layer = this.getLayerForFeature(feature);
+
     if (layer?.olLayer) {
       layer.olLayer.changed();
       this._map?.renderSync();
     }
+
     if (this.previousHoverFeature === feature) {
       this.previousHoverFeature = null;
       this.hoverFeatureSubject.next(null);
@@ -130,53 +147,51 @@ export class LayerManagerService {
     this.beginLoad(`Loading ${params.name}...`);
     this.http.get(params.url, { responseType: 'text' }).subscribe({
       next: content => {
-        if (this.intendedPlanet !== params.planet) return this.endLoad();
-
+        if (this.intendedPlanet !== params.planet) {
+          this.endLoad();
+          return;
+        }
         const features = new GeoJSON().readFeatures(content, {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
         }) as Feature[];
-
         const polygonFeatures: Feature[] = [];
-        const labelFeatures: Feature[] = [];
-        const isSubdivision = params.name.toLowerCase().includes('subdivision') || params.name.toLowerCase().includes('ice');
-
+        const isSubdivision =
+          params.name.toLowerCase().includes('subdivision') ||
+          params.name.toLowerCase().includes('ice');
         features.forEach(f => {
           const geom = f.getGeometry();
           if (!geom) return;
           const type = geom.getType();
-
           if (type.includes('Polygon')) {
             f.set('featureType', 'polygon');
             polygonFeatures.push(f);
-
-            // Area calculation
             const areaM2 = (geom as Polygon | MultiPolygon).getArea();
-
-            // Perimeter calculation using coordinates and LineString logic
             let perimeterM = 0;
             if (geom instanceof Polygon) {
               const coords = geom.getLinearRing(0)?.getCoordinates();
-              if (coords) perimeterM = new LineString(coords).getLength();
+              if (coords) {
+                perimeterM = new LineString(coords).getLength();
+              }
             } else if (geom instanceof MultiPolygon) {
               geom.getPolygons().forEach(p => {
                 const coords = p.getLinearRing(0)?.getCoordinates();
-                if (coords) perimeterM += new LineString(coords).getLength();
+                if (coords) {
+                  perimeterM += new LineString(coords).getLength();
+                }
               });
             }
+            const formatted = formatAreaPerimeter(areaM2, perimeterM);
 
-            const areaKm2 = areaM2 / 1_000_000;
-            const perimeterKm = perimeterM / 1000;
-
-            // Set formatted Tooltip Data
             f.set('tooltipData', {
               title: f.get('NAME') || f.get('UNIT_NAME') || 'Unknown Region',
               code: f.get('SUBCODE') || f.get('SUBDIVISION_CODE') || f.get('id') || 'N/A',
-              // Change maximumFractionDigits: 0 to 2, and add minimumFractionDigits: 2
-              area: `${areaKm2.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km²`,
-              perimeter: `${perimeterKm.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+              area: formatted.area,
+              perimeter: formatted.perimeter
             });
+
           }
+
         });
 
         this.createLayer({
@@ -187,9 +202,11 @@ export class LayerManagerService {
           color: params.color || '#ffffff',
           useVectorImage: params.useVectorImage ?? true
         });
+
         this.refreshLayersForPlanet(params.planet);
         this.endLoad();
       },
+
       error: () => this.endLoad()
     });
   }
@@ -248,7 +265,6 @@ export class LayerManagerService {
     const finalShape = params.shape || allocation.shape;
     const resolvedName = params.name ? this.resolveLayerName(params.planet, params.name) : `Layer_${Date.now()}`;
     const layerId = params.id || this.generateLayerId(resolvedName, params.planet);
-
     const layerFeatures: Feature[] = (params.features || [])
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => {
@@ -256,9 +272,7 @@ export class LayerManagerService {
         cloned.set('layerId', layerId);
         return cloned;
       });
-
     let layerConfig: LayerConfig;
-
     if (params.olLayer && (params.isTileLayer || params.olLayer instanceof TileLayer)) {
       layerConfig = {
         id: layerId,
@@ -277,21 +291,12 @@ export class LayerManagerService {
       };
     } else {
       const source = new VectorSource({ features: layerFeatures });
-
       let layer: VectorLayer | VectorImageLayer;
-
       if (params.useVectorImage) {
-        layer = new VectorImageLayer({
-          source
-        });
+        layer = new VectorImageLayer({ source });
       } else {
-        layer = new VectorLayer({
-          source,
-          updateWhileInteracting: true,
-          updateWhileAnimating: true
-        });
+        layer = new VectorLayer({ source, updateWhileInteracting: true, updateWhileAnimating: true });
       }
-
       layerConfig = {
         id: layerId,
         planet: params.planet,
@@ -306,14 +311,24 @@ export class LayerManagerService {
         isTemporary: params.isTemporary || false
       };
     }
-
+    // --- Insert into caches ---
     this.registry.set(layerConfig.id, layerConfig);
-    if (!params.isTemporary && params.cache !== false) this.planetCache[params.planet].unshift(layerConfig);
-    this.dragOrder.unshift(layerConfig);
-
+    if (!params.isTemporary && params.cache !== false) {
+      // Unshift into planetCache so it appears at top
+      const planetLayers = this.planetCache[params.planet] || [];
+      planetLayers.unshift(layerConfig);
+      this.planetCache[params.planet] = planetLayers;
+    }
+    // Insert into dragOrder after basemaps
+    const basemapCount = this.dragOrder.filter(l => l.isBasemap).length;
+    this.dragOrder.splice(basemapCount, 0, layerConfig);
+    // Add OL layer to map
     if (this._map) this._map.addLayer(layerConfig.olLayer);
+    // Update style and z-index
     this.updateStyle(layerConfig);
     this.applyZOrder();
+    // Refresh sidebar immediately
+    this.refreshLayersForPlanet(params.planet);
     return layerConfig;
   }
 
@@ -386,7 +401,15 @@ export class LayerManagerService {
     this.dragOrder.filter(l => !l.isBasemap).slice().reverse().forEach((l, i) => l.olLayer.setZIndex(i + 1));
   }
 
-  private refreshLayersForPlanet(p: Planet) { this.layersSubject.next(this.planetCache[p] || []); }
+  private refreshLayersForPlanet(p: Planet) {
+    const planetLayers = this.planetCache[p] || [];
+    const basemaps = this.dragOrder.filter(l => l.isBasemap);
+    const nonBasemaps = planetLayers.filter(l => !l.isBasemap);
+    // Sidebar order: imported/user layers at top, basemap at bottom
+    const ordered = [...nonBasemaps, ...basemaps];
+    this.layersSubject.next(ordered);
+  }
+
   private generateLayerId(name: string, planet: Planet): string { return `${planet}:${name}:${Date.now()}`; }
   private resolveLayerName(planet: Planet, name: string): string {
     const existing = this.planetCache[planet].map(l => l.name);

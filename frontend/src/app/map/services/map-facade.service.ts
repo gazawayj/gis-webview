@@ -19,6 +19,7 @@ export class MapFacadeService {
 
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
 
+  /** Cached view for each planet */
   private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
     earth: { center: fromLonLat([-105.1660, 39.7047]) as [number, number], zoom: 13 },
     moon: { center: [0, 0], zoom: 2 },
@@ -58,6 +59,10 @@ export class MapFacadeService {
 
     // Apply cached view
     this.applyPlanetView(this.currentPlanet);
+
+    // Save current view whenever map moves or zoom changes
+    this.map.on('moveend', () => this.saveCurrentView());          // Map event
+    this.map.getView().on('change:resolution', () => this.saveCurrentView()); // View event
   }
 
   /** Registers a right-click handler (for plugin context menus) */
@@ -72,10 +77,10 @@ export class MapFacadeService {
     this.cancelActivePlugin();
     this.currentPlanet = planet;
 
-    // Delegate all layer loading to LayerManager
+    // Load planet layers
     this.layerManager.loadPlanet(planet);
 
-    // Apply cached view
+    // Apply cached view for that planet
     this.applyPlanetView(planet);
   }
 
@@ -108,6 +113,17 @@ export class MapFacadeService {
 
     this.activePlugin.cancel();
     this.activePlugin = undefined;
+  }
+
+  /** Saves the current map view to the cache for the active planet */
+  private saveCurrentView(): void {
+    if (!this.map) return;
+
+    const view = this.map.getView();
+    this.planetViewCache[this.currentPlanet] = {
+      center: view.getCenter() as [number, number],
+      zoom: view.getZoom() || 2
+    };
   }
 
   /** Applies cached view for a planet */

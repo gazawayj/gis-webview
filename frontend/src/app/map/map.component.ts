@@ -14,6 +14,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { OverlayRef } from '@angular/cdk/overlay';
+import GeoJSON from 'ol/format/GeoJSON';
+import { saveAs } from 'file-saver';
 
 import { LayerItemComponent } from './layer-item.component';
 import { MapFacadeService } from './services/map-facade.service';
@@ -24,13 +26,15 @@ import { ToolType, ToolDefinition } from './models/tool-definition.model';
 import { ShapeType } from './constants/symbol-constants';
 import { ModalFactoryService } from './factories/modal.factory';
 import { LayerConfig } from './models/layer-config.model';
+import { formatAreaPerimeter } from './utils/map-utils';
 
 import { AIAnalysisPlugin } from './tools/ai-analysis.plugin';
 import { LayerDistanceToolPlugin } from './tools/layer-distance-tool.plugin';
 
 import { HttpClient } from '@angular/common/http';
 import Feature, { FeatureLike } from 'ol/Feature';
-import { Polygon, MultiPolygon } from 'ol/geom';
+import { Polygon, MultiPolygon, Point, LineString } from 'ol/geom';
+import Papa from 'papaparse';
 
 @Component({
   selector: 'app-map',
@@ -47,9 +51,23 @@ export class MapComponent implements AfterViewInit {
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
   @ViewChild('aiFeatureFindModal') aiFeatureFindModal!: TemplateRef<any>;
   @ViewChild('layerDistanceModal') distanceModalTemplate!: TemplateRef<any>;
+  @ViewChild('importExportModal') importExportModal!: TemplateRef<any>;
+  @ViewChild('csvSelectionModal') csvSelectionModal!: TemplateRef<any>;
 
   aiPrompt = '';
-  hoverAttributes: Record<string, any> | null = null;
+
+  importFile?: File;
+  importFileType: 'CSV' | 'GeoJSON' | null = null;
+  csvHeaders: string[] = [];
+  csvLatField = '';
+  csvLonField = '';
+  csvSelectionModalRef?: OverlayRef;
+  importExportModalRef?: OverlayRef;
+
+  exportLayer?: LayerConfig;
+  exportFormat: 'CSV' | 'GeoJSON' = 'GeoJSON';
+
+  hoverAttributes: { key: string, value: any }[] | null = null;
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
   activeTool: ToolType = 'none';
@@ -57,7 +75,6 @@ export class MapComponent implements AfterViewInit {
   zoomDisplay = '2';
   currentLon = 0;
   currentLat = 0;
-
   lonLabel = 'Lon';
   latLabel = 'Lat';
 
@@ -74,13 +91,12 @@ export class MapComponent implements AfterViewInit {
   private aiModalRef?: OverlayRef;
   private modalRef?: OverlayRef;
   private pluginModalRef?: OverlayRef;
-
   private previousHoverFeature: any = null;
 
   public mapFacade = inject(MapFacadeService);
   private layerManager = inject(LayerManagerService);
   public toolService = inject(ToolService);
-  private modalFactory = inject(ModalFactoryService);
+  modalFactory = inject(ModalFactoryService);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private vcr = inject(ViewContainerRef);
@@ -115,7 +131,6 @@ export class MapComponent implements AfterViewInit {
       }
     });
 
-    // ---------------- Pointer updates ----------------
     this.mapFacade.pointerState$.subscribe(state => {
       this.currentLon = state.lon;
       this.currentLat = state.lat;
@@ -124,7 +139,6 @@ export class MapComponent implements AfterViewInit {
       this.cdr.detectChanges();
     });
 
-    // ---------------- Hover updates ----------------
     this.mapFacade.hoverFeature$.subscribe(feature => {
       if (this.previousHoverFeature && this.previousHoverFeature !== feature) {
         this.layerManager.resetFeatureStyle(this.previousHoverFeature);
@@ -143,7 +157,6 @@ export class MapComponent implements AfterViewInit {
       this.cdr.detectChanges();
     });
 
-    // ---------------- Layers subscription ----------------
     this.layerManager.layers$.subscribe(layers => {
       this.dragOrder = [...layers];
       this.cdr.detectChanges();
@@ -160,7 +173,6 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  // ---------------- Tool activation ----------------
   activateTool(tool: ToolType): void {
     this.toolService.setActiveTool(tool);
     const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
@@ -193,85 +205,45 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
-  // ---------------- Feature hover formatting ----------------
-  private formatFeatureAttributes(feature: FeatureLike): Record<string, any> | null {
+  private formatFeatureAttributes(feature: FeatureLike): { key: string, value: any }[] | null {
     const props = feature.getProperties();
     const layer = this.layerManager.getLayerForFeature(feature as Feature);
-    const isSubdivision = layer?.name?.toLowerCase().includes('subdivision');
+    const isSubdivision = layer?.name?.toLowerCase().includes('subdivision') || layer?.name?.toLowerCase().includes('ice');
 
-    const cleaned: Record<string, any> = {};
-
+    const cleaned: { key: string, value: any }[] = [];
     const addIfValid = (label: string, value: any) => {
       if (value !== null && value !== undefined && value !== '') {
-        if (typeof value === 'number') {
-          cleaned[label] = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        } else {
-          cleaned[label] = value;
-        }
+        const formatted = typeof value === 'number'
+          ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : value;
+        cleaned.push({ key: label, value: formatted });
       }
     };
 
     const geom = feature.getGeometry();
+    const radius = this.currentPlanet === 'mars' ? 3389500 : this.currentPlanet === 'moon' ? 1737100 : 6371000;
+    addIfValid('Name', props['SUBNAME'] || props['NAME'] || props['UNIT_NAME']);
+    addIfValid('Code', props['SUBCD'] || props['SUBCODE'] || props['SUBDIVISION_CODE'] || props['id']);
 
-    // ---------------- Subdivision-specific formatting ----------------
-    if (isSubdivision) {
-      addIfValid('Name', props['SUBNAME'] || props['NAME']);
-      addIfValid('Subdivision Code', props['SUBCD'] || props['SUBCODE']);
-      if (geom && (geom instanceof Polygon || geom instanceof MultiPolygon)) {
-        const areaMeters = geom.getArea();
-        const perimeterMeters = this.computePerimeter(geom);
-
-        if (areaMeters > 0) {
-          cleaned['Area'] = areaMeters >= 1000
-            ? `${(areaMeters / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km²`
-            : `${areaMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
-        }
-
-        if (perimeterMeters > 0) {
-          cleaned['Perimeter'] = perimeterMeters >= 1000
-            ? `${(perimeterMeters / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
-            : `${perimeterMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
-        }
-      }
-      return Object.keys(cleaned).length ? cleaned : null;
+    if (!isSubdivision) {
+      const internalKeys = ['geometry', 'layerId', 'tooltipData', 'featureType', 'hoverColor', 'id'];
+      Object.keys(props).forEach(key => {
+        if (internalKeys.includes(key) || cleaned.some(c => c.key === key)) return;
+        addIfValid(key.replace(/_/g, ' '), props[key]);
+      });
     }
-
-    // ---------------- General feature formatting ----------------
-    const internalKeys = [
-      'geometry', 'layerId', 'tooltipData', 'featureType', 'hoverColor', 'parentPolygon',
-      'AREA', 'PERIMETER', 'SHAPE_Area', 'SHAPE_Length', 'SHAPE_AREA', 'SHAPE_PERIMETER', 'OBJECTID'
-    ];
-
-    Object.keys(props).forEach(key => {
-      // Skip if it's a system key or one of the raw Area/Perimeter keys from the file
-      if (internalKeys.includes(key) || internalKeys.includes(key.toUpperCase())) return;
-
-      const cleanKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      addIfValid(cleanKey, props[key]);
-    });
 
     if (geom && (geom instanceof Polygon || geom instanceof MultiPolygon)) {
-      // Determine radius based on planet for accurate Mars/Moon measurements
-      const radius = this.currentPlanet === 'mars' ? 3389500 : this.currentPlanet === 'moon' ? 1737100 : 6371000;
-
-      // Using ol/sphere helpers if available, otherwise geom methods
       const areaMeters = getArea ? getArea(geom, { radius }) : (geom as any).getArea();
       const perimeterMeters = getLength ? getLength(geom, { radius }) : this.computePerimeter(geom as any);
-      if (areaMeters > 0) {
-        cleaned['Area'] = areaMeters >= 1_000_000
-          ? `${(areaMeters / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km²`
-          : `${areaMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
-      }
-      if (perimeterMeters > 0) {
-        cleaned['Perimeter'] = perimeterMeters >= 1000
-          ? `${(perimeterMeters / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
-          : `${perimeterMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
-      }
+      const formatted = formatAreaPerimeter(areaMeters, perimeterMeters);
+      if (formatted.area) cleaned.push({ key: 'Area', value: formatted.area });
+      if (formatted.perimeter) cleaned.push({ key: 'Perimeter', value: formatted.perimeter });
     }
-    return Object.keys(cleaned).length ? cleaned : null;
+
+    return cleaned.length ? cleaned : null;
   }
 
-  // ---------------- Drag/drop layers ----------------
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>): void {
     const newOrder = [...this.dragOrder];
     moveItemInArray(newOrder, event.previousIndex, event.currentIndex);
@@ -280,21 +252,17 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  // ---------------- Layer management ----------------
   onAddLayer(): void {
-    this.modalRef = this.modalFactory.open({
-      template: this.addLayerModal,
-      vcr: this.vcr
+    this.importExportModalRef = this.modalFactory.open({
+      template: this.importExportModal,
+      vcr: this.vcr,
+      panelClass: 'layer-modal',
+      width: '480px'
     });
   }
 
-  toggleLayer(layer: LayerConfig): void {
-    this.layerManager.toggle(layer);
-  }
-
-  removeLayer(layer: LayerConfig): void {
-    this.layerManager.remove(layer);
-  }
+  toggleLayer(layer: LayerConfig): void { this.layerManager.toggle(layer); }
+  removeLayer(layer: LayerConfig): void { this.layerManager.remove(layer); }
 
   onColorPicked(layer: LayerConfig, color: string): void {
     layer.color = color;
@@ -307,23 +275,188 @@ export class MapComponent implements AfterViewInit {
     this.layerManager.updateStyle(layer);
   }
 
-  // ---------------- Plugin modals ----------------
+  // --- CSV/GeoJSON import ---
+  confirmImport(): void {
+    if (!this.importFile || !this.importFileType) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      const layerName = this.importFile!.name.replace(/\.[^/.]+$/, '');
+      if (this.importFileType === 'CSV') {
+        this.layerManager.addManualLayer(
+          this.currentPlanet,
+          layerName,
+          'Imported layer',
+          content,
+          'CSV',
+          this.csvLatField,
+          this.csvLonField
+        );
+      } else if (this.importFileType === 'GeoJSON') {
+        this.layerManager.addManualLayer(
+          this.currentPlanet,
+          layerName,
+          'Imported layer',
+          content,
+          'GeoJSON'
+        );
+      }
+      if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
+      this.importFile = undefined;
+      this.csvHeaders = [];
+      this.csvLatField = '';
+      this.csvLonField = '';
+    };
+    reader.readAsText(this.importFile);
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (!file) return;
+    this.importFile = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        this.importFileType = 'CSV';
+        const parsed = Papa.parse(content, { header: true, preview: 1 });
+        this.csvHeaders = parsed.meta.fields || [];
+        const { lat, lon } = this.detectLatLonColumns(this.csvHeaders);
+        this.csvLatField = lat || this.csvHeaders[0] || '';
+        this.csvLonField = lon || this.csvHeaders[1] || '';
+        // Open modal for CSV column selection
+        Promise.resolve().then(() => {
+          if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
+          this.importExportModalRef = this.modalFactory.open({
+            template: this.importExportModal,
+            vcr: this.vcr,
+            panelClass: 'layer-modal',
+            width: '480px'
+          });
+          this.cdr.detectChanges();
+        });
+      } else {
+        // GeoJSON: no column selection needed, import immediately
+        this.importFileType = 'GeoJSON';
+        this.csvHeaders = [];
+        this.csvLatField = '';
+        this.csvLonField = '';
+        // Directly confirm import and add layer
+        this.confirmImport();
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  openCsvSelectionModal(): void {
+    if (!this.importFile || !this.csvHeaders.length) return;
+    this.csvSelectionModalRef = this.modalFactory.open({
+      template: this.csvSelectionModal,
+      vcr: this.vcr,
+      panelClass: 'layer-modal',
+      width: '400px'
+    });
+  }
+
+  cancelCsvSelection() {
+    if (this.csvSelectionModalRef) this.modalFactory.close(this.csvSelectionModalRef);
+    this.importFile = undefined;
+    this.csvHeaders = [];
+    this.csvLatField = '';
+    this.csvLonField = '';
+  }
+
+  confirmCsvSelection() {
+    if (!this.importFile) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      const layerName = this.importFile!.name.replace(/\.[^/.]+$/, '');
+      let newLayer: LayerConfig | undefined;
+      if (this.importFileType === 'CSV') {
+        newLayer = this.layerManager.addManualLayer(
+          this.currentPlanet,
+          layerName,
+          'Imported layer',
+          content,
+          'CSV',
+          this.csvLatField,
+          this.csvLonField
+        );
+      } else if (this.importFileType === 'GeoJSON') {
+        newLayer = this.layerManager.addManualLayer(
+          this.currentPlanet,
+          layerName,
+          'Imported layer',
+          content,
+          'GeoJSON'
+        );
+      }
+      if (newLayer) {
+        this.dragOrder = [...this.dragOrder, newLayer];
+        this.cdr.detectChanges();
+      }
+      if (this.csvSelectionModalRef) this.modalFactory.close(this.csvSelectionModalRef);
+      if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
+      this.importFile = undefined;
+      this.csvHeaders = [];
+      this.csvLatField = '';
+      this.csvLonField = '';
+    };
+    reader.readAsText(this.importFile);
+  }
+
+  private detectLatLonColumns(headers: string[]): { lat?: string, lon?: string } {
+    const lower = headers.map(h => h.toLowerCase());
+    let lat: string | undefined;
+    let lon: string | undefined;
+    const latNames = ['lat', 'latitude', 'y'];
+    const lonNames = ['lon', 'longitude', 'lng', 'x'];
+    for (let i = 0; i < lower.length; i++) {
+      if (!lat && latNames.includes(lower[i])) lat = headers[i];
+      if (!lon && lonNames.includes(lower[i])) lon = headers[i];
+    }
+    return { lat, lon };
+  }
+
+  // --- Export ---
+  confirmExport(): void {
+    if (!this.exportLayer) return;
+    const features = this.exportLayer.features;
+    if (!features || !features.length) return;
+
+    if (this.exportFormat === 'GeoJSON') {
+      const geojson = new GeoJSON().writeFeatures(features, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
+      saveAs(new Blob([geojson], { type: 'application/json' }), `${this.exportLayer.name}.geojson`);
+    } else if (this.exportFormat === 'CSV') {
+      const allKeys = Array.from(new Set(features.flatMap(f => Object.keys(f.getProperties()))));
+      const rows = [allKeys.join(',')];
+      features.forEach(f => {
+        const props = f.getProperties();
+        const row = allKeys.map(k => {
+          let val = props[k];
+          if (val && typeof val === 'object') val = JSON.stringify(val);
+          if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) val = `"${val.replace(/"/g, '""')}"`;
+          return val ?? '';
+        }).join(',');
+        rows.push(row);
+      });
+      saveAs(new Blob([rows.join('\n')], { type: 'text/csv' }), `${this.exportLayer.name}.csv`);
+    }
+
+    if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
+  }
+
+  // --- Plugin modals ---
   openPluginSaveModal(): void {
     const activePlugin = this.mapFacade.getActivePlugin();
     this.pluginLayerName = `${activePlugin?.name || 'Layer'}_${Date.now()}`;
-
     this.pluginModalRef = this.modalFactory.open({
       template: this.pluginSaveModal,
       vcr: this.vcr,
       panelClass: 'layer-modal',
       width: '440px'
     });
-  }
-
-  cancelPluginSave(): void {
-    if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
-    this.mapFacade.cancelActivePlugin();
-    this.toolService.clearTool();
   }
 
   confirmSavePlugin(name?: string): void {
@@ -334,14 +467,13 @@ export class MapComponent implements AfterViewInit {
     if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
   }
 
-  // ---------------- AI modal ----------------
-  handleAiKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (this.aiPrompt.trim()) this.confirmAiFeatureFind();
-    }
+  cancelPluginSave(): void {
+    if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
+    this.mapFacade.cancelActivePlugin();
+    this.toolService.clearTool();
   }
 
+  // --- AI Feature Find ---
   openAiFeatureFindModal(): void {
     this.aiPrompt = '';
     this.aiModalRef = this.modalFactory.open({
@@ -350,6 +482,13 @@ export class MapComponent implements AfterViewInit {
       panelClass: 'layer-modal',
       width: '420px'
     });
+  }
+
+  handleAiKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (this.aiPrompt.trim()) this.confirmAiFeatureFind();
+    }
   }
 
   cancelAiFeatureFind(): void {
@@ -375,19 +514,12 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
-  // ---------------- Distance tool ----------------
+  // --- Distance Tool ---
   onDistanceLayerChange(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     if (!plugin) return;
-
     plugin.selectedLayers = [this.distanceLayerA || null, this.distanceLayerB || null];
-
-    if (this.distanceLayerA && this.distanceLayerB) {
-      this.distanceValue = plugin.computeDistance(this.distanceLayerA, this.distanceLayerB);
-    } else {
-      this.distanceValue = 0;
-    }
-
+    this.distanceValue = (this.distanceLayerA && this.distanceLayerB) ? plugin.computeDistance(this.distanceLayerA, this.distanceLayerB) : 0;
     this.cdr.detectChanges();
   }
 
@@ -399,13 +531,13 @@ export class MapComponent implements AfterViewInit {
   cancelLayerDistance(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     if (plugin?.modalRef) this.modalFactory.close(plugin.modalRef);
-
     this.distanceLayerA = undefined;
     this.distanceLayerB = undefined;
     this.distanceValue = 0;
     this.toolService.clearTool();
   }
 
+  // --- Helpers ---
   isToolAvailable(toolType: string): boolean {
     if (toolType === 'highres-selection') return this.currentPlanet === 'mars';
     return true;
@@ -419,13 +551,8 @@ export class MapComponent implements AfterViewInit {
     return tool.name;
   }
 
-  trackLayer(index: number, layer: LayerConfig): string {
-    return layer.id;
-  }
-
-  trackByTool(index: number, tool: ToolDefinition): string {
-    return tool.type;
-  }
+  trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
+  trackByTool(index: number, tool: ToolDefinition): string { return tool.type; }
 
   private computePerimeter(geom: Polygon | MultiPolygon): number {
     const getRingLength = (coords: number[][]): number => {
@@ -439,16 +566,9 @@ export class MapComponent implements AfterViewInit {
     };
 
     if (geom instanceof Polygon) {
-      return geom.getLinearRings()
-        .map(ring => getRingLength(ring.getCoordinates()))
-        .reduce((acc, len) => acc + len, 0);
+      return geom.getLinearRings().map(r => getRingLength(r.getCoordinates())).reduce((acc, v) => acc + v, 0);
     } else {
-      return geom.getPolygons()
-        .map(polygon => polygon.getLinearRings()
-          .map(ring => getRingLength(ring.getCoordinates()))
-          .reduce((acc, len) => acc + len, 0)
-        )
-        .reduce((acc, len) => acc + len, 0);
+      return geom.getPolygons().map(p => p.getLinearRings().map(r => getRingLength(r.getCoordinates())).reduce((acc, v) => acc + v, 0)).reduce((acc, v) => acc + v, 0);
     }
   }
 }

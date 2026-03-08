@@ -19,7 +19,7 @@
 
         <!-- Add Layer button -->
         <div class="add-layer">
-          <button (click)="onAddLayer()">Add Layer</button>
+          <button (click)="onAddLayer()">Import / Export</button>
         </div>
 
         <!-- Scrollable container for layers -->
@@ -72,19 +72,18 @@
     <div class="hover-tooltip-panel">
       <div class="tooltip-header">Feature Attributes</div>
       <div class="tooltip-content">
-        <div *ngIf="hoverAttributes; else emptyTooltip">
-          <div class="stat-item" 
-               *ngFor="let attr of hoverAttributes | keyvalue"
-               [ngClass]="{'name': attr.key === 'Name'}">
-            <span class="stat-label">{{ attr.key }}:</span>
-            <span class="stat-value">{{ attr.value }}</span>
-          </div>
-        </div>
-        <ng-template #emptyTooltip>
+        @if (hoverAttributes) {
+          @for (attr of hoverAttributes; track attr.key) {
+            <div class="stat-item" [class.name]="attr.key === 'Name'">
+              <span class="stat-label">{{ attr.key }}:</span>
+              <span class="stat-value">{{ attr.value }}</span>
+            </div>
+          }
+        } @else {
           <div class="tooltip-placeholder">
             Hover over a feature to see details
           </div>
-        </ng-template>
+        }
       </div>
     </div>
 
@@ -102,10 +101,10 @@
   <!-- Map -->
   <div #mapContainer class="map-container">
     @if (isLoading) {
-    <div class="map-loading-overlay">
-      <div class="spinner"></div>
-      <div class="loading-text">{{ loadingMessage }}</div>
-    </div>
+      <div class="map-loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">{{ loadingMessage }}</div>
+      </div>
     }
   </div>
 
@@ -153,7 +152,7 @@
           </div>
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
             [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
-        </textarea>
+          </textarea>
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
@@ -178,7 +177,7 @@
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
               @for (layer of dragOrder; track layer.id) {
-              <option [ngValue]="layer">{{ layer.name }}</option>
+                <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
@@ -186,12 +185,12 @@
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
               @for (layer of dragOrder; track layer.id) {
-              <option [ngValue]="layer">{{ layer.name }}</option>
+                <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
           @if (distanceLayerA && distanceLayerB) {
-          <p>Distance: {{ formattedDistance }}</p>
+            <p>Distance: {{ formattedDistance }}</p>
           }
         </div>
         <div class="modal-actions">
@@ -199,6 +198,74 @@
           <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
             Line</button>
         </div>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Import / Export Modal -->
+  <ng-template #importExportModal>
+    <div class="modal-backdrop">
+      <div class="modal-card">
+
+        <div class="modal-header">
+          Import / Export Layers
+          <button class="close-btn" (click)="modalFactory.close(importExportModalRef)">✕</button>
+        </div>
+
+        <div class="modal-body">
+
+          <h3>Import</h3>
+          <input type="file" (change)="onFileSelected($event)" />
+
+          @if (importFileType === 'CSV' && csvHeaders.length) {
+            <div class="csv-options">
+              <label>Longitude column:</label>
+              <select [(ngModel)]="csvLonField">
+                @for (h of csvHeaders; track h) {
+                  <option [value]="h">{{ h }}</option>
+                }
+              </select>
+
+              <label>Latitude column:</label>
+              <select [(ngModel)]="csvLatField">
+                @for (h of csvHeaders; track h) {
+                  <option [value]="h">{{ h }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <button class="primary" [disabled]="!importFile" (click)="confirmImport()">
+            Import File
+          </button>
+
+          <hr />
+
+          <h3>Export</h3>
+
+          <label>
+            Layer
+            <select [(ngModel)]="exportLayer">
+              @for (layer of dragOrder; track layer.id) {
+                <option [ngValue]="layer">{{layer.name}}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            Format
+            <select [(ngModel)]="exportFormat">
+              <option value="GeoJSON">GeoJSON</option>
+              <option value="CSV">CSV</option>
+            </select>
+          </label>
+
+          <button class="primary" [disabled]="!exportLayer" (click)="confirmExport()">
+            Export Layer
+          </button>
+
+        </div>
+
       </div>
     </div>
   </ng-template>
