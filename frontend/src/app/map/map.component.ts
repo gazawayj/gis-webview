@@ -35,6 +35,7 @@ import { HttpClient } from '@angular/common/http';
 import Feature, { FeatureLike } from 'ol/Feature';
 import { Polygon, MultiPolygon, Point, LineString } from 'ol/geom';
 import Papa from 'papaparse';
+import { MapBrowserEvent } from 'ol';
 
 @Component({
   selector: 'app-map',
@@ -68,6 +69,7 @@ export class MapComponent implements AfterViewInit {
   exportFormat: 'CSV' | 'GeoJSON' = 'GeoJSON';
 
   hoverAttributes: { key: string, value: any }[] | null = null;
+  selectedFeature: FeatureLike | null = null;
 
   currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
   activeTool: ToolType = 'none';
@@ -125,12 +127,14 @@ export class MapComponent implements AfterViewInit {
     this.currentPlanet = this.mapFacade.getCurrentPlanet();
     this.mapFacade.initMap(this.mapContainer.nativeElement);
 
+    // Right-click / plugin context menu
     this.mapFacade.registerContextMenuHandler(() => {
       if (this.mapFacade.getActivePlugin()) {
         this.openPluginSaveModal();
       }
     });
 
+    // Pointer updates (lat, lon, zoom)
     this.mapFacade.pointerState$.subscribe(state => {
       this.currentLon = state.lon;
       this.currentLat = state.lat;
@@ -139,9 +143,14 @@ export class MapComponent implements AfterViewInit {
       this.cdr.detectChanges();
     });
 
+    // --- HOVER SUBSCRIPTION ---
     this.mapFacade.hoverFeature$.subscribe(feature => {
+      // Only update hover panel if no feature is locked
+      if (this.selectedFeature) return;
+
+      // Reset previous hover
       if (this.previousHoverFeature && this.previousHoverFeature !== feature) {
-        this.layerManager.resetFeatureStyle(this.previousHoverFeature);
+        this.layerManager.resetFeatureStyle(this.previousHoverFeature as Feature);
         this.previousHoverFeature = null;
       }
 
@@ -152,16 +161,44 @@ export class MapComponent implements AfterViewInit {
       }
 
       this.hoverAttributes = this.formatFeatureAttributes(feature);
-      this.layerManager.applyHoverStyle(feature);
+      this.layerManager.applyHoverStyle(feature as Feature);
       this.previousHoverFeature = feature;
       this.cdr.detectChanges();
     });
 
+    // --- CLICK SUBSCRIPTION ---
+    this.mapFacade.mapSingleClick$.subscribe((evt) => {
+      const feature = this.mapFacade.getFeatureAtPixel(evt.pixel as [number, number]);
+
+      if (feature) {
+        this.selectedFeature = feature;
+        this.hoverAttributes = this.formatFeatureAttributes(feature);
+        this.layerManager.applyHoverStyle(feature as Feature);
+        this.previousHoverFeature = feature;
+      } else {
+        // Reset selection
+        if (this.selectedFeature)
+          this.layerManager.resetFeatureStyle(this.selectedFeature as Feature);
+        this.selectedFeature = null;
+        this.hoverAttributes = null;
+
+        // Reset hover
+        if (this.previousHoverFeature) {
+          this.layerManager.resetFeatureStyle(this.previousHoverFeature as Feature);
+          this.previousHoverFeature = null;
+        }
+      }
+
+      this.cdr.detectChanges();
+    });
+
+    // --- LAYER DRAG & DROPS ---
     this.layerManager.layers$.subscribe(layers => {
       this.dragOrder = [...layers];
       this.cdr.detectChanges();
     });
 
+    // --- LOADING STATES ---
     this.layerManager.loading$.subscribe(v => {
       this.isLoading = v;
       this.cdr.detectChanges();

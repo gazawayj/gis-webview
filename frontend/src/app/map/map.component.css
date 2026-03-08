@@ -395,12 +395,12 @@ body {
 }
 
 .tooltip-placeholder {
+  margin-top: auto;
   font-style: italic;
   color: var(--primary-color-lighter);
   text-align: center;
   user-select: none;
   font-size: 0.85rem;
-  padding-top: 20px;
 }
 
 /* Clean Themed Scrollbar */

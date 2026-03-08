@@ -3,10 +3,13 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { fromLonLat } from 'ol/proj';
 
+import { Subject } from 'rxjs';
+
 import { LayerManagerService } from './layer-manager.service';
 import { MapEventService } from './map-event.service';
 import { LayerConfig } from '../models/layer-config.model';
 import { Tool } from '../tools/tool';
+import { Feature, MapBrowserEvent } from 'ol';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
@@ -29,6 +32,10 @@ export class MapFacadeService {
   // Expose observables from MapEventService
   pointerState$ = this.mapEvents.pointerState$;
   hoverFeature$ = this.mapEvents.hoverFeature$;
+
+  /** Single-click map events */
+  private mapClickSubject = new Subject<MapBrowserEvent<PointerEvent>>();
+  mapSingleClick$ = this.mapClickSubject.asObservable();
 
   /** Returns the current selected planet */
   getCurrentPlanet(): 'earth' | 'moon' | 'mars' {
@@ -61,8 +68,12 @@ export class MapFacadeService {
     this.applyPlanetView(this.currentPlanet);
 
     // Save current view whenever map moves or zoom changes
-    this.map.on('moveend', () => this.saveCurrentView());          // Map event
-    this.map.getView().on('change:resolution', () => this.saveCurrentView()); // View event
+    this.map.on('moveend', () => this.saveCurrentView());
+    this.map.on('singleclick', (evt: any) => this.mapClickSubject.next(evt));
+    this.map.getView().on('change:resolution', () => this.saveCurrentView());
+
+    // Emit single-click events
+    this.map.on('singleclick', (evt: any) => this.mapClickSubject.next(evt));
   }
 
   /** Registers a right-click handler (for plugin context menus) */
@@ -136,5 +147,13 @@ export class MapFacadeService {
 
     view.setCenter(cached.center);
     view.setZoom(cached.zoom);
+  }
+
+  /** Returns the feature at a pixel (for click-to-lock) */
+  getFeatureAtPixel(pixel: [number, number]): Feature | undefined {
+    if (!this.map) return undefined;
+    return this.map.forEachFeatureAtPixel(pixel, (f) => f as Feature, {
+      hitTolerance: 5
+    });
   }
 }
