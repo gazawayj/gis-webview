@@ -46,18 +46,21 @@ export class StyleService {
     const color = options.baseColor || '#ff6600';
 
     switch (options.type) {
-      case 'point':
+      case 'point': {
         return new Style({ image: this.createShapeImage(options.shape || 'circle', color) });
-      case 'line':
+      }
+      case 'line': {
         return new Style({ stroke: new Stroke({ color, width: 3 }) });
-      case 'polygon':
+      }
+      case 'polygon': {
         let fillColor = color;
-        if (/^#[0-9A-Fa-f]{6}$/.test(color)) fillColor += '88'; 
+        if (/^#[0-9A-Fa-f]{6}$/.test(color)) fillColor += '88';
         return new Style({
           fill: new Fill({ color: fillColor }),
           stroke: new Stroke({ color: this.brightenHex(color, 0.6), width: 2 })
         });
-      case 'label':
+      }
+      case 'label': {
         const offsetY = options.position === 'bottom' ? 15 : -15;
         return new Style({
           text: new Text({
@@ -69,7 +72,8 @@ export class StyleService {
             textAlign: 'center'
           })
         });
-      default:
+      }
+      default: {
         return new Style({
           image: new CircleStyle({
             radius: 5,
@@ -77,6 +81,7 @@ export class StyleService {
             stroke: new Stroke({ color: '#000', width: 1 })
           })
         });
+      }
     }
   }
 
