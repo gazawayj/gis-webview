@@ -28,68 +28,58 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
     const {
       name = `Layer-${Date.now()}`,
       features = [],
-      color,
-      shape,
+      color = '#ff6600',
+      shape = 'circle',
       isTemporary = false,
       styleFn,
       geometryType: givenGeometryType,
       useVectorImage = false
     } = options || {};
 
-    if (!color || !shape) {
-      throw new Error('LayerFactory requires color and shape.');
-    }
-
     const geometryType: GeometryType = givenGeometryType ?? detectGeometryType(features);
-
-    let configRef!: LayerConfig;
+    let configRef: LayerConfig;
 
     const LayerConstructor = useVectorImage ? VectorImageLayer : VectorLayer;
 
     const vectorLayer = new LayerConstructor({
       source: new VectorSource({ features }),
+      updateWhileInteracting: true, 
       style: (feature: FeatureLike) => {
         if (styleFn) return styleFn(feature);
 
         const feat = feature as Feature;
+        const baseColor = feat.get('hoverColor') || feat.get('color') || configRef?.color || color;
         const fType = feat.get('featureType') as string | undefined;
 
-        // Label features: respect the feature's labelPosition property
         if (fType === 'label') {
-          const text = feat.get('text') as string | undefined;
-          const position = feat.get('labelPosition') as 'top' | 'bottom' | undefined;
           return styleService.getLayerStyle({
             type: 'label',
-            baseColor: configRef.color,
-            text,
-            position
+            baseColor: baseColor,
+            text: feat.get('text'),
+            position: feat.get('labelPosition')
           });
         }
 
-        // Resolve geometry type priority
         let resolvedType: GeometryType;
         if (fType === 'line' || fType === 'polygon' || fType === 'point') {
           resolvedType = fType as GeometryType;
         } else {
-          const geom = feat.getGeometry();
-          const geomType = geom?.getType();
+          const geomType = feat.getGeometry()?.getType();
           if (geomType?.includes('LineString')) resolvedType = 'line';
           else if (geomType?.includes('Polygon')) resolvedType = 'polygon';
-          else resolvedType = configRef.geometryType ?? 'point';
+          else resolvedType = configRef?.geometryType ?? 'point';
         }
 
         return styleService.getLayerStyle({
           type: resolvedType,
-          baseColor: configRef.color,
-          shape: configRef.shape,
+          baseColor: baseColor,
+          shape: configRef?.shape || shape,
         });
       }
     });
 
     const config: LayerConfig = {
-      id: idGenerator
-        ? idGenerator()
-        : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+      id: idGenerator ? idGenerator() : `tmp:${planet}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
       name,
       color,
       shape,
@@ -111,20 +101,12 @@ export function createVectorLayerFactory(styleService: StyleService): LayerFacto
 function detectGeometryType(features: Feature[]): GeometryType {
   let hasLine = false;
   let hasPolygon = false;
-
   for (const f of features) {
     const geom = f.getGeometry();
     if (!geom) continue;
-
-    const geomType = geom.getType();
-    const fType = f.get('featureType') as string | undefined;
-
-    if (geomType === 'Point' && fType === 'vertex') continue;
-    if (geomType.includes('LineString')) hasLine = true;
-    else if (geomType.includes('Polygon')) hasPolygon = true;
+    const gType = geom.getType();
+    if (gType.includes('LineString')) hasLine = true;
+    else if (gType.includes('Polygon')) hasPolygon = true;
   }
-
-  if (hasLine) return 'line';
-  if (hasPolygon) return 'polygon';
-  return 'point';
+  return hasLine ? 'line' : hasPolygon ? 'polygon' : 'point';
 }

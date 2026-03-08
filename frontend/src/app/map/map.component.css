@@ -178,9 +178,10 @@ body {
   user-select: none;
 }
 
-/* ===================== TOOLBARS & STATS ===================== */
+/* ===================== TOOLBARS & PANELS ===================== */
 .toolbar-wrapper,
-.map-stats {
+.map-stats,
+.hover-tooltip-panel {
   flex-shrink: 0;
   margin-top: var(--sidebar-gap);
   padding: 8px;
@@ -192,11 +193,23 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.05);
   background: var(--panel-bg);
 }
+
 .map-stats {
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
+.hover-tooltip-panel {
+  height: 180px;
+  /* fixed height */
+  min-height: 180px;
+  max-height: 180px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  overflow: hidden;
+}
+
+/* ===================== TOOLBAR BUTTONS ===================== */
 .horizontal-toolbar .toolbar-buttons {
   display: flex;
   flex-direction: row;
@@ -254,7 +267,7 @@ body {
 
 .tool-btn:hover.available {
   transform: scale(1.05);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 .tool-btn.active .tool-icon {
@@ -273,7 +286,7 @@ body {
   background: #cacaca;
 }
 
-/* ===================== STATS ===================== */
+/* ===================== STATS / ATTRIBUTE ROWS ===================== */
 .stat-item {
   display: flex;
   justify-content: space-between;
@@ -289,6 +302,117 @@ body {
 .stat-value {
   margin-right: 8px;
   color: var(--text-color-dark);
+}
+
+/* ===================== FEATURE ATTRIBUTES TOOLTIP ===================== */
+.hover-tooltip-panel {
+  flex-shrink: 0;
+  height: 180px; 
+  min-height: 180px;
+  max-height: 180px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--panel-bg);
+  margin-top: var(--sidebar-gap);
+  overflow: hidden;
+  padding: 8px; 
+}
+
+.tooltip-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-align: center;
+  width: 100%;
+}
+
+.tooltip-content {
+  flex: 1; 
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0; 
+}
+
+/* Base style for attribute rows */
+.hover-tooltip-panel .stat-item {
+  padding: 6px 10px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* --- Alternating Dynamic Striped Backgrounds --- */
+.hover-tooltip-panel .stat-item:nth-child(odd) {
+  background-color: var(--panel-bg);
+}
+
+.hover-tooltip-panel .stat-item:nth-child(even) {
+  /* Dynamic: 88% White mixed with Primary Color for the tinted band */
+  background-color: color-mix(in srgb, var(--primary-color), white 75%);
+}
+
+.stat-label {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.stat-value {
+  color: var(--text-color-dark);
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* --- Name Field Logic: 2-line box right-aligned on same line as label --- */
+.hover-tooltip-panel .stat-item.name {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hover-tooltip-panel .stat-item.name .stat-value {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; 
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right; 
+  line-height: 1.3em;
+  /* (line-height * 2) ensures it holds space for exactly 2 lines */
+  min-height: 2.6em; 
+  max-height: 2.6em; 
+  
+  font-weight: 500;
+  color: var(--text-color-dark);
+}
+
+.tooltip-placeholder {
+  font-style: italic;
+  color: var(--primary-color-lighter);
+  text-align: center;
+  user-select: none;
+  font-size: 0.85rem;
+  padding-top: 20px;
+}
+
+/* Clean Themed Scrollbar */
+.tooltip-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tooltip-content::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+}
+
+.tooltip-content::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
 }
 
 /* ===================== MAP ===================== */
@@ -314,15 +438,15 @@ body {
   backdrop-filter: blur(8px);
   padding: 12px 24px;
   border-radius: 50px;
-  border: 1.5px solid rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   color: var(--text-color-light);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .map-loading-overlay .spinner {
   width: 22px;
   height: 22px;
-  border: 3px solid rgba(255,255,255,0.2);
+  border: 3px solid rgba(255, 255, 255, 0.2);
   border-top-color: var(--text-color-light);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -350,7 +474,7 @@ body {
 }
 
 .cdk-drop-list-dragging .cdk-drag {
-  transition: transform 250ms cubic-bezier(0,0,0.2,1);
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 .cdk-drag-placeholder {
@@ -383,7 +507,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -400,9 +524,9 @@ body {
   max-height: 85vh;
   border-radius: 12px;
   border: 1.5px solid var(--primary-color);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
-  animation: slideUp 0.3s cubic-bezier(0.175,0.885,0.32,1.1);
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
 }
 
 .modal-header {
@@ -489,7 +613,7 @@ body {
 .modal-actions button.primary:hover:not(:disabled) {
   background: var(--primary-color-lighter);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .modal-actions button.cancel {
@@ -498,7 +622,7 @@ body {
 }
 
 .modal-actions button.cancel:hover:not(:disabled) {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   border-color: var(--primary-color-lighter);
 }
 
@@ -508,35 +632,31 @@ body {
   filter: grayscale(1);
 }
 
-.modal-instructions p,
-.modal-instructions ul {
-  margin: 0;
-}
-
-.modal-instructions p {
-  margin-bottom: 8px;
-}
-
-.modal-instructions ul {
-  padding-left: 1.25rem;
-}
-
-.modal-instructions li {
-  line-height: 1.4;
-  margin-bottom: 4px;
-}
-
 /* ===================== ANIMATIONS ===================== */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

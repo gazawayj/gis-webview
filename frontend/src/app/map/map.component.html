@@ -41,27 +41,50 @@
     </div>
 
     <!-- Toolboxes -->
-    <div class="toolbar-wrapper horizontal-toolbar">
-      <div class="toolbar-label">Toolbox</div>
-      <div class="toolbar-buttons">
-        @for (tool of regularTools; track tool.type) {
-        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-          [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
-          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-        </button>
-        }
+    <div class="toolbar-row">
+
+      <div class="toolbar-wrapper horizontal-toolbar">
+        <div class="toolbar-label">Toolbox</div>
+        <div class="toolbar-buttons">
+          @for (tool of regularTools; track tool.type) {
+          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+            [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+          </button>
+          }
+        </div>
+      </div>
+
+      <div class="toolbar-wrapper horizontal-toolbar">
+        <div class="toolbar-label">AI Toolbox</div>
+        <div class="toolbar-buttons">
+          @for (tool of aiTools; track tool.type) {
+          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+            [title]="tool.name" [class.active]="activeTool === tool.type">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+          </button>
+          }
+        </div>
       </div>
     </div>
 
-    <div class="toolbar-wrapper horizontal-toolbar">
-      <div class="toolbar-label">AI Toolbox</div>
-      <div class="toolbar-buttons">
-        @for (tool of aiTools; track tool.type) {
-        <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-          [title]="tool.name" [class.active]="activeTool === tool.type">
-          <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-        </button>
-        }
+    <!-- Tooltip -->
+    <div class="hover-tooltip-panel">
+      <div class="tooltip-header">Feature Attributes</div>
+      <div class="tooltip-content">
+        <div *ngIf="hoverAttributes; else emptyTooltip">
+          <div class="stat-item" 
+               *ngFor="let attr of hoverAttributes | keyvalue"
+               [ngClass]="{'name': attr.key === 'Name'}">
+            <span class="stat-label">{{ attr.key }}:</span>
+            <span class="stat-value">{{ attr.value }}</span>
+          </div>
+        </div>
+        <ng-template #emptyTooltip>
+          <div class="tooltip-placeholder">
+            Hover over a feature to see details
+          </div>
+        </ng-template>
       </div>
     </div>
 
@@ -119,7 +142,7 @@
           <button class="close-btn" (click)="cancelAiFeatureFind()" [disabled]="isLoading">✕</button>
         </div>
         <div class="modal-body">
-          <div class="modal-instructions"> <!-- Wrapper for spacing fix -->
+          <div class="modal-instructions">
             <p>Use natural language to find a feature or a list of features on the <strong>currently selected
                 planet</strong>.</p>
             <ul>
@@ -127,11 +150,11 @@
               <li>“Five most interesting locations” (Mars)</li>
               <li>“Where is the biggest volcano?” (Moon)</li>
             </ul>
-          </div> <!-- End instructions -->
+          </div>
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
             [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
         </textarea>
-        </div> <!-- End body -->
+        </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
           <button class="primary" [disabled]="!aiPrompt.trim() || isLoading"

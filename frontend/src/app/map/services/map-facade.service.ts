@@ -1,127 +1,124 @@
-import { Injectable, NgZone, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { toLonLat, fromLonLat } from 'ol/proj';
+import { fromLonLat } from 'ol/proj';
+
 import { LayerManagerService } from './layer-manager.service';
+import { MapEventService } from './map-event.service';
 import { LayerConfig } from '../models/layer-config.model';
 import { Tool } from '../tools/tool';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
-  private zone = inject(NgZone);
+
   private layerManager = inject(LayerManagerService);
-  map!: Map;
+  private mapEvents = inject(MapEventService);
+
+  private map!: Map;
+  private activePlugin?: Tool;
 
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
-  private activePlugin?: Tool;
-  private aiModalOpener?: () => void;
 
-  // Cache per planet: center + zoom
   private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
     earth: { center: fromLonLat([-105.1660, 39.7047]) as [number, number], zoom: 13 },
     moon: { center: [0, 0], zoom: 2 },
     mars: { center: [0, 0], zoom: 2 }
   };
 
-  getActivePlugin(): Tool | undefined {
-    return this.activePlugin;
-  }
+  // Expose observables from MapEventService
+  pointerState$ = this.mapEvents.pointerState$;
+  hoverFeature$ = this.mapEvents.hoverFeature$;
 
+  /** Returns the current selected planet */
   getCurrentPlanet(): 'earth' | 'moon' | 'mars' {
     return this.currentPlanet;
   }
 
-  trackPointer(callback: (lon: number, lat: number, zoom: number) => void) {
-    if (!this.map) return;
-    const view = this.map.getView();
-
-    const updateCache = () => {
-      const center = view.getCenter();
-      const zoom = view.getZoom();
-      if (center && center.length >= 2 && zoom !== undefined) {
-        this.planetViewCache[this.currentPlanet] = {
-          center: [center[0], center[1]],
-          zoom
-        };
-      }
-    };
-
-    // Track pointer move for display
-    this.map.on('pointermove', (evt: any) => {
-      const coord = evt.coordinate;
-      if (!coord) return;
-
-      this.zone.run(() => {
-        const [lon, lat] = toLonLat(coord);
-        callback(+lon.toFixed(6), +lat.toFixed(6), +(view.getZoom() ?? 2));
-        updateCache();
-      });
-    });
-
-    // Track panning/zooming
-    this.map.on('moveend', () => updateCache());
+  /** Returns the currently active tool/plugin */
+  getActivePlugin(): Tool | undefined {
+    return this.activePlugin;
   }
 
-  initMap(container: HTMLElement) {
+  /** Initializes the map */
+  initMap(container: HTMLElement): void {
     const view = new View();
+
     this.map = new Map({
       target: container,
       layers: [],
       view
     });
 
+    // Attach map to services
     this.layerManager.attachMap(this.map);
-    // Initialize planet using current state
+    this.mapEvents.attachMap(this.map);
+
+    // Load layers for the current planet
     this.layerManager.loadPlanet(this.currentPlanet);
-    // Restore cached/default view
+
+    // Apply cached view
     this.applyPlanetView(this.currentPlanet);
   }
 
-  setPlanet(planet: 'earth' | 'moon' | 'mars') {
+  /** Registers a right-click handler (for plugin context menus) */
+  registerContextMenuHandler(handler: () => void): void {
+    this.mapEvents.registerContextMenuHandler(handler);
+  }
+
+  /** Switches to a different planet and reloads its layers */
+  setPlanet(planet: 'earth' | 'moon' | 'mars'): void {
     if (!this.map || planet === this.currentPlanet) return;
+
     this.cancelActivePlugin();
     this.currentPlanet = planet;
+
+    // Delegate all layer loading to LayerManager
     this.layerManager.loadPlanet(planet);
-    // Restore last view for planet
+
+    // Apply cached view
     this.applyPlanetView(planet);
   }
 
-  private applyPlanetView(planet: 'earth' | 'moon' | 'mars') {
-    const view = this.map.getView();
-    const cached = this.planetViewCache[planet];
-    if (cached) {
-      view.setCenter(cached.center);
-      view.setZoom(cached.zoom);
-    }
-  }
-
-  activateTool(plugin?: Tool) {
+  /** Activates a tool/plugin on the map */
+  activateTool(plugin?: Tool): void {
     this.cancelActivePlugin();
-    if (!plugin) return;
+
+    if (!plugin || !this.map) return;
+
     this.activePlugin = plugin;
     plugin.activate(this.map);
   }
 
+  /** Saves the currently active plugin to a layer */
   saveByActivePlugin(name: string): LayerConfig | undefined {
     if (!this.activePlugin?.save) return undefined;
+
     const layer = this.activePlugin.save(name);
     if (!layer) return undefined;
+
     this.activePlugin.cancel();
     this.activePlugin = undefined;
+
     return layer;
   }
 
-  cancelActivePlugin() {
+  /** Cancels the currently active plugin */
+  cancelActivePlugin(): void {
     if (!this.activePlugin) return;
+
     this.activePlugin.cancel();
     this.activePlugin = undefined;
   }
 
-  registerAiModalOpener(fn: () => void) {
-    this.aiModalOpener = fn;
-  }
+  /** Applies cached view for a planet */
+  private applyPlanetView(planet: 'earth' | 'moon' | 'mars'): void {
+    if (!this.map) return;
 
-  openAiModal() {
-    this.aiModalOpener?.();
+    const view = this.map.getView();
+    const cached = this.planetViewCache[planet];
+    if (!cached) return;
+
+    view.setCenter(cached.center);
+    view.setZoom(cached.zoom);
   }
 }
