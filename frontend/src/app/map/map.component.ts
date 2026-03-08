@@ -217,14 +217,13 @@ export class MapComponent implements AfterViewInit {
     if (isSubdivision) {
       addIfValid('Name', props['SUBNAME'] || props['NAME']);
       addIfValid('Subdivision Code', props['SUBCD'] || props['SUBCODE']);
-
       if (geom && (geom instanceof Polygon || geom instanceof MultiPolygon)) {
         const areaMeters = geom.getArea();
         const perimeterMeters = this.computePerimeter(geom);
 
         if (areaMeters > 0) {
-          cleaned['Area'] = areaMeters >= 1_000_000
-            ? `${(areaMeters / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km²`
+          cleaned['Area'] = areaMeters >= 1000
+            ? `${(areaMeters / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km²`
             : `${areaMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
         }
 
@@ -234,7 +233,6 @@ export class MapComponent implements AfterViewInit {
             : `${perimeterMeters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
         }
       }
-
       return Object.keys(cleaned).length ? cleaned : null;
     }
 
