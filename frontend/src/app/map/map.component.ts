@@ -35,7 +35,6 @@ import { HttpClient } from '@angular/common/http';
 import Feature, { FeatureLike } from 'ol/Feature';
 import { Polygon, MultiPolygon, Point, LineString } from 'ol/geom';
 import Papa from 'papaparse';
-import { MapBrowserEvent } from 'ol';
 
 @Component({
   selector: 'app-map',
@@ -326,35 +325,6 @@ export class MapComponent implements AfterViewInit {
       width: '480px'
     });
   }
-
-  /** -------------------- KD-Tree Creation for All Layers -------------------- **/
-async buildKdTreesForAllLayers(): Promise<void> {
-  const layers = this.layerManager.planetCache[this.currentPlanet] || [];
-  if (!layers.length) return;
-
-  this.isLoading = true;
-  this.loadingMessage = 'Building KD-trees for all layers...';
-  this.cdr.detectChanges();
-
-  // Create a temporary LayerDistanceToolPlugin instance to use its KD-tree logic
-  const tempPlugin = new LayerDistanceToolPlugin(this.layerManager);
-
-  try {
-    for (const layer of layers) {
-      if (!layer.features || !layer.features.length) continue;
-
-      // Force KD-tree creation by calling getKDTree
-      // @ts-ignore access private method for batch build
-      tempPlugin.getKDTree(layer);
-    }
-  } catch (err) {
-    console.error('Error building KD-trees:', err);
-  } finally {
-    this.isLoading = false;
-    this.loadingMessage = '';
-    this.cdr.detectChanges();
-  }
-}
 
   toggleLayer(layer: LayerConfig): void { this.layerManager.toggle(layer); }
   removeLayer(layer: LayerConfig): void { this.layerManager.remove(layer); }

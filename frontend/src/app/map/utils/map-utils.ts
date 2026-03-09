@@ -44,11 +44,14 @@ export class KDNode {
 
 /**
  * Lightweight 2D KD-Tree for fast nearest-neighbor searches
+ * Stores all points internally for easy access.
  */
 export class KDTree {
   root: KDNode | null;
+  points: [number, number][]; // <-- store points here
 
   constructor(points: [number, number][]) {
+    this.points = points;           // save points
     this.root = this.build(points, 0);
   }
 

@@ -15,7 +15,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   onConfirmComplete?: () => void;
 
   private _closestPair: [[number, number], [number, number]] | null = null;
-
   private kdCache = new Map<string, KDTree>();
   private layerFeatureCounts = new Map<string, number>();
 
@@ -50,17 +49,14 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
           case 'Point':
             coords.push(toLonLatFunc((geom as Point).getCoordinates()));
             break;
-
           case 'LineString':
             (geom as LineString).getCoordinates().forEach(c => coords.push(toLonLatFunc(c)));
             break;
-
           case 'Polygon': {
             const ringCoords = (geom as Polygon).getLinearRing(0)?.getCoordinates();
             if (ringCoords) ringCoords.forEach(c => coords.push(toLonLatFunc(c)));
             break;
           }
-
           case 'MultiPolygon': {
             (geom as MultiPolygon).getPolygons().forEach(p => {
               const ringCoords = p.getLinearRing(0)?.getCoordinates();
@@ -68,7 +64,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
             });
             break;
           }
-
           default:
             break;
         }
@@ -78,7 +73,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   }
 
   /** -------------------- KD-Tree Management -------------------- **/
-
   private getKDTree(layer: LayerConfig): KDTree {
     const points = this.getLayerPoints(layer);
     const lastCount = this.layerFeatureCounts.get(layer.id) ?? -1;
@@ -92,7 +86,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   }
 
   /** -------------------- Centroid Prefiltering -------------------- **/
-
   private getLayerCentroids(layer: LayerConfig): [number, number][] {
     const centroids: [number, number][] = [];
     const toLonLatFunc = (c: number[]) => toLonLat([c[0], c[1]]) as [number, number];
@@ -109,7 +102,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
       } else if (geom instanceof Polygon) {
         centroids.push(toLonLatFunc(geom.getInteriorPoint().getCoordinates()));
       } else if (geom instanceof MultiPolygon) {
-        // Use first polygon's interior point as approximate centroid
         const firstPoly = geom.getPolygons()[0];
         if (firstPoly) centroids.push(toLonLatFunc(firstPoly.getInteriorPoint().getCoordinates()));
       }
@@ -119,7 +111,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   }
 
   /** -------------------- Distance Computation -------------------- **/
-
   computeDistance(layerA: LayerConfig, layerB: LayerConfig): number {
     const pointsA = this.getLayerPoints(layerA);
     const pointsB = this.getLayerPoints(layerB);
@@ -128,10 +119,9 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     const centroidsA = this.getLayerCentroids(layerA);
     const centroidsB = this.getLayerCentroids(layerB);
 
-    // Early exit threshold
     const EARLY_EXIT_DISTANCE = 1e7; // 10,000 km
-
     let minCentroidDistance = Infinity;
+
     centroidsA.forEach(cA => {
       centroidsB.forEach(cB => {
         const dist = getLength(new LineString([cA, cB]), {
@@ -144,7 +134,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
 
     if (minCentroidDistance > EARLY_EXIT_DISTANCE) return minCentroidDistance;
 
-    // KD-tree search
     const treeB = this.getKDTree(layerB);
     const radius = PLANETS[this.layerManager.currentPlanet].radius;
     let minDistance = Infinity;
@@ -165,7 +154,6 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   }
 
   /** -------------------- Feature Drawing Helpers -------------------- **/
-
   private createDistanceFeature(
     geom: LineString | Point,
     featureType: 'point' | 'vertex' | 'line' | 'label',
@@ -196,10 +184,10 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
       if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
     });
 
-    const lineFeature = this.createDistanceFeature(this.createLine([cA, cB]), 'line');
+    const lineFeature = this.createDistanceFeature(this.createLine([cA, cB], { alreadyProjected: false }), 'line');
     const midpoint = this.getMidpoint(cA, cB);
     const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
-    const labelFeature = this.createDistanceFeature(this.createPoint(midpoint), 'label', text, lineFeature);
+    const labelFeature = this.createDistanceFeature(this.createPoint(midpoint, { alreadyProjected: false }), 'label', text, lineFeature);
 
     this.tempSource.addFeatures([lineFeature, labelFeature]);
   }
@@ -226,10 +214,11 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
 
     const [cA, cB] = this._closestPair;
 
-    const lineFeature = this.createFeature(this.createLine([cA, cB]), 'line');
+    const lineFeature = this.createFeature(this.createLine([cA, cB], { alreadyProjected: false }), 'line');
     const midpoint = this.getMidpoint(cA, cB);
     const text = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
-    const labelFeature = this.createFeature(this.createPoint(midpoint), 'label', text);
+    const labelFeature = this.createFeature(this.createPoint(midpoint, { alreadyProjected: false }), 'label', text);
+
     this.tempSource.addFeatures([lineFeature, labelFeature]);
 
     const savedLayer = await this.saveAsync(`dist: ${lA.name} to ${lB.name}`);

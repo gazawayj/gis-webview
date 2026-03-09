@@ -8,7 +8,7 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
 import Point from 'ol/geom/Point';
 import { Polygon, MultiPolygon, LineString } from 'ol/geom';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import VectorLayer from 'ol/layer/Vector';
 import VectorImageLayer from 'ol/layer/VectorImage';
 import TileLayer from 'ol/layer/Tile';
@@ -22,6 +22,7 @@ import { StyleService } from './style.service';
 import { ShapeType } from '../constants/symbol-constants';
 import { createVectorLayerFactory, LayerFactory } from '../factories/layer.factory';
 import { formatAreaPerimeter } from '../utils/map-utils';
+import { KDTree } from '../utils/map-utils';
 
 type Planet = 'earth' | 'moon' | 'mars';
 
@@ -90,7 +91,6 @@ export class LayerManagerService {
   }
 
   applyHoverStyle(feature: Feature | null): void {
-
     if (!feature) return;
 
     if (this.previousHoverFeature && this.previousHoverFeature !== feature) {
@@ -101,11 +101,7 @@ export class LayerManagerService {
     if (!layer) return;
 
     const baseColor = feature.get('color') || layer.color || '#888888';
-
-    feature.set(
-      'hoverColor',
-      this.styleService.brightenHex(baseColor, 2.5)
-    );
+    feature.set('hoverColor', this.styleService.brightenHex(baseColor, 2.5));
 
     layer.olLayer.changed();
     this._map?.renderSync();
@@ -115,13 +111,11 @@ export class LayerManagerService {
   }
 
   resetFeatureStyle(feature: Feature | null): void {
-
     if (!feature) return;
 
     feature.set('hoverColor', null);
 
     const layer = this.getLayerForFeature(feature);
-
     if (layer?.olLayer) {
       layer.olLayer.changed();
       this._map?.renderSync();
@@ -168,7 +162,6 @@ export class LayerManagerService {
 
           const type = geom.getType();
 
-          // Assign featureType for every geometry
           if (type === 'Point' || type === 'MultiPoint') {
             f.set('featureType', 'point');
           } else if (type === 'LineString' || type === 'MultiLineString') {
@@ -200,7 +193,7 @@ export class LayerManagerService {
           }
         });
 
-        this.createLayer({
+        const layer = this.createLayer({
           planet: params.planet,
           name: params.name,
           features: isSubdivision ? polygonFeatures : features,
@@ -239,13 +232,30 @@ export class LayerManagerService {
     this.intendedPlanet = planet;
     const basemap = this.createBasemap(planet);
     if (this._map && !this._map.getLayers().getArray().includes(basemap.olLayer)) this._map.addLayer(basemap.olLayer);
+
+    // Load built-in vector layers and build KD-trees automatically
     if (planet === 'earth') {
-      this.loadGeoJSONLayer({ planet: 'earth', name: 'Subdivisions', url: 'assets/layers/Subdivision.geojson', color: this.subdivisionColor$.value });
-      this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes'));
+      this.loadGeoJSONLayer({
+        planet: 'earth',
+        name: 'Subdivisions',
+        url: 'assets/layers/Subdivision.geojson',
+        color: this.subdivisionColor$.value
+      });
+      this.http.get(EARTHQUAKE_GEOJSON_URL, { responseType: 'text' }).subscribe(g => {
+        const layer = this.addManualLayer('earth', 'Earthquakes', 'USGS Earthquakes', g, 'GeoJSON', undefined, undefined, 'system-earthquakes');
+        if (layer) this.buildKDTree(layer);
+      });
     }
+
     if (planet === 'mars') {
-      this.loadGeoJSONLayer({ planet: 'mars', name: 'Surface Ice', url: 'assets/layers/surface_ice_mars.geojson', color: '#00ffff' });
+      this.loadGeoJSONLayer({
+        planet: 'mars',
+        name: 'Surface Ice',
+        url: 'assets/layers/surface_ice_mars.geojson',
+        color: '#00ffff'
+      });
     }
+
     this.planetInitialized[planet] = true;
   }
 
@@ -266,19 +276,27 @@ export class LayerManagerService {
     tileExtent?: number[];
     cache?: boolean;
   }): LayerConfig {
+    // Allocate style and shape
     const allocation = this.styleService.allocateLayerStyle(params.planet);
     const finalColor = params.color || allocation.color;
     const finalShape = params.shape || allocation.shape;
+
+    // Resolve unique layer name
     const resolvedName = params.name ? this.resolveLayerName(params.planet, params.name) : `Layer_${Date.now()}`;
     const layerId = params.id || this.generateLayerId(resolvedName, params.planet);
+
+    // Clone features and set layerId
     const layerFeatures: Feature[] = (params.features || [])
       .filter((f): f is Feature => f instanceof Feature)
       .map(f => {
-        const cloned = this.cloneFeature(f, { shape: finalShape, layerId: layerId });
+        const cloned = this.cloneFeature(f, { shape: finalShape, layerId });
         cloned.set('layerId', layerId);
         return cloned;
       });
+
     let layerConfig: LayerConfig;
+
+    // Handle tile layers
     if (params.olLayer && (params.isTileLayer || params.olLayer instanceof TileLayer)) {
       layerConfig = {
         id: layerId,
@@ -296,13 +314,12 @@ export class LayerManagerService {
         tileExtent: params.tileExtent
       };
     } else {
+      // Create vector layer
       const source = new VectorSource({ features: layerFeatures });
-      let layer: VectorLayer | VectorImageLayer;
-      if (params.useVectorImage) {
-        layer = new VectorImageLayer({ source });
-      } else {
-        layer = new VectorLayer({ source, updateWhileInteracting: true, updateWhileAnimating: true });
-      }
+      const layer = params.useVectorImage
+        ? new VectorImageLayer({ source })
+        : new VectorLayer({ source, updateWhileInteracting: true, updateWhileAnimating: true });
+
       layerConfig = {
         id: layerId,
         planet: params.planet,
@@ -317,17 +334,49 @@ export class LayerManagerService {
         isTemporary: params.isTemporary || false
       };
     }
+
+    /** ---------------- KD-Tree Construction ---------------- **/
+    const kdPoints: [number, number][] = [];
+
+    layerFeatures.forEach(f => {
+      const geom = f.getGeometry();
+      if (!geom) return;
+
+      if (geom instanceof Point) {
+        kdPoints.push(geom.getCoordinates() as [number, number]);
+
+      } else if (geom instanceof Polygon) {
+        // Flatten all rings of polygon
+        geom.getCoordinates().forEach(ring =>
+          ring.forEach(coord => kdPoints.push(coord as [number, number]))
+        );
+
+      } else if (geom instanceof MultiPolygon) {
+        // Flatten all polygons and rings
+        geom.getPolygons().forEach(polygon =>
+          polygon.getCoordinates().forEach(ring =>
+            ring.forEach(coord => kdPoints.push(coord as [number, number]))
+          )
+        );
+      }
+    });
+
+    if (kdPoints.length > 0) {
+      layerConfig.kdTree = new KDTree(kdPoints);
+    }
+
     // --- Insert into caches ---
     this.registry.set(layerConfig.id, layerConfig);
     if (!params.isTemporary && params.cache !== false) {
-      // Unshift into planetCache so it appears at top
       const planetLayers = this.planetCache[params.planet] || [];
       planetLayers.unshift(layerConfig);
       this.planetCache[params.planet] = planetLayers;
     }
+
     // Insert into dragOrder after basemaps
     const basemapCount = this.dragOrder.filter(l => l.isBasemap).length;
     this.dragOrder.splice(basemapCount, 0, layerConfig);
+
     // Add OL layer to map
     if (this._map) this._map.addLayer(layerConfig.olLayer);
     // Update style and z-index
@@ -336,6 +385,40 @@ export class LayerManagerService {
     // Refresh sidebar immediately
     this.refreshLayersForPlanet(params.planet);
     return layerConfig;
+  }
+
+  /** Build and cache KD-tree for fast nearest-neighbor queries */
+  buildKDTree(layer: LayerConfig): void {
+    if (!layer.features || layer.features.length === 0) return;
+
+    const kdPoints: [number, number][] = [];
+
+    layer.features.forEach(f => {
+      const geom = f.getGeometry();
+      if (!geom) return;
+
+      const pushCoord = (c: [number, number]) => kdPoints.push(c);
+
+      if (geom instanceof Point) {
+        pushCoord(geom.getCoordinates() as [number, number]);
+
+      } else if (geom instanceof Polygon) {
+        geom.getCoordinates().forEach(ring =>
+          ring.forEach(c => pushCoord(c as [number, number]))
+        );
+
+      } else if (geom instanceof MultiPolygon) {
+        geom.getPolygons().forEach(p =>
+          p.getCoordinates().forEach(ring =>
+            ring.forEach(c => pushCoord(c as [number, number]))
+          )
+        );
+      }
+    });
+
+    if (kdPoints.length > 0) {
+      layer.kdTree = new KDTree(kdPoints);
+    }
   }
 
   updateStyle(layer: LayerConfig) {
@@ -430,7 +513,6 @@ export class LayerManagerService {
     const planetLayers = this.planetCache[p] || [];
     const basemaps = this.dragOrder.filter(l => l.isBasemap);
     const nonBasemaps = planetLayers.filter(l => !l.isBasemap);
-    // Sidebar order: imported/user layers at top, basemap at bottom
     const ordered = [...nonBasemaps, ...basemaps];
     this.layersSubject.next(ordered);
   }
@@ -450,4 +532,5 @@ export class LayerManagerService {
     if (!clone.getId()) clone.setId(crypto.randomUUID());
     return clone;
   }
+
 }

@@ -24,5 +24,6 @@ export interface LayerConfig {
   isTemporary?: boolean;
   isBasemap?: boolean;
   isHighRes?: boolean;
+  kdTree?: any;
   styleFn?: (f: FeatureLike) => Style | Style[];
 }

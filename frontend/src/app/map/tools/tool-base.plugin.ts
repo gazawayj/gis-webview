@@ -260,12 +260,24 @@ export abstract class ToolPluginBase implements Tool {
     return this.tempSource?.getFeatures() ?? [];
   }
 
-  protected createLine(coords: [number, number][]): LineString {
-    return new LineString(coords.map(c => fromLonLat(c)));
+  protected createLine(
+    coords: [number, number][],
+    options?: { alreadyProjected?: boolean } // true = coordinates are already in map projection
+  ): LineString {
+    const processed = options?.alreadyProjected
+      ? coords
+      : coords.map(c => fromLonLat(c) as [number, number]);
+    return new LineString(processed);
   }
 
-  protected createPoint(coord: [number, number]): Point {
-    return new Point(fromLonLat(coord));
+  protected createPoint(
+    coord: [number, number],
+    options?: { alreadyProjected?: boolean }
+  ): Point {
+    const processed = options?.alreadyProjected
+      ? coord
+      : (fromLonLat(coord) as [number, number]);
+    return new Point(processed);
   }
 
   protected abstract onActivate(): void;
