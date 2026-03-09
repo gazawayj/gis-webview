@@ -25,8 +25,6 @@ export function formatAreaPerimeter( areaMeters: number, perimeterMeters: number
   };
 }
 
-/** -------------------- KD-Tree Utilities -------------------- **/
-
 /**
  * Node of a 2D KD-Tree
  */

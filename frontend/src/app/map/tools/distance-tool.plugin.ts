@@ -7,18 +7,31 @@ import { PLANETS } from '../constants/map-constants';
 import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
 
+/**
+ * Tool plugin for measuring distances on the map.
+ * Allows drawing line segments with live distance labels and final vertex markers.
+ */
 export class DistanceToolPlugin extends ToolPluginBase {
+  /** Tool type identifier */
   name = 'distance';
 
+  /** Draw interaction for LineString */
   private drawInteraction?: Draw;
+
+  /** Current line feature being drawn */
   private currentFeature?: Feature;
+
+  /** Temporary segment labels for live distance display */
   private liveSegmentLabels: Feature[] = [];
+
+  /** Vertex features for the completed line */
   private vertices: Feature[] = [];
 
   constructor(layerManager: LayerManagerService) {
     super(layerManager);
   }
 
+  /** Activates line drawing interaction and live labels */
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
 
@@ -30,6 +43,7 @@ export class DistanceToolPlugin extends ToolPluginBase {
 
     this.registerInteraction(this.drawInteraction);
 
+    // Start drawing line
     this.drawInteraction.on('drawstart', (evt: any) => {
       this.currentFeature = evt.feature as Feature;
 
@@ -41,12 +55,14 @@ export class DistanceToolPlugin extends ToolPluginBase {
       this.vertices = [];
     });
 
+    // Finish drawing on double-click
     this.registerMapListener('dblclick', (evt: any) => {
       if (!this.currentFeature) return;
       this.drawInteraction?.finishDrawing();
       evt.preventDefault();
     });
 
+    // Handle draw end: add vertices and final labels
     this.drawInteraction.on('drawend', () => {
       if (!this.currentFeature) return;
 
@@ -75,6 +91,10 @@ export class DistanceToolPlugin extends ToolPluginBase {
     this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => { if (evt.key === 'Escape') this.cancel(); });
   }
 
+  /**
+ * Updates live distance label for the latest segment while drawing
+ * @param pointer Current pointer coordinates in map projection
+ */
   private updateLiveLabels(pointer: [number, number]) {
     if (!this.currentFeature || !this.tempSource) return;
 
@@ -105,6 +125,12 @@ export class DistanceToolPlugin extends ToolPluginBase {
     }
   }
 
+  /**
+   * Adds distance labels to all segments of a finished line
+   * @param coords Line coordinates
+   * @param isLive Whether labels are live-moving (false for final)
+   * @param parent Parent line feature
+   */
   private addSegmentLabels(coords: [number, number][], isLive: boolean, parent: Feature) {
     if (!this.tempSource) return;
 
@@ -130,8 +156,9 @@ export class DistanceToolPlugin extends ToolPluginBase {
     }
   }
 
+  /** Removes all live segment labels from the temporary layer */
   private clearLiveLabels() {
-    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch (err) { console.error('Error: ', err) }  });
+    this.liveSegmentLabels.forEach(l => { try { this.tempSource?.removeFeature(l); } catch (err) { console.error('Error: ', err) } });
     this.liveSegmentLabels = [];
   }
 }

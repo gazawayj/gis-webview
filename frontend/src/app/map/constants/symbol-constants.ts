@@ -1,3 +1,4 @@
+/** Supported shapes for point/vertex features */
 export const SHAPES = [
   'circle',
   'square',
@@ -10,8 +11,10 @@ export const SHAPES = [
   'line'
 ];
 
+/** Type alias for shape strings */
 export type ShapeType = typeof SHAPES[number];
 
+/** Default color palette for layers and tool features */
 export const COLOR_PALETTE = [
   '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231',
   '#911eb4','#46f0f0','#f032e6','#d3e05f','#fabebe',

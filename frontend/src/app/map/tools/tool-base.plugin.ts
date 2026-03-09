@@ -13,6 +13,11 @@ import { LineString, Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
 import { XYZ } from 'ol/source';
 
+/**
+ * Abstract base class for map tools/plugins.
+ * Provides common logic for temporary layers, feature creation, interactions,
+ * map/DOM event management, and saving features to permanent layers.
+ */
 export abstract class ToolPluginBase implements Tool {
   abstract name: string;
 
@@ -27,7 +32,12 @@ export abstract class ToolPluginBase implements Tool {
 
   constructor(protected layerManager: LayerManagerService) { }
 
-  // ----------------------- Activation -----------------------
+  /**
+   * Activates the tool by creating a temporary vector layer on the map.
+   * Allocates style and sets up dynamic style function.
+   * Calls onActivate hook for plugin-specific logic.
+   * @param map OpenLayers Map instance
+   */
   activate(map: OlMap): void {
     this.map = map;
 
@@ -69,6 +79,10 @@ export abstract class ToolPluginBase implements Tool {
     this.onActivate();
   }
 
+  /**
+   * Deactivates the tool by removing temporary layer and cleaning resources.
+   * Calls onDeactivate hook for plugin-specific cleanup.
+   */
   deactivate(): void {
     this.onDeactivate();
     this.cleanupRegisteredResources();
@@ -80,11 +94,19 @@ export abstract class ToolPluginBase implements Tool {
     this.activeLayer = undefined;
   }
 
+  /**
+   * Cancels tool operation, alias for deactivate.
+   */
   cancel(): void {
     this.deactivate();
   }
 
-  // ----------------------- Utilities -----------------------
+  /**
+   * Animates the map view to fit a series of coordinates.
+   * Optionally calls a callback after each point.
+   * @param coords Array of [lon, lat] points
+   * @param options Optional settings for callback and min/max zoom
+   */
   protected async flyToCoordinates(
     coords: [number, number][],
     options?: { addPointCallback?: (lon: number, lat: number) => void; minZoom?: number; maxZoom?: number }
@@ -150,27 +172,50 @@ export abstract class ToolPluginBase implements Tool {
     }
   }
 
+  /**
+   * Async wrapper around synchronous save().
+   * @param name Layer name
+   * @returns Created LayerConfig or null
+   */
   protected saveAsync(name: string): Promise<LayerConfig | null> {
     return Promise.resolve(this.save(name));
   }
 
+  /**
+  * Registers an OpenLayers interaction for cleanup on deactivate.
+  * @param interaction Interaction instance
+  */
   protected registerInteraction(interaction: Interaction): void {
     if (!this.map) return;
     this.map.addInteraction(interaction);
     this.interactions.push(interaction);
   }
 
+  /**
+   * Registers a map event listener for cleanup on deactivate.
+   * @param type Event type string
+   * @param handler Callback function
+   */
   protected registerMapListener(type: string, handler: any): void {
     if (!this.map) return;
     this.map.on(type as any, handler);
     this.mapListeners.push({ type, handler });
   }
 
+  /**
+   * Registers a DOM event listener for cleanup on deactivate.
+   * @param target DOM element
+   * @param type Event type string
+   * @param handler Callback function
+   */
   protected registerDomListener(target: EventTarget, type: string, handler: any): void {
     target.addEventListener(type, handler);
     this.domListeners.push({ target, type, handler });
   }
 
+  /**
+   * Removes all registered interactions and listeners.
+   */
   private cleanupRegisteredResources(): void {
     this.interactions.forEach((i) => this.map?.removeInteraction(i));
     this.interactions = [];
@@ -182,7 +227,12 @@ export abstract class ToolPluginBase implements Tool {
     this.domListeners = [];
   }
 
-  // ----------------------- Save / Feature Helpers -----------------------
+  /**
+ * Saves all temporary tool features to a permanent layer.
+ * Separates TileLayers and clones vector features.
+ * @param name Name of the layer
+ * @returns Newly created LayerConfig or null if no features
+ */
   save(name: string): LayerConfig | null {
     if (!this.tempSource || !this.activeLayer) return null;
 
@@ -233,6 +283,16 @@ export abstract class ToolPluginBase implements Tool {
     return newLayer;
   }
 
+  /**
+ * Creates a new OL Feature for this tool.
+ * Sets featureType, parent reference, and optional text label.
+ * @param geom OL Geometry instance
+ * @param featureType Type of feature ('point'|'vertex'|'pointerVertex'|'line'|'label'|'polygon')
+ * @param text Optional text label
+ * @param parentFeature Optional parent feature
+ * @param isToolFeature Defaults to true
+ * @returns OL Feature instance
+ */
   protected createFeature(
     geom: import('ol/geom').Geometry,
     featureType: 'point' | 'vertex' | 'pointerVertex' | 'line' | 'label' | 'polygon',
@@ -256,10 +316,20 @@ export abstract class ToolPluginBase implements Tool {
     return f;
   }
 
+  /**
+   * Returns all current features in the temporary layer.
+   * @returns Array of FeatureLike
+   */
   getFeatures(): FeatureLike[] {
     return this.tempSource?.getFeatures() ?? [];
   }
 
+  /**
+   * Creates a LineString from coordinates, projecting if needed.
+   * @param coords Array of [lon, lat] points
+   * @param options Options for already-projected coordinates
+   * @returns OL LineString
+   */
   protected createLine(
     coords: [number, number][],
     options?: { alreadyProjected?: boolean } // true = coordinates are already in map projection
@@ -270,6 +340,12 @@ export abstract class ToolPluginBase implements Tool {
     return new LineString(processed);
   }
 
+  /**
+  * Creates a Point from coordinates, projecting if needed.
+  * @param coord [lon, lat] coordinate
+  * @param options Options for already-projected coordinates
+  * @returns OL Point
+  */
   protected createPoint(
     coord: [number, number],
     options?: { alreadyProjected?: boolean }

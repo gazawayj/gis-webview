@@ -1,11 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-
 import { ToolType, ToolDefinition } from '../models/tool-definition.model';
 import { LayerManagerService } from './layer-manager.service';
 import { StyleService } from './style.service';
-
 import { CoordinateCapturePlugin } from '../tools/coordinate-capture.plugin';
 import { DistanceToolPlugin } from '../tools/distance-tool.plugin';
 import { AreaToolPlugin } from '../tools/area-tool.plugin';
@@ -13,26 +11,37 @@ import { AIAnalysisPlugin } from '../tools/ai-analysis.plugin';
 import { LayerDistanceToolPlugin } from '../tools/layer-distance-tool.plugin';
 import { HighResSelectionPlugin } from '../tools/highres-selection.plugin';
 
+/**
+ * Service managing map tools and plugins.
+ * Tracks the active tool and provides creation of plugin instances.
+ */
 @Injectable({ providedIn: 'root' })
 export class ToolService {
-
+  /** Style service for AI tools */
   private styleService = inject(StyleService);
 
+  /** Currently active tool state as observable */
   private activeToolSubject = new BehaviorSubject<ToolType>('none');
   public readonly activeTool$ = this.activeToolSubject.asObservable();
 
+  /**
+   * Sets the active tool if different from the current one
+   * @param tool - ToolType to activate
+   */
   setActiveTool(tool: ToolType): void {
     if (this.activeToolSubject.value === tool) return;
     this.activeToolSubject.next(tool);
   }
 
+  /**
+   * Clears the active tool to 'none'
+   */
   clearTool(): void {
     if (this.activeToolSubject.value === 'none') return;
     this.activeToolSubject.next('none');
   }
 
-
-   //Tool registry. Defined once and treated as immutable.
+  /** Immutable registry of all tools and their plugin factories */
   private readonly toolRegistry: ToolDefinition[] = [
     {
       name: 'Coordinate Capture Tool',
@@ -77,13 +86,16 @@ export class ToolService {
     }
   ];
 
-
-   // Map for constant-time lookup of tools.
+  /** Lookup map for constant-time access by ToolType */
   private readonly toolMap: Map<ToolType, ToolDefinition> =
     new Map(this.toolRegistry.map(t => [t.type, t]));
 
-
-   // Plugin creation.
+  /**
+  * Creates a plugin instance for a tool.
+  * @param tool - ToolType to create
+  * @param layerManager - LayerManagerService instance
+  * @param http - Optional HttpClient (needed for AI tools)
+  */
   createPlugin(
     tool: ToolType,
     layerManager: LayerManagerService,
@@ -96,13 +108,13 @@ export class ToolService {
   }
 
 
-   // Regular (non-AI) tools.
+  /** Returns tools that are non-AI */
   get regularTools(): ToolDefinition[] {
     return this.toolRegistry.filter(t => !t.type.startsWith('ai-'));
   }
 
 
-   // AI-based tools.
+  /** Returns tools that are AI-based */
   get aiTools(): ToolDefinition[] {
     return this.toolRegistry.filter(t => t.type.startsWith('ai-'));
   }

@@ -7,6 +7,10 @@ import { LayerManagerService } from '../services/layer-manager.service';
 import { ToolPluginBase } from './tool-base.plugin';
 import VectorSource from 'ol/source/Vector';
 
+/**
+ * Polygon area measurement tool plugin.
+ * Allows drawing polygons, computes area, and displays live label updates.
+ */
 export class AreaToolPlugin extends ToolPluginBase {
   name = 'area-tool';
 
@@ -17,6 +21,7 @@ export class AreaToolPlugin extends ToolPluginBase {
     super(layerManager);
   }
 
+  /** Activates polygon drawing interaction and live labels */
   protected override onActivate(): void {
     if (!this.map || !this.tempSource) return;
     this.drawInteraction = new Draw({ source: this.tempSource, type: 'Polygon' });
@@ -64,6 +69,7 @@ export class AreaToolPlugin extends ToolPluginBase {
     });
   }
 
+  /** Deactivates tool and clears drawing */
   protected override onDeactivate(): void {
     if (this.drawInteraction) {
       this.drawInteraction.abortDrawing();
@@ -77,6 +83,7 @@ export class AreaToolPlugin extends ToolPluginBase {
     this.currentFeature = undefined;
   }
 
+  /** Updates live label for polygon as user moves pointer */
   private updatePolygonFeature(feature: Feature): void {
     const geom = feature.getGeometry() as Polygon;
     if (!geom) return;
@@ -101,6 +108,7 @@ export class AreaToolPlugin extends ToolPluginBase {
     this.tempSource?.addFeature(labelFeature);
   }
 
+  /** Computes centroid of a polygon ring */
   private getPolygonCentroid(coords: [number, number][]): [number, number] {
     if (!coords.length) return [0, 0];
     const sum = coords.reduce((acc, c) => [acc[0] + c[0], acc[1] + c[1]], [0, 0]);

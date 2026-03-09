@@ -17,6 +17,11 @@ export interface ModalOptions {
 export class ModalFactoryService {
   private overlay = inject(Overlay);
 
+  /**
+   * Opens a modal overlay using the provided template and options.
+   * @param options Modal configuration
+   * @returns OverlayRef for controlling the modal
+   */
   open(options: ModalOptions): OverlayRef {
     // Use provided panelClass or default to 'layer-modal' for modals
     const panelClass = options.panelClass ?? 'layer-modal';
@@ -38,10 +43,19 @@ export class ModalFactoryService {
     return overlayRef;
   }
 
+  /**
+   * Closes the specified modal overlay.
+   * @param overlayRef OverlayRef instance to close
+   */
   close(overlayRef?: OverlayRef) {
     overlayRef?.dispose();
   }
 
+  /**
+   * Generates an OpenLayers OverlayConfig based on ModalOptions.
+   * @param options Modal configuration
+   * @returns OverlayConfig object for overlay creation
+   */
   private getOverlayConfig(options: ModalOptions): OverlayConfig {
     return new OverlayConfig({
       hasBackdrop: options.hasBackdrop ?? true,

@@ -4,17 +4,36 @@ import { SHAPES, COLOR_PALETTE, ShapeType } from '../constants/symbol-constants'
 
 type Planet = 'earth' | 'moon' | 'mars';
 
+/**
+ * Service to manage styles for map layers and features.
+ * Handles color/shape allocation per planet and creates OpenLayers styles.
+ */
 @Injectable({ providedIn: 'root' })
 export class StyleService {
+  /** Tracks used colors per planet to avoid duplicates */
   private planetColorUsage: Record<Planet, Set<string>> = { earth: new Set(), moon: new Set(), mars: new Set() };
+
+  /** Tracks used shapes per planet to avoid duplicates */
   private planetShapeUsage: Record<Planet, Set<ShapeType>> = { earth: new Set(), moon: new Set(), mars: new Set() };
+
+  /** Caches assigned shapes per layer ID */
   private layerShapeCache = new Map<string, ShapeType>();
 
+  /**
+   * Resets the style tracking for a planet.
+   * @param planet - Planet whose color/shape usage is cleared
+   */
   resetPlanet(planet: Planet) {
     this.planetColorUsage[planet].clear();
     this.planetShapeUsage[planet].clear();
   }
 
+  /**
+   * Allocates a unique color and shape for a new layer on a planet.
+   * Ensures even distribution of colors/shapes, wrapping when exhausted.
+   * @param planet - Planet for which to allocate
+   * @returns Object with `color` and `shape`
+   */
   allocateLayerStyle(planet: Planet): { color: string; shape: ShapeType } {
     const usedColors = this.planetColorUsage[planet];
     const usedShapes = this.planetShapeUsage[planet];
@@ -32,10 +51,19 @@ export class StyleService {
     return { color, shape };
   }
 
+  /**
+   * Stores a fixed shape for a specific layer ID.
+   * @param layerId - ID of the layer
+   * @param shape - Shape to assign
+   */
   setLayerShape(layerId: string, shape: ShapeType) {
     this.layerShapeCache.set(layerId, shape);
   }
 
+  /**
+   * Returns an OpenLayers `Style` for a feature based on type.
+   * @param options - Options including type, baseColor, shape, text, and label position
+   */
   getLayerStyle(options: {
     type: 'point' | 'line' | 'label' | 'polygon',
     baseColor?: string,
@@ -85,6 +113,12 @@ export class StyleService {
     }
   }
 
+  /**
+   * Creates a point-style `ol/style` object based on shape type.
+   * Supports geometric shapes, arrows, and circles.
+   * @param shape - Shape type
+   * @param color - Fill color
+   */
   private createShapeImage(shape: ShapeType, color: string) {
     const lower = shape.toLowerCase();
     const pointsMap: Record<string, number> = { square: 4, triangle: 3, diamond: 4, pentagon: 5, hexagon: 6, star: 5 };
@@ -111,22 +145,26 @@ export class StyleService {
     return new CircleStyle({ radius: 5, fill: new Fill({ color }), stroke: new Stroke({ color: '#000', width: 1 }) });
   }
 
+  /**
+ * Brightens or darkens a hex color by a factor.
+ * @param hex - Input hex color (#rgb or #rrggbb)
+ * @param factor - Brightness factor (>1 to brighten, <1 to darken)
+ * @returns Adjusted hex color string
+ */
   brightenHex(hex: string, factor: number): string {
-    if (!hex || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 4)) return hex;
-    let r, g, b;
+    if (!hex?.startsWith('#')) return hex;
+
+    // Expand 3-digit hex to 6-digit
     if (hex.length === 4) {
-      r = parseInt(hex[1] + hex[1], 16);
-      g = parseInt(hex[2] + hex[2], 16);
-      b = parseInt(hex[3] + hex[3], 16);
-    } else {
-      r = parseInt(hex.substr(1, 2), 16);
-      g = parseInt(hex.substr(3, 2), 16);
-      b = parseInt(hex.substr(5, 2), 16);
+      hex = '#' + [...hex.slice(1)].map(c => c + c).join('');
     }
-    r = Math.min(255, Math.max(0, Math.round(r * factor)));
-    g = Math.min(255, Math.max(0, Math.round(g * factor)));
-    b = Math.min(255, Math.max(0, Math.round(b * factor)));
-    const toHex = (v: number) => v.toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+    // Convert each channel, scale, clamp, and convert back
+    const rgb = hex.slice(1).match(/.{2}/g)?.map(c =>
+      Math.min(255, Math.max(0, Math.round(parseInt(c, 16) * factor)))
+    );
+
+    if (!rgb) return hex;
+    return '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
   }
 }

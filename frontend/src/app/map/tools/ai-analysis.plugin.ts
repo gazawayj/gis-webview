@@ -7,15 +7,29 @@ import { boundingExtent, extend as extendExtent } from 'ol/extent';
 // Added OpenLayers Style imports
 import { Style, Fill, Stroke } from 'ol/style';
 
+/**
+ * AI-based analysis tool plugin.
+ * Queries an AI server for features matching a user prompt and plots points/labels on the map.
+ */
 export interface AIResult {
+  /** Feature name returned from AI */
   name: string;
+
+  /** Latitude in decimal degrees */
   lat: number;
+
+  /** Longitude in decimal degrees */
   lon: number;
+
+  /** Planet string: 'earth' | 'moon' | 'mars' */
   planet: string;
+
+  /** Optional descriptive details */
   details: string;
 }
 
 export class AIAnalysisPlugin extends ToolPluginBase {
+  /** Tool type identifier */
   name = 'ai-analysis';
   private aiResults: AIResult[] = [];
 
@@ -27,6 +41,10 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     super(layerManager);
   }
 
+  /**
+   * Executes an AI query and plots results on the map.
+   * @param prompt Text query to send to AI server
+   */
   async execute(prompt: string): Promise<void> {
     if (!prompt) return;
 
@@ -72,15 +90,24 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     await this.saveAsync(`${sanitizedName}_${timestamp}`);
   }
 
+  /** Hook called on tool activation */
   protected override onActivate(): void {
     if (!this.map || !this.tempSource || !this.activeLayer) return;
     this.aiResults = [];
   }
 
+  /** Hook called on tool deactivation */
   protected override onDeactivate(): void {
     this.aiResults = [];
   }
 
+  /**
+   * Adds point features to the temporary layer.
+   * Creates both point and optional label features.
+   * @param coords Array of [lon, lat] positions
+   * @param names Optional array of names for labels
+   * @param details Optional array of detail strings
+   */
   addPoints(coords: [number, number][], names?: string[], details?: string[]) {
     if (!this.tempSource) return;
 
@@ -101,10 +128,10 @@ export class AIAnalysisPlugin extends ToolPluginBase {
 
       const pointFeature = this.createFeature(this.createPoint(c), 'point');
       if (detail) pointFeature.set('details', detail);
-      
+
       // Apply the transparent style here
       pointFeature.setStyle(transparentStyle);
-      
+
       this.tempSource?.addFeature(pointFeature);
 
       if (name) {
@@ -121,6 +148,11 @@ export class AIAnalysisPlugin extends ToolPluginBase {
     });
   }
 
+  /**
+   * Sends the prompt to the AI server and parses results.
+   * @param prompt Query string
+   * @returns Array of AIResult
+   */
   async runAIQuery(prompt: string): Promise<AIResult[]> {
     if (!prompt || !this.map) return [];
 

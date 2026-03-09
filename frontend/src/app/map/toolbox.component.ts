@@ -23,10 +23,18 @@ import { ToolType, ToolDefinition } from './models/tool-definition.model';
   `]
 })
 export class ToolboxComponent {
+
+  /** Array of tools to display in the toolbox */
   @Input() tools: ToolDefinition[] = [];
+  /** Label for the toolbox section */
   @Input() label = 'Toolbox';
+  /** Emits the selected tool type when a tool button is clicked */
   @Output() toolSelected = new EventEmitter<ToolType>();
 
+  /**
+   * Emits the selected tool to the parent component.
+   * @param tool ToolType string of the selected tool
+   */
   select(tool: ToolType) {
     this.toolSelected.emit(tool);
   }

@@ -1,15 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import Map from 'ol/Map';
-import View from 'ol/View';
 import { fromLonLat } from 'ol/proj';
-
 import { Subject } from 'rxjs';
-
 import { LayerManagerService } from './layer-manager.service';
 import { MapEventService } from './map-event.service';
 import { LayerConfig } from '../models/layer-config.model';
 import { Tool } from '../tools/tool';
 import { Feature, MapBrowserEvent } from 'ol';
+import Map from 'ol/Map';
+import View from 'ol/View';
 
 @Injectable({ providedIn: 'root' })
 export class MapFacadeService {
@@ -22,7 +20,7 @@ export class MapFacadeService {
 
   private currentPlanet: 'earth' | 'moon' | 'mars' = 'mars';
 
-  /** Cached view for each planet */
+  // Cached view for each planet
   private planetViewCache: Record<'earth' | 'moon' | 'mars', { center: [number, number]; zoom: number }> = {
     earth: { center: fromLonLat([-105.1660, 39.7047]) as [number, number], zoom: 13 },
     moon: { center: [0, 0], zoom: 2 },
@@ -47,7 +45,10 @@ export class MapFacadeService {
     return this.activePlugin;
   }
 
-  /** Initializes the map */
+  /**
+   * Initializes the OpenLayers map, attaches services, and loads layers
+   * @param container - HTML element for the map
+   */
   initMap(container: HTMLElement): void {
     const view = new View();
 
@@ -81,16 +82,16 @@ export class MapFacadeService {
     this.mapEvents.registerContextMenuHandler(handler);
   }
 
-  /** Switches to a different planet and reloads its layers */
+  /**
+   * Switches the map to a different planet and reloads its layers
+   * @param planet - Planet to switch to
+   */
   setPlanet(planet: 'earth' | 'moon' | 'mars'): void {
     if (!this.map || planet === this.currentPlanet) return;
-
     this.cancelActivePlugin();
     this.currentPlanet = planet;
-
     // Load planet layers
     this.layerManager.loadPlanet(planet);
-
     // Apply cached view for that planet
     this.applyPlanetView(planet);
   }
@@ -98,9 +99,7 @@ export class MapFacadeService {
   /** Activates a tool/plugin on the map */
   activateTool(plugin?: Tool): void {
     this.cancelActivePlugin();
-
     if (!plugin || !this.map) return;
-
     this.activePlugin = plugin;
     plugin.activate(this.map);
   }
@@ -108,10 +107,8 @@ export class MapFacadeService {
   /** Saves the currently active plugin to a layer */
   saveByActivePlugin(name: string): LayerConfig | undefined {
     if (!this.activePlugin?.save) return undefined;
-
     const layer = this.activePlugin.save(name);
     if (!layer) return undefined;
-
     this.activePlugin.cancel();
     this.activePlugin = undefined;
 
@@ -121,7 +118,6 @@ export class MapFacadeService {
   /** Cancels the currently active plugin */
   cancelActivePlugin(): void {
     if (!this.activePlugin) return;
-
     this.activePlugin.cancel();
     this.activePlugin = undefined;
   }
@@ -129,7 +125,6 @@ export class MapFacadeService {
   /** Saves the current map view to the cache for the active planet */
   private saveCurrentView(): void {
     if (!this.map) return;
-
     const view = this.map.getView();
     this.planetViewCache[this.currentPlanet] = {
       center: view.getCenter() as [number, number],
@@ -140,16 +135,18 @@ export class MapFacadeService {
   /** Applies cached view for a planet */
   private applyPlanetView(planet: 'earth' | 'moon' | 'mars'): void {
     if (!this.map) return;
-
     const view = this.map.getView();
     const cached = this.planetViewCache[planet];
     if (!cached) return;
-
     view.setCenter(cached.center);
     view.setZoom(cached.zoom);
   }
 
-  /** Returns the feature at a pixel (for click-to-lock) */
+  /**
+   * Returns the feature at a given pixel (used for click-to-lock)
+   * @param pixel - [x, y] coordinate
+   * @returns Feature under pixel or undefined
+   */
   getFeatureAtPixel(pixel: [number, number]): Feature | undefined {
     if (!this.map) return undefined;
     return this.map.forEachFeatureAtPixel(pixel, (f) => f as Feature, {

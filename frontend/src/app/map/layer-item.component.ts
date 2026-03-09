@@ -26,38 +26,62 @@ import { TemplatePortal } from '@angular/cdk/portal';
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class LayerItemComponent implements OnDestroy {
+  /** Input layer configuration for this item */
   @Input() layer!: LayerConfig;
 
+  /** Emits when the layer visibility toggle is clicked */
   @Output() itemToggle = new EventEmitter<void>();
+
+  /** Emits when the user selects a new color */
   @Output() colorPicked = new EventEmitter<string>();
+
+  /** Emits when the user selects a new shape */
   @Output() shapeSelected = new EventEmitter<ShapeType>();
+
+  /** Emits when the remove action is triggered */
   @Output() remove = new EventEmitter<void>();
 
+  /** Template reference for the shape dropdown overlay */
   @ViewChild('shapeDropdown', { static: true }) shapeDropdown!: TemplateRef<any>;
 
+  /** Available shapes for the dropdown */
   shapes: ShapeType[] = [...SHAPES];
 
+  /** Reference to the currently active overlay */
   private overlayRef?: OverlayRef;
 
+  /** Angular CDK Overlay service */
   private overlay = inject(Overlay);
+
+  /** Angular ViewContainerRef for TemplatePortal */
   private vcr = inject(ViewContainerRef);
+
+  /** Reference to this component's host element */
   private elRef = inject(ElementRef);
 
-  /** Toggle layer visibility */
+  /**
+   * Toggles the visibility of this layer and emits an event.
+   * @param event Mouse event from the UI click
+   */
   toggleVisibility(event: MouseEvent): void {
     event.stopPropagation();
     this.itemToggle.emit();
   }
 
-  /** Emit color picked */
+  /**
+   * Emits the color picked from a color input.
+   * @param event Color input change event
+   */
   onColorPicked(event: Event): void {
     const value = (event.target as HTMLInputElement)?.value;
     if (value) this.colorPicked.emit(value);
   }
 
-  /** Open shape dropdown overlay */
+  /**
+   * Opens the shape selection dropdown overlay.
+   * Disposes any existing overlay before opening a new one.
+   */
   openShapeDropdown(): void {
-    // Dispose existing overlay
     this.disposeOverlay();
 
     const buttonEl: HTMLElement | null =
@@ -82,13 +106,16 @@ export class LayerItemComponent implements OnDestroy {
       scrollStrategy: this.overlay.scrollStrategies.reposition()
     });
 
+    // Close overlay when backdrop is clicked
     this.overlayRef.backdropClick().subscribe(() => this.disposeOverlay());
 
     const portal = new TemplatePortal(this.shapeDropdown, this.vcr);
     this.overlayRef.attach(portal);
   }
 
-  /** Dispose overlay safely */
+  /**
+   * Disposes the overlay safely if it exists.
+   */
   private disposeOverlay(): void {
     if (this.overlayRef) {
       this.overlayRef.dispose();
@@ -96,18 +123,27 @@ export class LayerItemComponent implements OnDestroy {
     }
   }
 
-  /** Dropdown options */
-  get dropdownShapes(): (ShapeType)[] {
+  /**
+   * Returns available shapes for the dropdown, excluding line types.
+   */
+  get dropdownShapes(): ShapeType[] {
     return this.shapes.filter(t => !t.includes('line'));
   }
 
-  /** Emit selected shape and close overlay */
+  /**
+   * Emits the selected shape and closes the dropdown overlay.
+   * @param shape The shape selected by the user
+   */
   selectShape(shape: ShapeType): void {
     this.shapeSelected.emit(shape);
     this.disposeOverlay();
   }
 
-  /** Map shape name to SVG points */
+  /**
+   * Maps a shape name to its corresponding SVG points string.
+   * @param shape Shape name (e.g., 'triangle', 'star')
+   * @returns SVG points string for rendering the shape
+   */
   getPoints(shape: string): string {
     const map: Record<string, string> = {
       triangle: '10,4 16,16 4,16',
@@ -120,6 +156,9 @@ export class LayerItemComponent implements OnDestroy {
     return map[shape.toLowerCase()] || '';
   }
 
+  /**
+   * Angular lifecycle hook to clean up the overlay when component is destroyed.
+   */
   ngOnDestroy(): void {
     this.disposeOverlay();
   }

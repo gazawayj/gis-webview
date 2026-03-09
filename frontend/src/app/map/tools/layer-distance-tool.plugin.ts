@@ -15,26 +15,32 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
   onConfirmComplete?: () => void;
 
   private _closestPair: [[number, number], [number, number]] | null = null;
-  private kdCache = new Map<string, KDTree>();
-  private layerFeatureCounts = new Map<string, number>();
 
+  /**
+   * Activates the tool and resets selected layers and closest pair.
+   */
   protected override onActivate(): void {
     this.selectedLayers = [null, null];
     this._closestPair = null;
   }
 
+   /**
+   * Deactivates the tool and removes temporary distance features.
+   */
   protected override onDeactivate(): void {
     this.selectedLayers = [null, null];
     this._closestPair = null;
-    this.kdCache.clear();
-    this.layerFeatureCounts.clear();
 
     this.tempSource?.getFeatures().forEach(f => {
       if (f.get('isTempDistanceFeature')) this.tempSource?.removeFeature(f);
     });
   }
 
-  /** -------------------- Point Extraction -------------------- **/
+  /**
+   * Retrieves all coordinates from a layer in [lon, lat] format.
+   * @param layer LayerConfig to extract points from
+   * @returns Array of [lon, lat] points
+   */
   private getLayerPoints(layer: LayerConfig): [number, number][] {
     const coords: [number, number][] = [];
     const toLonLatFunc = (c: number[]) => toLonLat([c[0], c[1]]) as [number, number];
@@ -72,20 +78,24 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     return coords;
   }
 
-  /** -------------------- KD-Tree Management -------------------- **/
+  /**
+   * Returns the KDTree for a layer, building it if necessary.
+   * @param layer LayerConfig
+   * @returns KDTree of layer points
+   */
   private getKDTree(layer: LayerConfig): KDTree {
-    const points = this.getLayerPoints(layer);
-    const lastCount = this.layerFeatureCounts.get(layer.id) ?? -1;
+    if (layer.kdTree) return layer.kdTree;
 
-    if (!this.kdCache.has(layer.id) || points.length !== lastCount) {
-      this.kdCache.set(layer.id, new KDTree(points));
-      this.layerFeatureCounts.set(layer.id, points.length);
-    }
-
-    return this.kdCache.get(layer.id)!;
+    const coords = this.getLayerPoints(layer);
+    layer.kdTree = new KDTree(coords);
+    return layer.kdTree;
   }
 
-  /** -------------------- Centroid Prefiltering -------------------- **/
+  /**
+   * Computes centroids of all features in a layer.
+   * @param layer LayerConfig
+   * @returns Array of centroid [lon, lat] points
+   */
   private getLayerCentroids(layer: LayerConfig): [number, number][] {
     const centroids: [number, number][] = [];
     const toLonLatFunc = (c: number[]) => toLonLat([c[0], c[1]]) as [number, number];
@@ -110,7 +120,14 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     return centroids;
   }
 
-  /** -------------------- Distance Computation -------------------- **/
+  /**
+   * Computes the shortest distance between two layers in meters.
+   * Uses centroid early-exit optimization and KDTree nearest-neighbor search.
+   * Stores closest point pair internally for drawing.
+   * @param layerA First LayerConfig
+   * @param layerB Second LayerConfig
+   * @returns Shortest distance in meters
+   */
   computeDistance(layerA: LayerConfig, layerB: LayerConfig): number {
     const pointsA = this.getLayerPoints(layerA);
     const pointsB = this.getLayerPoints(layerB);
@@ -119,7 +136,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     const centroidsA = this.getLayerCentroids(layerA);
     const centroidsB = this.getLayerCentroids(layerB);
 
-    const EARLY_EXIT_DISTANCE = 1e7; // 10,000 km
+    const EARLY_EXIT_DISTANCE = 1e6; // 1,000 km
     let minCentroidDistance = Infinity;
 
     centroidsA.forEach(cA => {
@@ -143,6 +160,7 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
       const nearest = treeB.nearest(pA);
       if (!nearest) continue;
       const dist = getLength(new LineString([pA, nearest]), { radius, projection: 'EPSG:4326' });
+      
       if (dist < minDistance) {
         minDistance = dist;
         closestPair = [pA, nearest];
@@ -153,7 +171,14 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     return minDistance === Infinity ? 0 : minDistance;
   }
 
-  /** -------------------- Feature Drawing Helpers -------------------- **/
+/**
+   * Creates a temporary distance feature (line, point, vertex, or label).
+   * @param geom Geometry of the feature
+   * @param featureType Type of feature ('point' | 'vertex' | 'line' | 'label')
+   * @param text Optional label text
+   * @param parent Optional parent feature
+   * @returns Created OL Feature
+   */
   private createDistanceFeature(
     geom: LineString | Point,
     featureType: 'point' | 'vertex' | 'line' | 'label',
@@ -173,10 +198,22 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     return f;
   }
 
+  /**
+   * Returns the midpoint between two [lon, lat] coordinates.
+   * @param p1 First point
+   * @param p2 Second point
+   * @returns Midpoint [lon, lat]
+   */
   private getMidpoint(p1: [number, number], p2: [number, number]): [number, number] {
     return [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
   }
 
+  /**
+   * Draws distance line and label features between two coordinates.
+   * @param cA First coordinate [lon, lat]
+   * @param cB Second coordinate [lon, lat]
+   * @param dist Distance value to display
+   */
   drawDistanceFeatures(cA: [number, number], cB: [number, number], dist: number) {
     if (!this.tempSource) return;
 
@@ -192,6 +229,10 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     this.tempSource.addFeatures([lineFeature, labelFeature]);
   }
 
+    /**
+   * Updates the temporary distance display between selected layers.
+   * Computes distance, draws line and label, flies map to region.
+   */
   public async updateDistanceDisplay(): Promise<void> {
     if (!this.tempSource || !this.selectedLayers[0] || !this.selectedLayers[1]) return;
 
@@ -205,6 +246,10 @@ export class LayerDistanceToolPlugin extends ToolPluginBase {
     await this.flyToCoordinates([cA, cB, this.getMidpoint(cA, cB)], { maxZoom: 10 });
   }
 
+  /**
+   * Confirms the distance measurement, saving a permanent layer.
+   * Adds features, disposes modal, and flies to measured points.
+   */
   async confirm(): Promise<void> {
     if (!this.tempSource || !this.selectedLayers[0] || !this.selectedLayers[1]) return;
 
