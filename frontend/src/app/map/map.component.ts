@@ -211,11 +211,37 @@ export class MapComponent implements AfterViewInit {
   }
 
   activateTool(tool: ToolType): void {
-    this.toolService.setActiveTool(tool);
-    const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
-    if (!plugin) return;
-    this.mapFacade.activateTool(plugin);
+
+  this.toolService.setActiveTool(tool);
+
+  const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
+  if (!plugin) return;
+
+  this.mapFacade.activateTool(plugin);
+
+  // Tools that require modals
+  switch (tool) {
+
+    case 'ai-analysis':
+      this.openAiFeatureFindModal();
+      break;
+
+    case 'layer-distance':
+      const distancePlugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
+      if (!distancePlugin) return;
+
+      distancePlugin.modalRef = this.modalFactory.open({
+        template: this.distanceModalTemplate,
+        vcr: this.vcr,
+        panelClass: 'layer-modal',
+        width: '430px'
+      });
+      break;
+
   }
+
+  this.cdr.detectChanges();
+}
 
   setPlanet(planet: 'earth' | 'moon' | 'mars'): void {
     if (planet === this.currentPlanet) return;
