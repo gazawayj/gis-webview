@@ -151,47 +151,53 @@ export class LayerManagerService {
           this.endLoad();
           return;
         }
+
         const features = new GeoJSON().readFeatures(content, {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
         }) as Feature[];
+
         const polygonFeatures: Feature[] = [];
         const isSubdivision =
           params.name.toLowerCase().includes('subdivision') ||
           params.name.toLowerCase().includes('ice');
+
         features.forEach(f => {
           const geom = f.getGeometry();
           if (!geom) return;
+
           const type = geom.getType();
-          if (type.includes('Polygon')) {
+
+          // Assign featureType for every geometry
+          if (type === 'Point' || type === 'MultiPoint') {
+            f.set('featureType', 'point');
+          } else if (type === 'LineString' || type === 'MultiLineString') {
+            f.set('featureType', 'line');
+          } else if (type === 'Polygon' || type === 'MultiPolygon') {
             f.set('featureType', 'polygon');
             polygonFeatures.push(f);
+
             const areaM2 = (geom as Polygon | MultiPolygon).getArea();
             let perimeterM = 0;
+
             if (geom instanceof Polygon) {
               const coords = geom.getLinearRing(0)?.getCoordinates();
-              if (coords) {
-                perimeterM = new LineString(coords).getLength();
-              }
+              if (coords) perimeterM = new LineString(coords).getLength();
             } else if (geom instanceof MultiPolygon) {
               geom.getPolygons().forEach(p => {
                 const coords = p.getLinearRing(0)?.getCoordinates();
-                if (coords) {
-                  perimeterM += new LineString(coords).getLength();
-                }
+                if (coords) perimeterM += new LineString(coords).getLength();
               });
             }
-            const formatted = formatAreaPerimeter(areaM2, perimeterM);
 
+            const formatted = formatAreaPerimeter(areaM2, perimeterM);
             f.set('tooltipData', {
               title: f.get('NAME') || f.get('UNIT_NAME') || 'Unknown Region',
               code: f.get('SUBCODE') || f.get('SUBDIVISION_CODE') || f.get('id') || 'N/A',
               area: formatted.area,
               perimeter: formatted.perimeter
             });
-
           }
-
         });
 
         this.createLayer({
@@ -364,8 +370,27 @@ export class LayerManagerService {
         }
       });
     } else {
-      const geoFeatures = new GeoJSON().readFeatures(fileContent, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
-      geoFeatures.forEach(f => { if (f instanceof Feature) { f.set('featureType', 'point'); features.push(f); } });
+      const geoFeatures = new GeoJSON().readFeatures(fileContent, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: 'EPSG:3857'
+      });
+
+      geoFeatures.forEach(f => {
+        if (!(f instanceof Feature)) return;
+        const geom = f.getGeometry();
+        if (!geom) return;
+        const type = geom.getType();
+        if (type === 'Point' || type === 'MultiPoint') {
+          f.set('featureType', 'point');
+        }
+        else if (type === 'LineString' || type === 'MultiLineString') {
+          f.set('featureType', 'line');
+        }
+        else if (type === 'Polygon' || type === 'MultiPolygon') {
+          f.set('featureType', 'polygon');
+        }
+        features.push(f);
+      });
     }
     return this.createLayer({ planet, name, features, id, useVectorImage: true });
   }
