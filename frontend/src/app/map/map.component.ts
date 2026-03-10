@@ -36,6 +36,11 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import { Polygon, MultiPolygon } from 'ol/geom';
 import Papa from 'papaparse';
 
+/**
+ * Main map component responsible for rendering the OpenLayers map,
+ * managing UI interaction, and coordinating tools, layers, plugins,
+ * import/export, and hover/selection state.
+ */
 @Component({
   selector: 'app-map',
   standalone: true,
@@ -46,7 +51,9 @@ import Papa from 'papaparse';
 })
 export class MapComponent implements AfterViewInit {
 
+  /** DOM element that hosts the OpenLayers map */
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+  /** Modal templates */
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
   @ViewChild('aiFeatureFindModal') aiFeatureFindModal!: TemplateRef<any>;
@@ -104,24 +111,44 @@ export class MapComponent implements AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private vcr = inject(ViewContainerRef);
 
+  /**
+   * List of standard tools available in the toolbar.
+   */
   get regularTools(): ToolDefinition[] { return this.toolService.regularTools; }
+
+  /**
+   * List of AI-based tools available in the toolbar.
+   */
   get aiTools(): ToolDefinition[] { return this.toolService.aiTools; }
 
+  /**
+   * Formatted longitude string with hemisphere indicator.
+   */
   get formattedLon(): string {
     const abs = Math.abs(this.currentLon).toFixed(4);
     return `${abs}° ${this.currentLon >= 0 ? 'E' : 'W'}`;
   }
 
+  /**
+   * Formatted latitude string with hemisphere indicator.
+   */
   get formattedLat(): string {
     const abs = Math.abs(this.currentLat).toFixed(4);
     return `${abs}° ${this.currentLat >= 0 ? 'N' : 'S'}`;
   }
 
+  /**
+   * Human-readable formatted distance value.
+   */
   get formattedDistance(): string {
     if (this.distanceValue < 1000) return `${this.distanceValue.toFixed(2)} m`;
     return `${(this.distanceValue / 1000).toFixed(2)} km`;
   }
 
+  /**
+   * Returns style for tooltip attribute rows.
+   * @param key Attribute key
+   */
   getTooltipRowStyle(key: string): Record<string, string> { return { 'background-color': '#f0f0f0', 'padding': '2px 4px' }; }
 
   /**
