@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, TemplateRef, ViewChild, ViewContainerRef, inject } from '@angular/core';
 import { SHAPES, ShapeType } from './constants/symbol-constants';
 import { ConnectedPosition, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-layer-item',
+  standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule],
   templateUrl: './layer-item.component.html',
   styleUrls: ['./layer-item.component.css'],
@@ -31,7 +32,9 @@ export class LayerItemComponent {
   /** Overlay reference for dropdown */
   private overlayRef?: OverlayRef;
 
-  constructor(private overlay: Overlay, private viewContainerRef: ViewContainerRef) { }
+  /** Injected dependencies using Angular's inject() */
+  private overlay = inject(Overlay);
+  private viewContainerRef = inject(ViewContainerRef);
 
   /** Handle color input change */
   onColorPicked(event: Event) {
@@ -57,11 +60,10 @@ export class LayerItemComponent {
       this.overlayRef.detach();
     }
 
-    // Correctly typed position
     const positions: ConnectedPosition[] = [
       {
-        originX: 'start',  // must be "start" | "center" | "end"
-        originY: 'bottom', // must be "top" | "center" | "bottom"
+        originX: 'start',
+        originY: 'bottom',
         overlayX: 'start',
         overlayY: 'top',
         offsetY: 0
@@ -84,9 +86,9 @@ export class LayerItemComponent {
   }
 
   /**
- * Returns normalized points string for SVG polygon shapes
- * @param shape ShapeType
- */
+   * Returns normalized points string for SVG polygon shapes
+   * @param shape ShapeType
+   */
   getPoints(shape: ShapeType): string {
     switch (shape) {
       case 'triangle': return '10,3 3,17 17,17';
