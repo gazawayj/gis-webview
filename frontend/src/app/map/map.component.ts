@@ -33,7 +33,7 @@ import { LayerDistanceToolPlugin } from './tools/layer-distance-tool.plugin';
 
 import { HttpClient } from '@angular/common/http';
 import Feature, { FeatureLike } from 'ol/Feature';
-import { Polygon, MultiPolygon, Point, LineString } from 'ol/geom';
+import { Polygon, MultiPolygon } from 'ol/geom';
 import Papa from 'papaparse';
 
 @Component({

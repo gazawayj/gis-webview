@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import Papa from 'papaparse';
 import { LayerManagerService } from './layer-manager.service';
 import { LayerConfig } from '../models/layer-config.model';
@@ -8,7 +8,7 @@ import { LayerConfig } from '../models/layer-config.model';
 })
 export class CsvImportService {
 
-  constructor(private layerManager: LayerManagerService) {}
+  private readonly layerManager = inject(LayerManagerService);
 
   /**
    * Reads a file as text.
