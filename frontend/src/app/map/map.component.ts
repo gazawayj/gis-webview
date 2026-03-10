@@ -205,7 +205,14 @@ export class MapComponent implements AfterViewInit {
 
     this.layerManager.loading$.subscribe(v => { this.isLoading = v; this.cdr.detectChanges(); });
     this.layerManager.loadingMessage$.subscribe(msg => { this.loadingMessage = msg || 'Loading...'; this.cdr.detectChanges(); });
+    // Prevent other right clicks besides on layer item.
+    document.addEventListener('contextmenu', this.preventBrowserContextMenu);
   }
+
+  /** Prevents the default browser context menu */
+  private preventBrowserContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
+  };
 
   /**
    * Handles right-click on a layer in the sidebar.
@@ -376,14 +383,14 @@ export class MapComponent implements AfterViewInit {
   toggleLayer(layer?: LayerConfig): void {
     if (!layer) return;
     this.layerManager.toggle(layer);
-    this.closeLayerContextMenu(); 
+    this.closeLayerContextMenu();
   }
 
   /** Removes a layer */
   removeLayer(layer?: LayerConfig): void {
     if (!layer) return;
     this.layerManager.remove(layer);
-    this.closeLayerContextMenu(); 
+    this.closeLayerContextMenu();
   }
 
   /** Updates layer color */
@@ -740,7 +747,7 @@ export class MapComponent implements AfterViewInit {
     layer.name = finalName;
     // Since dragOrder and registry hold references, just refresh the sidebar
     this.layerManager.refreshLayersForPlanet(layer.planet);
-    this.closeLayerContextMenu(); 
+    this.closeLayerContextMenu();
   }
 
   /**
@@ -756,7 +763,7 @@ export class MapComponent implements AfterViewInit {
       return;
     }
     // Activate the tool for editing, passing the layer as context
-    this.closeLayerContextMenu(); 
+    this.closeLayerContextMenu();
     this.activateTool(toolType);
   }
 
