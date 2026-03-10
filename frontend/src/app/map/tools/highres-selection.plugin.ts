@@ -9,177 +9,213 @@ import { LayerManagerService } from '../services/layer-manager.service';
 import { LayerConfig } from '../models/layer-config.model';
 
 /**
- * Tool plugin for selecting a high-resolution tile area on Mars.
- * Allows the user to draw a rectangle and automatically adds
- * a high-resolution tile layer clipped to the selected extent.
+ * Tool plugin for selecting a high-resolution Mars CTX imagery region.
+ *
+ * The tool allows the user to drag a rectangular selection box. The resulting
+ * extent is used to clip a high-resolution CTX tile layer. The layer can then
+ * be saved as a permanent map layer.
+ *
+ * Architecture notes:
+ * - The tool only constructs the TileLayer instance.
+ * - LayerManager is responsible for inserting layers into the map.
+ * - Temporary geometry is stored in the tool's tempSource.
  */
 export class HighResSelectionPlugin extends ToolPluginBase {
-    /** Tool type identifier */
-    name = 'highres-selection';
 
-    /** Draw interaction for creating a selection rectangle */
-    private drawInteraction?: Draw;
+  /** Tool identifier used by ToolService */
+  name = 'highres-selection';
 
-    /** Current selection feature being drawn */
-    private selectionFeature?: Feature<Geometry>;
+  /** Draw interaction used for rectangular selection */
+  private drawInteraction?: Draw;
 
-    /** TileLayer for displaying the high-resolution imagery */
-    private highResLayer?: TileLayer<XYZ>;
+  /** Current selection feature created by drawing */
+  private selectionFeature?: Feature<Geometry>;
 
-    /** URL template for the Mars CTX high-resolution tiles */
-    private readonly HIGH_RES_URL =
-        'https://astro.arcgis.com/arcgis/rest/services/OnMars/CTX1/MapServer/tile/{z}/{y}/{x}';
+  /** High-resolution CTX imagery layer */
+  private highResLayer?: TileLayer<XYZ>;
 
-    constructor(layerManager: LayerManagerService) {
-        super(layerManager);
+  /** URL template for Mars CTX imagery tiles */
+  private readonly HIGH_RES_URL =
+    'https://astro.arcgis.com/arcgis/rest/services/OnMars/CTX1/MapServer/tile/{z}/{y}/{x}';
+
+  /**
+   * Creates the plugin instance.
+   *
+   * @param layerManager LayerManagerService used for layer creation and styling
+   */
+  constructor(layerManager: LayerManagerService) {
+    super(layerManager);
+  }
+
+  /**
+   * Activates the high-resolution selection tool.
+   *
+   * Initializes a Draw interaction configured to produce a rectangular
+   * selection using the OpenLayers `createBox()` geometry function.
+   *
+   * When drawing completes:
+   * - A CTX tile layer is prepared
+   * - The tile layer is clipped to the selected extent
+   * - A temporary feature referencing the tile layer is added
+   */
+  protected override onActivate(): void {
+
+    if (!this.map || !this.tempSource) return;
+    if (this.layerManager.currentPlanet !== 'mars') return;
+
+    this.drawInteraction = new Draw({
+      source: this.tempSource,
+      type: 'Circle',
+      geometryFunction: createBox(),
+      freehand: false
+    });
+
+    this.registerInteraction(this.drawInteraction);
+
+    this.drawInteraction.on('drawstart', (evt: any) => {
+      this.selectionFeature = evt.feature as Feature<Geometry>;
+      this.selectionFeature.set('featureType', 'polygon');
+    });
+
+    this.drawInteraction.on('drawend', () => {
+
+      if (!this.selectionFeature || !this.map) return;
+
+      const geom = this.selectionFeature.getGeometry() as Polygon;
+      if (!geom) return;
+
+      this.ensureHighResLayer();
+
+      if (this.highResLayer) {
+
+        this.highResLayer.setExtent(geom.getExtent());
+        this.highResLayer.setVisible(true);
+
+        const highResFeature = this.createFeature(
+          geom,
+          'polygon',
+          'High-Res Clip',
+          undefined,
+          true
+        );
+
+        highResFeature.set('tileLayer', this.highResLayer);
+        (highResFeature as any)._isHighRes = true;
+
+        this.tempSource?.addFeature(highResFeature);
+      }
+
+      this.selectionFeature = undefined;
+    });
+
+    this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
+      if (evt.key === 'Escape') this.cancel();
+    });
+  }
+
+  /**
+   * Creates the CTX TileLayer used by the tool.
+   *
+   * The layer is intentionally **not added to the map here**. Layer insertion
+   * is handled by LayerManager when the tool is saved.
+   */
+  private ensureHighResLayer(): void {
+
+    if (this.highResLayer) return;
+
+    const resolutions: number[] = [];
+    const maxResolution = 180 / 256;
+
+    for (let i = 0; i < 20; i++) {
+      resolutions.push(maxResolution / Math.pow(2, i));
     }
 
-    /**
-     * Activates the high-res selection tool.
-     * Sets up box drawing interaction and handles drawing events.
-     */
-    protected override onActivate(): void {
-        if (!this.map || !this.tempSource) return;
-        if (this.layerManager.currentPlanet !== 'mars') return;
+    this.highResLayer = new TileLayer({
+      source: new XYZ({
+        url: this.HIGH_RES_URL,
+        crossOrigin: 'anonymous',
+        projection: 'EPSG:4326',
+        tileGrid: new TileGrid({
+          origin: [-180, 90],
+          resolutions,
+          tileSize: [256, 256]
+        }),
+        wrapX: true
+      }),
+      visible: false,
+      zIndex: 999
+    });
+  }
 
-        // Draw interaction using mouse drag (box)
-        this.drawInteraction = new Draw({
-            source: this.tempSource,
-            type: 'Circle',
-            // convert circle to box, createBox() is a helper that takes a "circle" type input and converts it into a rectangle.
-            geometryFunction: createBox(),
-            // Disable double click finish
-            freehand: false
-        });
-        this.registerInteraction(this.drawInteraction);
+  /**
+   * Deactivates the tool and cleans up temporary resources.
+   *
+   * Behavior:
+   * - Aborts any active drawing operation
+   * - Clears temporary features
+   * - Removes the high-resolution layer if it was not saved
+   */
+  protected override onDeactivate(): void {
 
-        // Start drawing
-        this.drawInteraction.on('drawstart', (evt: any) => {
-            this.selectionFeature = evt.feature as Feature<Geometry>;
-            this.selectionFeature.set('featureType', 'polygon');
-        });
-
-        // Finish drawing
-        this.drawInteraction.on('drawend', () => {
-            if (!this.selectionFeature || !this.map) return;
-            const geom = this.selectionFeature.getGeometry() as Polygon;
-            if (!geom) return;
-            this.ensureHighResLayer();
-
-            // Clip high-res layer to selected extent
-            if (this.highResLayer) {
-                this.highResLayer.setExtent(geom.getExtent());
-                this.highResLayer.setVisible(true);
-
-                // Wrap high-res TileLayer as a single tool feature
-                const highResFeature = this.createFeature(
-                    geom,
-                    'polygon',
-                    'High-Res Clip',
-                    undefined,
-                    true
-                );
-
-                // Attach the tile layer and a local high-res flag for z-order
-                highResFeature.set('tileLayer', this.highResLayer);
-                (highResFeature as any)._isHighRes = true;
-
-                // Add to tempSource for save()
-                this.tempSource?.addFeature(highResFeature);
-            }
-
-            this.selectionFeature = undefined;
-        });
-
-        // Cancel drawing on Escape
-        this.registerDomListener(window, 'keydown', (evt: KeyboardEvent) => {
-            if (evt.key === 'Escape') this.cancel();
-        });
+    if (this.drawInteraction) {
+      this.drawInteraction.abortDrawing();
+      this.drawInteraction.setActive(false);
+      this.map?.removeInteraction(this.drawInteraction);
     }
 
-    /**
-     * Ensures the high-resolution TileLayer is created and added to the map.
-     * Only creates it once.
-     */
-    private ensureHighResLayer(): void {
-        if (!this.map || this.highResLayer) return;
-
-        const resolutions: number[] = [];
-        const maxResolution = 180 / 256;
-        for (let i = 0; i < 20; i++) resolutions.push(maxResolution / Math.pow(2, i));
-
-        this.highResLayer = new TileLayer({
-            source: new XYZ({
-                url: this.HIGH_RES_URL,
-                crossOrigin: 'anonymous',
-                projection: 'EPSG:4326',
-                tileGrid: new TileGrid({
-                    origin: [-180, 90],
-                    resolutions,
-                    tileSize: [256, 256]
-                }),
-                wrapX: true
-            }),
-            visible: false,
-            zIndex: 999
-        });
-
-        this.map.addLayer(this.highResLayer);
+    if (this.tempSource) {
+      this.tempSource.clear();
     }
 
-    /**
-     * Deactivates the tool: aborts drawing, clears temp features,
-     * and removes the high-res layer if it wasn’t saved.
-     */
-    protected override onDeactivate(): void {
-        if (this.drawInteraction) {
-            this.drawInteraction.abortDrawing();
-            this.drawInteraction.setActive(false);
-            this.map?.removeInteraction(this.drawInteraction);
-        }
+    if (this.highResLayer && this.map) {
 
-        if (this.tempSource) {
-            this.tempSource.clear();
-        }
+      const savedLayer = (this as any)._justSavedLayer;
 
-        if (this.highResLayer && this.map) {
-            const savedLayer = (this as any)._justSavedLayer;
-            if (this.highResLayer !== savedLayer) {
-                this.map.removeLayer(this.highResLayer);
-            }
-        }
+      if (this.highResLayer !== savedLayer) {
+        this.map.removeLayer(this.highResLayer);
+      }
     }
+  }
 
-    /**
-     * Saves the high-res selection as a permanent layer.
-     * @param name Name of the new layer
-     * @returns LayerConfig of the new high-res layer or null if unavailable
-     */
-    public override save(name: string): LayerConfig | null {
-        if (!this.highResLayer || !this.activeLayer) return null;
+  /**
+   * Saves the selected high-resolution region as a permanent map layer.
+   *
+   * The saved layer contains:
+   * - The CTX tile source
+   * - The clipped tile extent
+   * - Styling information from the active tool layer
+   *
+   * @param name Name of the layer to create
+   * @returns Newly created LayerConfig or null if unavailable
+   */
+  public override save(name: string): LayerConfig | null {
 
-        const features = this.getFeatures().filter(f => f.get('isToolFeature'));
-        const tileFeature = features.find(f => f.get('tileLayer'));
-        const geom = (tileFeature?.getGeometry() || this.selectionFeature?.getGeometry()) as Polygon;
-        const extent = geom ? geom.getExtent() : undefined;
+    if (!this.highResLayer || !this.activeLayer) return null;
 
-        const newLayer = this.layerManager.createLayer({
-            planet: this.layerManager.currentPlanet,
-            name: name,
-            isTemporary: false,
-            isTileLayer: true,
-            olLayer: this.highResLayer,
-            tileUrl: this.HIGH_RES_URL,
-            tileExtent: extent,
-            color: this.activeLayer.color,
-            shape: 'none',
-            cache: true
-        });
+    const features = this.getFeatures().filter(f => f.get('isToolFeature'));
+    const tileFeature = features.find(f => f.get('tileLayer'));
 
-        // Mark this layer so onDeactivate won't remove it
-        (this as any)._justSavedLayer = this.highResLayer;
-        // Attach local high-res flag for z-order
-        (newLayer as any)._isHighRes = true;
-        return newLayer;
-    }
+    const geom = (tileFeature?.getGeometry() ||
+      this.selectionFeature?.getGeometry()) as Polygon;
+
+    const extent = geom ? geom.getExtent() : undefined;
+
+    const newLayer = this.layerManager.createLayer({
+      planet: this.layerManager.currentPlanet,
+      name: name,
+      isTemporary: false,
+      isTileLayer: true,
+      olLayer: this.highResLayer,
+      tileUrl: this.HIGH_RES_URL,
+      tileExtent: extent,
+      color: this.activeLayer.color,
+      shape: 'none',
+      cache: true
+    });
+
+    (this as any)._justSavedLayer = this.highResLayer;
+    (newLayer as any)._isHighRes = true;
+
+    return newLayer;
+  }
 }
