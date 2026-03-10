@@ -38,8 +38,8 @@ import Papa from 'papaparse';
 
 /**
  * Main map component responsible for rendering the OpenLayers map,
- * managing UI interaction, and coordinating tools, layers, plugins,
- * import/export, and hover/selection state.
+ * managing UI interaction, tools, layers, plugins, import/export,
+ * hover/selection state, and per-layer context menu.
  */
 @Component({
   selector: 'app-map',
@@ -51,20 +51,17 @@ import Papa from 'papaparse';
 })
 export class MapComponent implements AfterViewInit {
 
-  /** DOM element that hosts the OpenLayers map */
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
-  /** Modal templates */
   @ViewChild('addLayerModal') addLayerModal!: TemplateRef<any>;
   @ViewChild('pluginSaveModal') pluginSaveModal!: TemplateRef<any>;
   @ViewChild('aiFeatureFindModal') aiFeatureFindModal!: TemplateRef<any>;
   @ViewChild('layerDistanceModal') distanceModalTemplate!: TemplateRef<any>;
   @ViewChild('importExportModal') importExportModal!: TemplateRef<any>;
   @ViewChild('csvSelectionModal') csvSelectionModal!: TemplateRef<any>;
-  // View child for the AI feature find modal text area for Focus
+  @ViewChild('layerContextMenu') layerContextMenu!: TemplateRef<any>;
   @ViewChild('aiPromptTextarea', { static: false }) aiPromptTextarea!: ElementRef<HTMLTextAreaElement>;
 
   aiPrompt = '';
-
   importFile?: File;
   importFileType: 'CSV' | 'GeoJSON' | null = null;
   csvHeaders: string[] = [];
@@ -101,7 +98,10 @@ export class MapComponent implements AfterViewInit {
   private aiModalRef?: OverlayRef;
   private modalRef?: OverlayRef;
   private pluginModalRef?: OverlayRef;
-  private previousHoverFeature: any = null;
+  private previousHoverFeature: FeatureLike | null = null;
+
+  private layerContextMenuRef?: OverlayRef;
+  contextMenuLayer?: LayerConfig;
 
   public mapFacade = inject(MapFacadeService);
   private layerManager = inject(LayerManagerService);
@@ -111,62 +111,45 @@ export class MapComponent implements AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private vcr = inject(ViewContainerRef);
 
-  /**
-   * List of standard tools available in the toolbar.
-   */
+  // --- TOOL GETTERS ---
+
+  /** Returns all regular tools */
   get regularTools(): ToolDefinition[] { return this.toolService.regularTools; }
 
-  /**
-   * List of AI-based tools available in the toolbar.
-   */
+  /** Returns all AI tools */
   get aiTools(): ToolDefinition[] { return this.toolService.aiTools; }
 
-  /**
-   * Formatted longitude string with hemisphere indicator.
-   */
+  /** Formatted longitude for display */
   get formattedLon(): string {
     const abs = Math.abs(this.currentLon).toFixed(4);
     return `${abs}° ${this.currentLon >= 0 ? 'E' : 'W'}`;
   }
 
-  /**
-   * Formatted latitude string with hemisphere indicator.
-   */
+  /** Formatted latitude for display */
   get formattedLat(): string {
     const abs = Math.abs(this.currentLat).toFixed(4);
     return `${abs}° ${this.currentLat >= 0 ? 'N' : 'S'}`;
   }
 
-  /**
-   * Human-readable formatted distance value.
-   */
+  /** Formatted distance for display */
   get formattedDistance(): string {
     if (this.distanceValue < 1000) return `${this.distanceValue.toFixed(2)} m`;
     return `${(this.distanceValue / 1000).toFixed(2)} km`;
   }
 
   /**
-   * Returns style for tooltip attribute rows.
-   * @param key Attribute key
-   */
-  getTooltipRowStyle(key: string): Record<string, string> { return { 'background-color': '#f0f0f0', 'padding': '2px 4px' }; }
-
-  /**
-   * Initializes map, subscribes to pointer, hover, and click events,
-   * sets up layer drag order and loading observables.
+   * Initialize map, pointer, hover, click, drag order subscriptions
    */
   ngAfterViewInit(): void {
     this.currentPlanet = this.mapFacade.getCurrentPlanet();
     this.mapFacade.initMap(this.mapContainer.nativeElement);
 
-    // Right-click / plugin context menu
     this.mapFacade.registerContextMenuHandler(() => {
       if (this.mapFacade.getActivePlugin()) {
         this.openPluginSaveModal();
       }
     });
 
-    // Pointer updates (lat, lon, zoom)
     this.mapFacade.pointerState$.subscribe(state => {
       this.currentLon = state.lon;
       this.currentLat = state.lat;
@@ -175,79 +158,96 @@ export class MapComponent implements AfterViewInit {
       this.cdr.detectChanges();
     });
 
-    // --- HOVER SUBSCRIPTION ---
+    // Hover logic
     this.mapFacade.hoverFeature$.subscribe(feature => {
-      // Only update hover panel if no feature is locked
       if (this.selectedFeature) return;
-
-      // Reset previous hover
       if (this.previousHoverFeature && this.previousHoverFeature !== feature) {
         this.layerManager.resetFeatureStyle(this.previousHoverFeature as Feature);
         this.previousHoverFeature = null;
       }
-
       if (!feature) {
         this.hoverAttributes = null;
         this.cdr.detectChanges();
         return;
       }
-
       this.hoverAttributes = this.formatFeatureAttributes(feature);
       this.layerManager.applyHoverStyle(feature as Feature);
       this.previousHoverFeature = feature;
       this.cdr.detectChanges();
     });
 
-    // --- CLICK SUBSCRIPTION ---
+    // Click logic
     this.mapFacade.mapSingleClick$.subscribe((evt) => {
       const feature = this.mapFacade.getFeatureAtPixel(evt.pixel as [number, number]);
-
       if (feature) {
         this.selectedFeature = feature;
         this.hoverAttributes = this.formatFeatureAttributes(feature);
         this.layerManager.applyHoverStyle(feature as Feature);
         this.previousHoverFeature = feature;
       } else {
-        // Reset selection
-        if (this.selectedFeature)
-          this.layerManager.resetFeatureStyle(this.selectedFeature as Feature);
+        if (this.selectedFeature) this.layerManager.resetFeatureStyle(this.selectedFeature as Feature);
         this.selectedFeature = null;
         this.hoverAttributes = null;
-
-        // Reset hover
         if (this.previousHoverFeature) {
           this.layerManager.resetFeatureStyle(this.previousHoverFeature as Feature);
           this.previousHoverFeature = null;
         }
       }
-
+      this.closeLayerContextMenu();
       this.cdr.detectChanges();
     });
 
-    // --- LAYER DRAG & DROPS ---
+    // Drag order subscription
     this.layerManager.layers$.subscribe(layers => {
       this.dragOrder = [...layers];
       this.cdr.detectChanges();
     });
 
-    // --- LOADING STATES ---
-    this.layerManager.loading$.subscribe(v => {
-      this.isLoading = v;
-      this.cdr.detectChanges();
-    });
-
-    this.layerManager.loadingMessage$.subscribe(msg => {
-      this.loadingMessage = msg || 'Loading...';
-      this.cdr.detectChanges();
-    });
+    this.layerManager.loading$.subscribe(v => { this.isLoading = v; this.cdr.detectChanges(); });
+    this.layerManager.loadingMessage$.subscribe(msg => { this.loadingMessage = msg || 'Loading...'; this.cdr.detectChanges(); });
   }
 
   /**
-   * Activates a tool, creating plugin and opening any required modals.
-   * @param tool ToolType string
+   * Handles right-click on a layer in the sidebar.
+   * @param event MouseEvent
+   * @param layer LayerConfig
+   */
+  onLayerRightClick(event: MouseEvent, layer: LayerConfig): void {
+    event.preventDefault();
+    this.closeLayerContextMenu();
+
+    this.contextMenuLayer = layer ?? undefined;
+    const positionStrategy = this.modalFactory['overlay'].position()
+      .global()
+      .left(`${event.clientX}px`)
+      .top(`${event.clientY}px`);
+
+    this.layerContextMenuRef = this.modalFactory.open({
+      template: this.layerContextMenu,
+      vcr: this.vcr,
+      panelClass: 'layer-context-menu',
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-transparent-backdrop',
+      positionStrategy
+    });
+
+    this.layerContextMenuRef.backdropClick().subscribe(() => this.closeLayerContextMenu());
+  }
+
+  /** Closes the layer context menu */
+  closeLayerContextMenu(): void {
+    if (this.layerContextMenuRef) {
+      this.modalFactory.close(this.layerContextMenuRef);
+      this.layerContextMenuRef = undefined;
+      this.contextMenuLayer = undefined;
+    }
+  }
+
+  /**
+   * Activates a tool plugin
+   * @param tool ToolType
    */
   activateTool(tool: ToolType): void {
-
     this.toolService.setActiveTool(tool);
 
     const plugin = this.toolService.createPlugin(tool, this.layerManager, this.http);
@@ -255,35 +255,29 @@ export class MapComponent implements AfterViewInit {
 
     this.mapFacade.activateTool(plugin);
 
-    // Tools that require modals
+    // Open modals for specific tools
     switch (tool) {
-
       case 'ai-analysis':
         this.openAiFeatureFindModal();
         break;
-
       case 'layer-distance': {
-
         const distancePlugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
         if (!distancePlugin) return;
-
         distancePlugin.modalRef = this.modalFactory.open({
           template: this.distanceModalTemplate,
           vcr: this.vcr,
           panelClass: 'layer-modal',
           width: '430px'
         });
-
         break;
       }
-
     }
 
     this.cdr.detectChanges();
   }
 
   /**
-   * Changes planet, updates map and labels.
+   * Changes the current planet
    * @param planet 'earth'|'moon'|'mars'
    */
   setPlanet(planet: 'earth' | 'moon' | 'mars'): void {
@@ -295,9 +289,7 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Updates latitude and longitude labels according to current planet.
-   */
+  /** Updates lat/lon labels according to current planet */
   private updateLabels(): void {
     switch (this.currentPlanet) {
       case 'moon':
@@ -315,9 +307,9 @@ export class MapComponent implements AfterViewInit {
   }
 
   /**
-   * Extracts displayable attributes from a feature for hover panel.
+   * Extracts displayable attributes from a feature
    * @param feature FeatureLike
-   * @returns Array of key/value objects or null
+   * @returns Array of key/value pairs or null
    */
   private formatFeatureAttributes(feature: FeatureLike): { key: string, value: any }[] | null {
     const props = feature.getProperties();
@@ -359,7 +351,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   /**
-   * Updates drag order after layer is reordered via CDK drag-drop.
+   * Updates drag order after layer reordering
    * @param event CdkDragDrop event
    */
   onLayerDropped(event: CdkDragDrop<LayerConfig[]>): void {
@@ -370,9 +362,7 @@ export class MapComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  /**
-  * Opens the Add Layer modal.
-  */
+  /** Opens the Add Layer modal */
   onAddLayer(): void {
     this.importExportModalRef = this.modalFactory.open({
       template: this.importExportModal,
@@ -382,42 +372,34 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  /**
-   * Toggles visibility of a layer.
-   * @param layer LayerConfig
-   */
-  toggleLayer(layer: LayerConfig): void { this.layerManager.toggle(layer); }
+  /** Toggles layer visibility */
+  toggleLayer(layer?: LayerConfig): void {
+    if (!layer) return;
+    this.layerManager.toggle(layer);
+    this.closeLayerContextMenu(); 
+  }
 
-  /**
-   * Removes a layer.
-   * @param layer LayerConfig
-   */
-  removeLayer(layer: LayerConfig): void { this.layerManager.remove(layer); }
+  /** Removes a layer */
+  removeLayer(layer?: LayerConfig): void {
+    if (!layer) return;
+    this.layerManager.remove(layer);
+    this.closeLayerContextMenu(); 
+  }
 
-  /**
-   * Updates layer color and refreshes style.
-   * @param layer LayerConfig
-   * @param color New color
-   */
+  /** Updates layer color */
   onColorPicked(layer: LayerConfig, color: string): void {
     layer.color = color;
     this.layerManager.updateStyle(layer);
   }
 
-  /**
-  * Updates layer shape and refreshes style.
-  * @param layer LayerConfig
-  * @param shape ShapeType
-  */
+  /** Updates layer shape */
   selectShape(layer: LayerConfig, shape: ShapeType): void {
     layer.shape = shape;
     this.layerManager.styleService.setLayerShape(layer.id, shape);
     this.layerManager.updateStyle(layer);
   }
 
-  /**
-   * Confirms import of selected file and adds as layer.
-   */
+  /** Confirms import of file */
   confirmImport(): void {
     if (!this.importFile || !this.importFileType) return;
     const reader = new FileReader();
@@ -452,10 +434,7 @@ export class MapComponent implements AfterViewInit {
     reader.readAsText(this.importFile);
   }
 
-  /**
-   * Handles file selection and prepares CSV headers or direct GeoJSON import.
-   * @param event File input change event
-   */
+  /** Handles file selection */
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (!file) return;
@@ -470,7 +449,6 @@ export class MapComponent implements AfterViewInit {
         const { lat, lon } = this.detectLatLonColumns(this.csvHeaders);
         this.csvLatField = lat || this.csvHeaders[0] || '';
         this.csvLonField = lon || this.csvHeaders[1] || '';
-        // Open modal for CSV column selection
         Promise.resolve().then(() => {
           if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
           this.importExportModalRef = this.modalFactory.open({
@@ -482,21 +460,17 @@ export class MapComponent implements AfterViewInit {
           this.cdr.detectChanges();
         });
       } else {
-        // GeoJSON: no column selection needed, import immediately
         this.importFileType = 'GeoJSON';
         this.csvHeaders = [];
         this.csvLatField = '';
         this.csvLonField = '';
-        // Directly confirm import and add layer
         this.confirmImport();
       }
     };
     reader.readAsText(file);
   }
 
-  /**
-   * Opens CSV column selection modal.
-   */
+  /** Opens CSV selection modal */
   openCsvSelectionModal(): void {
     if (!this.importFile || !this.csvHeaders.length) return;
     this.csvSelectionModalRef = this.modalFactory.open({
@@ -507,9 +481,7 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  /**
-   * Cancels CSV selection and resets import state.
-   */
+  /** Cancels CSV selection */
   cancelCsvSelection() {
     if (this.csvSelectionModalRef) this.modalFactory.close(this.csvSelectionModalRef);
     this.importFile = undefined;
@@ -518,9 +490,7 @@ export class MapComponent implements AfterViewInit {
     this.csvLonField = '';
   }
 
-  /**
-   * Confirms CSV column selection and creates layer.
-   */
+  /** Confirms CSV selection and adds layer */
   confirmCsvSelection() {
     if (!this.importFile) return;
     const reader = new FileReader();
@@ -561,11 +531,7 @@ export class MapComponent implements AfterViewInit {
     reader.readAsText(this.importFile);
   }
 
-  /**
-   * Detects likely latitude and longitude columns from CSV headers.
-   * @param headers Array of CSV header strings
-   * @returns Object with lat and lon keys
-   */
+  /** Detects likely latitude and longitude columns from CSV headers */
   private detectLatLonColumns(headers: string[]): { lat?: string, lon?: string } {
     const lower = headers.map(h => h.toLowerCase());
     let lat: string | undefined;
@@ -579,9 +545,7 @@ export class MapComponent implements AfterViewInit {
     return { lat, lon };
   }
 
-  /**
-   * Exports the selected layer to GeoJSON or CSV.
-   */
+  /** Confirms export of selected layer */
   confirmExport(): void {
     if (!this.exportLayer) return;
     const features = this.exportLayer.features;
@@ -609,9 +573,7 @@ export class MapComponent implements AfterViewInit {
     if (this.importExportModalRef) this.modalFactory.close(this.importExportModalRef);
   }
 
-  /**
-   * Opens save modal for the active plugin.
-   */
+  /** Opens plugin save modal */
   openPluginSaveModal(): void {
     const activePlugin = this.mapFacade.getActivePlugin();
     this.pluginLayerName = `${activePlugin?.name || 'Layer'}_${Date.now()}`;
@@ -623,10 +585,7 @@ export class MapComponent implements AfterViewInit {
     });
   }
 
-  /**
-   * Confirms plugin save and clears tool.
-   * @param name Optional layer name override
-   */
+  /** Confirms plugin save */
   confirmSavePlugin(name?: string): void {
     const layerName = name?.trim() || this.pluginLayerName;
     const layer = this.mapFacade.saveByActivePlugin(layerName);
@@ -635,18 +594,14 @@ export class MapComponent implements AfterViewInit {
     if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
   }
 
-  /**
-   * Cancels plugin save and clears tool.
-   */
+  /** Cancels plugin save */
   cancelPluginSave(): void {
     if (this.pluginModalRef) this.modalFactory.close(this.pluginModalRef);
     this.mapFacade.cancelActivePlugin();
     this.toolService.clearTool();
   }
 
-  /**
-   * Opens AI Feature Find modal.
-   */
+  /** Opens AI feature find modal */
   openAiFeatureFindModal(): void {
     this.aiPrompt = '';
     this.aiModalRef = this.modalFactory.open({
@@ -656,14 +611,10 @@ export class MapComponent implements AfterViewInit {
       width: '420px'
     });
 
-    // Run after change detection so template is in DOM
     Promise.resolve().then(() => this.aiPromptTextarea?.nativeElement.focus());
   }
 
-  /**
-   * Handles keydown events in AI prompt textarea.
-   * @param event KeyboardEvent
-   */
+  /** Handles AI keydown */
   handleAiKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -671,18 +622,14 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
-  /**
-   * Cancels AI feature find modal and clears tool.
-   */
+  /** Cancels AI feature find */
   cancelAiFeatureFind(): void {
     if (this.aiModalRef) this.modalFactory.close(this.aiModalRef);
     this.mapFacade.cancelActivePlugin();
     this.toolService.clearTool();
   }
 
-  /**
-   * Executes AI feature find via plugin.
-   */
+  /** Executes AI feature find */
   async confirmAiFeatureFind(): Promise<void> {
     const prompt = this.aiPrompt.trim();
     if (!prompt) return;
@@ -700,28 +647,24 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
-  /**
-  * Updates selected layers and computes distance when changed.
-  */
+  /** Computes distance for distance plugin */
   distanceLayerModalCompute(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     if (!plugin) return;
     plugin.selectedLayers = [this.distanceLayerA || null, this.distanceLayerB || null];
-    this.distanceValue = (this.distanceLayerA && this.distanceLayerB) ? plugin.computeDistance(this.distanceLayerA, this.distanceLayerB) : 0;
+    this.distanceValue = (this.distanceLayerA && this.distanceLayerB)
+      ? plugin.computeDistance(this.distanceLayerA, this.distanceLayerB)
+      : 0;
     this.cdr.detectChanges();
   }
 
-  /**
-   * Confirms distance measurement via plugin.
-   */
+  /** Confirms layer distance */
   confirmLayerDistance(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     plugin?.confirm();
   }
 
-  /**
-   * Cancels distance measurement and clears selection.
-   */
+  /** Cancels layer distance */
   cancelLayerDistance(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     if (plugin?.modalRef) this.modalFactory.close(plugin.modalRef);
@@ -731,21 +674,13 @@ export class MapComponent implements AfterViewInit {
     this.toolService.clearTool();
   }
 
-  /**
-   * Checks if a tool is available for the current planet.
-   * @param toolType Tool type string
-   * @returns Boolean
-   */
+  /** Checks if tool is available for planet */
   isToolAvailable(toolType: string): boolean {
     if (toolType === 'highres-selection') return this.currentPlanet === 'mars';
     return true;
   }
 
-  /**
-   * Returns tooltip text for a tool.
-   * @param tool Tool object
-   * @returns Tooltip string
-   */
+  /** Returns tooltip for tool */
   getToolTooltip(tool: any): string {
     if (!this.isToolAvailable(tool.type)) {
       const planet = this.currentPlanet.charAt(0).toUpperCase() + this.currentPlanet.slice(1);
@@ -754,21 +689,13 @@ export class MapComponent implements AfterViewInit {
     return tool.name;
   }
 
-  /**
-   * TrackBy function for ngFor layers.
-   */
+  /** TrackBy function for layers */
   trackLayer(index: number, layer: LayerConfig): string { return layer.id; }
 
-  /**
-  * TrackBy function for ngFor tools.
-  */
+  /** TrackBy function for tools */
   trackByTool(index: number, tool: ToolDefinition): string { return tool.type; }
 
-  /**
-   * Computes approximate perimeter of a Polygon or MultiPolygon.
-   * @param geom Polygon or MultiPolygon
-   * @returns Perimeter in meters
-   */
+  /** Computes approximate perimeter */
   private computePerimeter(geom: Polygon | MultiPolygon): number {
     const getRingLength = (coords: number[][]): number => {
       let len = 0;
@@ -786,4 +713,51 @@ export class MapComponent implements AfterViewInit {
       return geom.getPolygons().map(p => p.getLinearRings().map(r => getRingLength(r.getCoordinates())).reduce((acc, v) => acc + v, 0)).reduce((acc, v) => acc + v, 0);
     }
   }
+
+  /**
+  * Toggles layer visibility AND updates the layer item checkbox.
+  * @param layer Layer to toggle
+  */
+  toggleLayerWithCheckbox(layer?: LayerConfig) {
+    if (!layer) return;
+    // Toggle using the LayerManager's toggle()
+    this.layerManager.toggle(layer);
+    // Refresh sidebar so the checkbox updates
+    this.layerManager.refreshLayersForPlanet(layer.planet);
+  }
+
+  /**
+   * Renames a layer using a prompt and updates registry and drag order.
+   * @param layer Layer to rename
+   */
+  renameLayer(layer?: LayerConfig) {
+    if (!layer) return;
+    const newName = prompt('Enter new layer name:', layer.name);
+    if (!newName || !newName.trim()) return;
+    const trimmed = newName.trim();
+    // Resolve conflicts
+    const finalName = this.layerManager['resolveLayerName'](layer.planet, trimmed);
+    layer.name = finalName;
+    // Since dragOrder and registry hold references, just refresh the sidebar
+    this.layerManager.refreshLayersForPlanet(layer.planet);
+    this.closeLayerContextMenu(); 
+  }
+
+  /**
+   * Activates an editing tool for the given layer.
+   * @param layer Layer to edit
+   */
+  editLayer(layer?: LayerConfig) {
+    if (!layer) return;
+    // Example: assume each editable layer has a plugin/tool type stored
+    const toolType = (layer as any).toolType; // your implementation may vary
+    if (!toolType) {
+      console.warn('No tool associated with this layer.');
+      return;
+    }
+    // Activate the tool for editing, passing the layer as context
+    this.closeLayerContextMenu(); 
+    this.activateTool(toolType);
+  }
+
 }

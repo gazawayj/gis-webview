@@ -7,6 +7,7 @@
   border: 1px solid var(--border-color-light);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: background 0.2s ease;
+  position: relative;
 }
 
 .layer-item:hover {
@@ -18,9 +19,7 @@
   align-items: center;
   gap: 8px;
   flex: 1 1 auto;
-  /* expands to fill remaining space */
   min-width: 0;
-  /* allow truncation */
 }
 
 .layer-name {

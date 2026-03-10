@@ -14,43 +14,54 @@
 
     <div class="sidebar-content">
 
-      <!-- Layer list -->
-      <div class="layer-list" cdkDropList [cdkDropListData]="dragOrder" (cdkDropListDropped)="onLayerDropped($event)">
-
-        <!-- Add Layer button -->
-        <div class="add-layer">
-          <button (click)="onAddLayer()">Import / Export</button>
-        </div>
-
-        <!-- Scrollable container for layers -->
+      <!-- Layer list wrapper -->
+      <div class="layer-list">
         <div class="layer-items-container">
-          @for (layer of dragOrder; track layer.id) {
-          <div class="layer-item-wrapper" cdkDrag>
-            <app-layer-item [layer]="layer" (itemToggle)="toggleLayer(layer)" (remove)="removeLayer(layer)"
-              (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)">
+
+          @if (!dragOrder.length) {
+            <div class="no-layers-tooltip">No layers added</div>
+          }
+
+          @for(layer of dragOrder; track layer.id) {
+            <app-layer-item
+              [layer]="layer"
+              (contextmenu)="onLayerRightClick($event, layer)"
+              (colorPicked)="onColorPicked(layer, $event)"
+              (shapeSelected)="selectShape(layer, $event)"
+              (remove)="removeLayer(layer)">
             </app-layer-item>
-          </div>
           }
-          @if (dragOrder.length === 0) {
-          <div class="no-layers-tooltip">
-            No layers added.
-          </div>
-          }
+
         </div>
       </div>
+
     </div>
+
+    <!-- Right-click context menu template -->
+    <ng-template #layerContextMenu>
+      <div class="context-menu">
+        <button (click)="toggleLayer(contextMenuLayer)">
+          @if(contextMenuLayer?.visible) { Hide } @else { Show }
+        </button>
+        <button (click)="editLayer(contextMenuLayer)">Edit</button>
+        <button (click)="renameLayer(contextMenuLayer)">Rename</button>
+        <button (click)="removeLayer(contextMenuLayer)">Remove</button>
+      </div>
+    </ng-template>
 
     <!-- Toolboxes -->
     <div class="toolbar-row">
-
       <div class="toolbar-wrapper horizontal-toolbar">
         <div class="toolbar-label">Toolbox</div>
         <div class="toolbar-buttons">
-          @for (tool of regularTools; track tool.type) {
-          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-            [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+          @for(tool of regularTools; track tool.type) {
+            <button class="tool-btn"
+                    [class.available]="isToolAvailable(tool.type)"
+                    (click)="activateTool(tool.type)"
+                    [title]="getToolTooltip(tool)"
+                    [class.active]="activeTool === tool.type">
+              <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+            </button>
           }
         </div>
       </div>
@@ -58,22 +69,25 @@
       <div class="toolbar-wrapper horizontal-toolbar">
         <div class="toolbar-label">AI Toolbox</div>
         <div class="toolbar-buttons">
-          @for (tool of aiTools; track tool.type) {
-          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
-            [title]="tool.name" [class.active]="activeTool === tool.type">
-            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-          </button>
+          @for(tool of aiTools; track tool.type) {
+            <button class="tool-btn"
+                    [class.available]="isToolAvailable(tool.type)"
+                    (click)="activateTool(tool.type)"
+                    [title]="tool.name"
+                    [class.active]="activeTool === tool.type">
+              <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+            </button>
           }
         </div>
       </div>
     </div>
 
-    <!-- Tooltip -->
+    <!-- Tooltip panel -->
     <div class="hover-tooltip-panel">
       <div class="tooltip-header">Feature Attributes</div>
       <div class="tooltip-content">
-        @if (hoverAttributes) {
-          @for (attr of hoverAttributes; track attr.key) {
+        @if(hoverAttributes) {
+          @for(attr of hoverAttributes; track attr.key) {
             <div class="stat-item" [class.name]="attr.key === 'Name'">
               <span class="stat-label">{{ attr.key }}:</span>
               <span class="stat-value">{{ attr.value }}</span>
@@ -89,18 +103,16 @@
 
     <!-- Map stats -->
     <div class="map-stats">
-      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat
-          }}</span></div>
-      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon
-          }}</span></div>
-      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
-      </div>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
     </div>
+
   </aside>
 
-  <!-- Map -->
+  <!-- Map container -->
   <div #mapContainer class="map-container">
-    @if (isLoading) {
+    @if(isLoading) {
       <div class="map-loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text">{{ loadingMessage }}</div>
@@ -124,8 +136,7 @@
           </label>
         </div>
         <div class="modal-actions">
-          <button class="primary" [disabled]="!pluginLayerName.trim()"
-            (click)="confirmSavePlugin(pluginLayerName)">Save</button>
+          <button class="primary" [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">Save</button>
           <button class="cancel" (click)="cancelPluginSave()">Cancel</button>
         </div>
       </div>
@@ -142,8 +153,7 @@
         </div>
         <div class="modal-body">
           <div class="modal-instructions">
-            <p>Use natural language to find a feature or a list of features on the <strong>currently selected
-                planet</strong>.</p>
+            <p>Use natural language to find a feature or a list of features on the <strong>currently selected planet</strong>.</p>
             <ul>
               <li>“Find the country with the highest happiness score” (Earth)</li>
               <li>“Five most interesting locations” (Mars)</li>
@@ -151,13 +161,12 @@
             </ul>
           </div>
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
-            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
+                    [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
           </textarea>
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading"
-            (click)="confirmAiFeatureFind()">Search</button>
+          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading" (click)="confirmAiFeatureFind()">Search</button>
         </div>
       </div>
     </div>
@@ -176,7 +185,7 @@
           <label>
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="distanceLayerModalCompute()">
-              @for (layer of dragOrder; track layer.id) {
+              @for(layer of dragOrder; track layer.id) {
                 <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
@@ -184,19 +193,18 @@
           <label>
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="distanceLayerModalCompute()">
-              @for (layer of dragOrder; track layer.id) {
+              @for(layer of dragOrder; track layer.id) {
                 <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
-          @if (distanceLayerA && distanceLayerB) {
+          @if(distanceLayerA && distanceLayerB) {
             <p>Distance: {{ formattedDistance }}</p>
           }
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
-            Line</button>
+          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw Line</button>
         </div>
       </div>
     </div>
@@ -206,48 +214,43 @@
   <ng-template #importExportModal>
     <div class="modal-backdrop">
       <div class="modal-card">
-
         <div class="modal-header">
           Import / Export Layers
           <button class="close-btn" (click)="modalFactory.close(importExportModalRef)">✕</button>
         </div>
-
         <div class="modal-body">
 
           <h3>Import</h3>
           <input type="file" (change)="onFileSelected($event)" />
 
-          @if (importFileType === 'CSV' && csvHeaders.length) {
+          @if(importFileType === 'CSV' && csvHeaders.length) {
             <div class="csv-options">
               <label>Longitude column:</label>
               <select [(ngModel)]="csvLonField">
-                @for (h of csvHeaders; track h) {
+                @for(h of csvHeaders; track h) {
                   <option [value]="h">{{ h }}</option>
                 }
               </select>
 
               <label>Latitude column:</label>
               <select [(ngModel)]="csvLatField">
-                @for (h of csvHeaders; track h) {
+                @for(h of csvHeaders; track h) {
                   <option [value]="h">{{ h }}</option>
                 }
               </select>
             </div>
           }
 
-          <button class="primary" [disabled]="!importFile" (click)="confirmImport()">
-            Import File
-          </button>
+          <button class="primary" [disabled]="!importFile" (click)="confirmImport()">Import File</button>
 
           <hr />
 
           <h3>Export</h3>
-
           <label>
             Layer
             <select [(ngModel)]="exportLayer">
-              @for (layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{layer.name}}</option>
+              @for(layer of dragOrder; track layer.id) {
+                <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
@@ -260,12 +263,9 @@
             </select>
           </label>
 
-          <button class="primary" [disabled]="!exportLayer" (click)="confirmExport()">
-            Export Layer
-          </button>
+          <button class="primary" [disabled]="!exportLayer" (click)="confirmExport()">Export Layer</button>
 
         </div>
-
       </div>
     </div>
   </ng-template>

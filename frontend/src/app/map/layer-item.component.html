@@ -1,98 +1,91 @@
-<div class="layer-item" cdkDrag>
+<div class="layer-item" cdkDrag (contextmenu)="onRightClick($event)">
 
-  <!-- DRAG HANDLE (only this starts dragging) -->
   <div class="drag-handle" cdkDragHandle title="Drag to reorder">☰</div>
 
-  <!-- Left side: checkbox + name -->
   <div class="layer-item-left">
-    <input
-      type="checkbox"
-      [checked]="layer.visible"
-      (click)="toggleVisibility($event); $event.stopPropagation()" />
-
     <span class="layer-name">{{ layer.name }}</span>
   </div>
 
-  <!-- Right side controls -->
   <div class="layer-controls">
+    <input type="color" [value]="layer.color" (input)="onColorPicked($event)" (mousedown)="$event.stopPropagation()" />
 
-    <!-- Color picker -->
-    <input
-      type="color"
-      [value]="layer.color"
-      (input)="onColorPicked($event); $event.stopPropagation()"
-      (mousedown)="$event.stopPropagation()" />
-
-    <!-- Selected shape button -->
-    <button
-      class="shape-selected-button"
-      (click)="openShapeDropdown(); $event.stopPropagation()"
-      (mousedown)="$event.stopPropagation()">
-
+    <!-- Shape dropdown -->
+    <button class="shape-selected-button" (click)="openShapeDropdown()" (mousedown)="$event.stopPropagation()">
       <svg width="20" height="20">
-        <ng-container
-          *ngTemplateOutlet="shapeSvg; context: { shape: layer.shape, color: layer.color }">
+        <ng-container>
+          @if(layer.shape) {
+          @if(layer.shape.toLowerCase() === 'circle') {
+          <circle cx="10" cy="10" r="6" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'square') {
+          <rect x="4" y="4" width="12" height="12" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'triangle') {
+          <polygon [attr.points]="getPoints('triangle')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'diamond') {
+          <polygon [attr.points]="getPoints('diamond')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'pentagon') {
+          <polygon [attr.points]="getPoints('pentagon')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'hexagon') {
+          <polygon [attr.points]="getPoints('hexagon')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'star') {
+          <polygon [attr.points]="getPoints('star')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'arrow') {
+          <polygon [attr.points]="getPoints('arrow')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(layer.shape.toLowerCase() === 'line') {
+          <line x1="0" y1="10" x2="20" y2="10" [attr.stroke]="layer.color" stroke-width="3" />
+          }
+          }
         </ng-container>
       </svg>
-
     </button>
-
-    <!-- Remove -->
-    <button
-      class="remove-btn"
-      (click)="remove.emit(); $event.stopPropagation()"
-      (mousedown)="$event.stopPropagation()">✕</button>
-
   </div>
-
-  <!-- Shape SVG template -->
-  <ng-template #shapeSvg let-shape="shape" let-color="color">
-    @if (shape) {
-      <svg width="20" height="20">
-        @if (shape.toLowerCase() === 'circle') {
-          <circle cx="10" cy="10" r="6" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'square') {
-          <rect x="4" y="4" width="12" height="12" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'triangle') {
-          <polygon [attr.points]="getPoints('triangle')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'diamond') {
-          <polygon [attr.points]="getPoints('diamond')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'pentagon') {
-          <polygon [attr.points]="getPoints('pentagon')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'hexagon') {
-          <polygon [attr.points]="getPoints('hexagon')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'star') {
-          <polygon [attr.points]="getPoints('star')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'arrow') {
-          <polygon [attr.points]="getPoints('arrow')" [attr.fill]="color" stroke="black"/>
-        }
-        @if (shape.toLowerCase() === 'line') {
-          <line x1="0" y1="10" x2="20" y2="10" [attr.stroke]="color" stroke-width="3"/>
-        }
-      </svg>
-    }
-  </ng-template>
 
   <!-- Shape dropdown overlay -->
   <ng-template #shapeDropdown>
     <div class="shape-dropdown">
-      @for (shape of dropdownShapes; track shape) {
-        <button (click)="selectShape(shape); $event.stopPropagation()">
-          <svg width="20" height="20">
-            <ng-container
-              *ngTemplateOutlet="shapeSvg; context: { shape: shape, color: layer.color }">
-            </ng-container>
-          </svg>
-        </button>
+      <!-- FIXED: Removed 'let' keyword and added 'track' (required in @for) -->
+      @for(shape of dropdownShapes; track shape) {
+      <button (click)="selectShape(shape); $event.stopPropagation()">
+        <svg width="20" height="20">
+          @if(shape) {
+          @if(shape.toLowerCase() === 'circle') {
+          <circle cx="10" cy="10" r="6" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'square') {
+          <rect x="4" y="4" width="12" height="12" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'triangle') {
+          <polygon [attr.points]="getPoints('triangle')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'diamond') {
+          <polygon [attr.points]="getPoints('diamond')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'pentagon') {
+          <polygon [attr.points]="getPoints('pentagon')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'hexagon') {
+          <polygon [attr.points]="getPoints('hexagon')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'star') {
+          <polygon [attr.points]="getPoints('star')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'arrow') {
+          <polygon [attr.points]="getPoints('arrow')" [attr.fill]="layer.color" stroke="black" />
+          }
+          @if(shape.toLowerCase() === 'line') {
+          <line x1="0" y1="10" x2="20" y2="10" [attr.stroke]="layer.color" stroke-width="3" />
+          }
+          }
+        </svg>
+      </button>
       }
     </div>
   </ng-template>
-
 </div>

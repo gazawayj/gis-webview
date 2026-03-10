@@ -161,6 +161,34 @@ body {
   user-select: none;
 }
 
+.layer-context-menu {
+  background: white;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+  z-index: 2001;
+}
+
+.layer-context-menu button {
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--primary-color);
+  transition: all 0.15s;
+}
+
+.layer-context-menu button:hover {
+  background: var(--button-color-highlight);
+}
+
 .drag-handle {
   cursor: grab;
   user-select: none;
@@ -307,7 +335,7 @@ body {
 /* ===================== FEATURE ATTRIBUTES TOOLTIP ===================== */
 .hover-tooltip-panel {
   flex-shrink: 0;
-  height: 120px; 
+  height: 120px;
   min-height: 120px;
   max-height: 120px;
   display: flex;
@@ -317,7 +345,7 @@ body {
   background: var(--panel-bg);
   margin-top: var(--sidebar-gap);
   overflow: hidden;
-  padding: 8px; 
+  padding: 8px;
   padding-top: 2px;
 }
 
@@ -330,11 +358,11 @@ body {
 }
 
 .tooltip-content {
-  flex: 1; 
+  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 0; 
+  padding: 0;
 }
 
 /* Base style for attribute rows */
@@ -343,7 +371,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-/*   border-bottom: 1px solid rgba(0, 0, 0, 0.05); */
+  /*   border-bottom: 1px solid rgba(0, 0, 0, 0.05); */
 }
 
 /* --- Alternating Dynamic Striped Backgrounds --- */
@@ -355,7 +383,7 @@ body {
 
 .hover-tooltip-panel .stat-item:nth-child(even) {
   /* Dynamic: 88% White mixed with Primary Color for the tinted band */
-    background-color: var(--panel-bg);
+  background-color: var(--panel-bg);
 }
 
 .stat-label {
@@ -381,7 +409,8 @@ body {
 .hover-tooltip-panel .stat-item.name .stat-value {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;   /* anchor text to bottom */
+  justify-content: flex-end;
+  /* anchor text to bottom */
   text-align: right;
   line-height: 1.3em;
   min-height: 2.6em;
@@ -476,7 +505,7 @@ body {
 }
 
 .cdk-drag-preview {
-  background-color: var(--text-color-light) !important; 
+  background-color: var(--text-color-light) !important;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--primary-color);
   border-radius: 6px;
@@ -484,7 +513,7 @@ body {
   align-items: center;
   box-sizing: border-box;
   overflow: hidden !important;
-  padding: 5px 8px; 
+  padding: 5px 8px;
   width: 100%;
 }
 
@@ -496,7 +525,8 @@ body {
   opacity: 0.3;
   border: 2px dashed var(--primary-color);
   background: transparent;
-  min-height: 44px; /* Match the height of your layer-item to prevent list jumping */
+  min-height: 44px;
+  /* Match the height of your layer-item to prevent list jumping */
   border-radius: 6px;
   margin-bottom: 4px;
 }

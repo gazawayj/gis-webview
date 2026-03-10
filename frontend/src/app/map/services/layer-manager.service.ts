@@ -557,7 +557,7 @@ export class LayerManagerService {
    * Updates observable layers$ list for a given planet.
    * @param p Planet to refresh layers for
    */
-  private refreshLayersForPlanet(p: Planet) {
+  refreshLayersForPlanet(p: Planet) {
     const planetLayers = this.planetCache[p] || [];
     const basemaps = this.dragOrder.filter(l => l.isBasemap);
     const nonBasemaps = planetLayers.filter(l => !l.isBasemap);

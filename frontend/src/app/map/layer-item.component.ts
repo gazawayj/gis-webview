@@ -29,9 +29,6 @@ export class LayerItemComponent implements OnDestroy {
   /** Input layer configuration for this item */
   @Input() layer!: LayerConfig;
 
-  /** Emits when the layer visibility toggle is clicked */
-  @Output() itemToggle = new EventEmitter<void>();
-
   /** Emits when the user selects a new color */
   @Output() colorPicked = new EventEmitter<string>();
 
@@ -40,6 +37,9 @@ export class LayerItemComponent implements OnDestroy {
 
   /** Emits when the remove action is triggered */
   @Output() remove = new EventEmitter<void>();
+
+  /** Emits when the user right-clicks on the layer item */
+  @Output() contextmenu = new EventEmitter<MouseEvent>();
 
   /** Template reference for the shape dropdown overlay */
   @ViewChild('shapeDropdown', { static: true }) shapeDropdown!: TemplateRef<any>;
@@ -60,21 +60,22 @@ export class LayerItemComponent implements OnDestroy {
   private elRef = inject(ElementRef);
 
   /**
-   * Toggles the visibility of this layer and emits an event.
-   * @param event Mouse event from the UI click
-   */
-  toggleVisibility(event: MouseEvent): void {
-    event.stopPropagation();
-    this.itemToggle.emit();
-  }
-
-  /**
    * Emits the color picked from a color input.
    * @param event Color input change event
    */
   onColorPicked(event: Event): void {
     const value = (event.target as HTMLInputElement)?.value;
     if (value) this.colorPicked.emit(value);
+  }
+
+  /**
+   * Handles right-click inside the component.
+   * @param event MouseEvent
+   */
+  onRightClick(event: MouseEvent): void {
+    event.preventDefault(); // prevent browser context menu
+    event.stopPropagation();
+    this.contextmenu.emit(event);
   }
 
   /**
@@ -127,7 +128,7 @@ export class LayerItemComponent implements OnDestroy {
    * Returns available shapes for the dropdown, excluding line types.
    */
   get dropdownShapes(): ShapeType[] {
-    return this.shapes.filter(t => !t.includes('line'));
+    return this.shapes.filter(t => t !== 'line');
   }
 
   /**
@@ -140,20 +141,22 @@ export class LayerItemComponent implements OnDestroy {
   }
 
   /**
-   * Maps a shape name to its corresponding SVG points string.
-   * @param shape Shape name (e.g., 'triangle', 'star')
-   * @returns SVG points string for rendering the shape
+   * Returns SVG points string for a given shape.
+   * @param shape Shape name (from SHAPES)
+   * @returns SVG points string for polygon/vertex rendering
    */
-  getPoints(shape: string): string {
-    const map: Record<string, string> = {
-      triangle: '10,4 16,16 4,16',
-      diamond: '10,2 18,10 10,18 2,10',
-      pentagon: '10,2 18,8 14,18 6,18 2,8',
-      hexagon: '10,2 16,6 16,14 10,18 4,14 4,6',
-      star: '10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8',
-      arrow: '10,2 16,10 12,10 12,18 8,18 8,10 4,10'
-    };
-    return map[shape.toLowerCase()] || '';
+  getPoints(shape: ShapeType): string {
+    switch (shape) {
+      case 'triangle': return '10,4 16,16 4,16';
+      case 'diamond': return '10,2 18,10 10,18 2,10';
+      case 'pentagon': return '10,2 18,8 14,18 6,18 2,8';
+      case 'hexagon': return '10,2 16,6 16,14 10,18 4,14 4,6';
+      case 'star': return '10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8';
+      case 'arrow': return '10,2 16,10 12,10 12,18 8,18 8,10 4,10';
+      case 'square': return '4,4 16,4 16,16 4,16';
+      case 'circle': return 'M10,2 A8,8 0 1,0 10,18 A8,8 0 1,0 10,2';
+      default: return '';
+    }
   }
 
   /**
