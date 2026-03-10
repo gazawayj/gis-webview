@@ -3,9 +3,10 @@
      [cdkDragData]="layer" 
      (contextmenu)="onRightClick($event)">
 
-  <!-- Drag handle covers the whole left section -->
+  <div class="drag-handle"title="Drag to reorder, right click for menu">☰</div>
+
   <div class="layer-item-left" cdkDragHandle>
-    <span class="layer-name">{{ layer.name }}</span>
+    <span class="layer-name"title="Drag to reorder, right click for menu">{{ layer.name }}</span>
   </div>
 
   <!-- Controls: not draggable -->
