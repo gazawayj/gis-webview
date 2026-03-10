@@ -16,20 +16,18 @@
 
       <!-- Layer list wrapper -->
       <div class="layer-list">
-        <div class="layer-items-container">
+        <div class="layer-items-container" cdkDropList [cdkDropListData]="dragOrder"
+          (cdkDropListDropped)="onLayerDropped($event)">
 
           @if (!dragOrder.length) {
-            <div class="no-layers-tooltip">No layers added</div>
+          <div class="no-layers-tooltip">No layers added</div>
           }
 
           @for(layer of dragOrder; track layer.id) {
-            <app-layer-item
-              [layer]="layer"
-              (contextmenu)="onLayerRightClick($event, layer)"
-              (colorPicked)="onColorPicked(layer, $event)"
-              (shapeSelected)="selectShape(layer, $event)"
-              (remove)="removeLayer(layer)">
-            </app-layer-item>
+          <app-layer-item [layer]="layer" (contextmenu)="onLayerRightClick($event, layer)"
+            (colorPicked)="onColorPicked(layer, $event)" (shapeSelected)="selectShape(layer, $event)"
+            (remove)="removeLayer(layer)">
+          </app-layer-item>
           }
 
         </div>
@@ -55,13 +53,10 @@
         <div class="toolbar-label">Toolbox</div>
         <div class="toolbar-buttons">
           @for(tool of regularTools; track tool.type) {
-            <button class="tool-btn"
-                    [class.available]="isToolAvailable(tool.type)"
-                    (click)="activateTool(tool.type)"
-                    [title]="getToolTooltip(tool)"
-                    [class.active]="activeTool === tool.type">
-              <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-            </button>
+          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+            [title]="getToolTooltip(tool)" [class.active]="activeTool === tool.type">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+          </button>
           }
         </div>
       </div>
@@ -70,13 +65,10 @@
         <div class="toolbar-label">AI Toolbox</div>
         <div class="toolbar-buttons">
           @for(tool of aiTools; track tool.type) {
-            <button class="tool-btn"
-                    [class.available]="isToolAvailable(tool.type)"
-                    (click)="activateTool(tool.type)"
-                    [title]="tool.name"
-                    [class.active]="activeTool === tool.type">
-              <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
-            </button>
+          <button class="tool-btn" [class.available]="isToolAvailable(tool.type)" (click)="activateTool(tool.type)"
+            [title]="tool.name" [class.active]="activeTool === tool.type">
+            <img [src]="tool.icon" alt="{{tool.name}}" width="32" height="32" />
+          </button>
           }
         </div>
       </div>
@@ -87,25 +79,28 @@
       <div class="tooltip-header">Feature Attributes</div>
       <div class="tooltip-content">
         @if(hoverAttributes) {
-          @for(attr of hoverAttributes; track attr.key) {
-            <div class="stat-item" [class.name]="attr.key === 'Name'">
-              <span class="stat-label">{{ attr.key }}:</span>
-              <span class="stat-value">{{ attr.value }}</span>
-            </div>
-          }
+        @for(attr of hoverAttributes; track attr.key) {
+        <div class="stat-item" [class.name]="attr.key === 'Name'">
+          <span class="stat-label">{{ attr.key }}:</span>
+          <span class="stat-value">{{ attr.value }}</span>
+        </div>
+        }
         } @else {
-          <div class="tooltip-placeholder">
-            Hover over a feature to see details
-          </div>
+        <div class="tooltip-placeholder">
+          Hover over a feature to see details
+        </div>
         }
       </div>
     </div>
 
     <!-- Map stats -->
     <div class="map-stats">
-      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat }}</span></div>
-      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon }}</span></div>
-      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ latLabel }}:</span> <span class="stat-value">{{ formattedLat
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">{{ lonLabel }}:</span> <span class="stat-value">{{ formattedLon
+          }}</span></div>
+      <div class="stat-item"><span class="stat-label">Zoom:</span> <span class="stat-value">{{ zoomDisplay }}</span>
+      </div>
     </div>
 
   </aside>
@@ -113,10 +108,10 @@
   <!-- Map container -->
   <div #mapContainer class="map-container">
     @if(isLoading) {
-      <div class="map-loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">{{ loadingMessage }}</div>
-      </div>
+    <div class="map-loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">{{ loadingMessage }}</div>
+    </div>
     }
   </div>
 
@@ -136,7 +131,8 @@
           </label>
         </div>
         <div class="modal-actions">
-          <button class="primary" [disabled]="!pluginLayerName.trim()" (click)="confirmSavePlugin(pluginLayerName)">Save</button>
+          <button class="primary" [disabled]="!pluginLayerName.trim()"
+            (click)="confirmSavePlugin(pluginLayerName)">Save</button>
           <button class="cancel" (click)="cancelPluginSave()">Cancel</button>
         </div>
       </div>
@@ -153,7 +149,8 @@
         </div>
         <div class="modal-body">
           <div class="modal-instructions">
-            <p>Use natural language to find a feature or a list of features on the <strong>currently selected planet</strong>.</p>
+            <p>Use natural language to find a feature or a list of features on the <strong>currently selected
+                planet</strong>.</p>
             <ul>
               <li>“Find the country with the highest happiness score” (Earth)</li>
               <li>“Five most interesting locations” (Mars)</li>
@@ -161,12 +158,13 @@
             </ul>
           </div>
           <textarea #aiPromptTextarea cdkFocusInitial rows="4" placeholder="Describe the feature..."
-                    [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
+            [(ngModel)]="aiPrompt" (keydown)="handleAiKeydown($event)" [disabled]="isLoading">
           </textarea>
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelAiFeatureFind()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading" (click)="confirmAiFeatureFind()">Search</button>
+          <button class="primary" [disabled]="!aiPrompt.trim() || isLoading"
+            (click)="confirmAiFeatureFind()">Search</button>
         </div>
       </div>
     </div>
@@ -186,7 +184,7 @@
             Layer A:
             <select [(ngModel)]="distanceLayerA" (ngModelChange)="distanceLayerModalCompute()">
               @for(layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{ layer.name }}</option>
+              <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
@@ -194,17 +192,18 @@
             Layer B:
             <select [(ngModel)]="distanceLayerB" (ngModelChange)="distanceLayerModalCompute()">
               @for(layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{ layer.name }}</option>
+              <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>
           @if(distanceLayerA && distanceLayerB) {
-            <p>Distance: {{ formattedDistance }}</p>
+          <p>Distance: {{ formattedDistance }}</p>
           }
         </div>
         <div class="modal-actions">
           <button class="cancel" (click)="cancelLayerDistance()" [disabled]="isLoading">Cancel</button>
-          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw Line</button>
+          <button class="primary" [disabled]="!distanceLayerA || !distanceLayerB" (click)="confirmLayerDistance()">Draw
+            Line</button>
         </div>
       </div>
     </div>
@@ -224,21 +223,21 @@
           <input type="file" (change)="onFileSelected($event)" />
 
           @if(importFileType === 'CSV' && csvHeaders.length) {
-            <div class="csv-options">
-              <label>Longitude column:</label>
-              <select [(ngModel)]="csvLonField">
-                @for(h of csvHeaders; track h) {
-                  <option [value]="h">{{ h }}</option>
-                }
-              </select>
+          <div class="csv-options">
+            <label>Longitude column:</label>
+            <select [(ngModel)]="csvLonField">
+              @for(h of csvHeaders; track h) {
+              <option [value]="h">{{ h }}</option>
+              }
+            </select>
 
-              <label>Latitude column:</label>
-              <select [(ngModel)]="csvLatField">
-                @for(h of csvHeaders; track h) {
-                  <option [value]="h">{{ h }}</option>
-                }
-              </select>
-            </div>
+            <label>Latitude column:</label>
+            <select [(ngModel)]="csvLatField">
+              @for(h of csvHeaders; track h) {
+              <option [value]="h">{{ h }}</option>
+              }
+            </select>
+          </div>
           }
 
           <button class="primary" [disabled]="!importFile" (click)="confirmImport()">Import File</button>
@@ -250,7 +249,7 @@
             Layer
             <select [(ngModel)]="exportLayer">
               @for(layer of dragOrder; track layer.id) {
-                <option [ngValue]="layer">{{ layer.name }}</option>
+              <option [ngValue]="layer">{{ layer.name }}</option>
               }
             </select>
           </label>

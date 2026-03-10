@@ -16,11 +16,12 @@ import { SHAPES, ShapeType } from './constants/symbol-constants';
 import { LayerConfig } from './models/layer-config.model';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-layer-item',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DragDropModule],
   templateUrl: './layer-item.component.html',
   styleUrls: ['./layer-item.component.css'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
