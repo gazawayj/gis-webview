@@ -703,7 +703,7 @@ export class MapComponent implements AfterViewInit {
   /**
   * Updates selected layers and computes distance when changed.
   */
-  onDistanceLayerChange(): void {
+  distanceLayerModalCompute(): void {
     const plugin = this.mapFacade.getActivePlugin() as LayerDistanceToolPlugin;
     if (!plugin) return;
     plugin.selectedLayers = [this.distanceLayerA || null, this.distanceLayerB || null];

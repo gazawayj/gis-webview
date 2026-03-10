@@ -175,7 +175,7 @@
           <p>Select two layers to compute the distance between them:</p>
           <label>
             Layer A:
-            <select [(ngModel)]="distanceLayerA" (ngModelChange)="onDistanceLayerChange()">
+            <select [(ngModel)]="distanceLayerA" (ngModelChange)="distanceLayerModalCompute()">
               @for (layer of dragOrder; track layer.id) {
                 <option [ngValue]="layer">{{ layer.name }}</option>
               }
@@ -183,7 +183,7 @@
           </label>
           <label>
             Layer B:
-            <select [(ngModel)]="distanceLayerB" (ngModelChange)="onDistanceLayerChange()">
+            <select [(ngModel)]="distanceLayerB" (ngModelChange)="distanceLayerModalCompute()">
               @for (layer of dragOrder; track layer.id) {
                 <option [ngValue]="layer">{{ layer.name }}</option>
               }
