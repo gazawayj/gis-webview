@@ -1,0 +1,33 @@
+name: Test Coverage Badge
+on:
+  push:
+    branches: [ main ] # Only generate badges on the main branch
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to commit the badge back to the repo
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests & Coverage
+        run: npm test -- --coverage # Runs: vitest run --coverage
+
+      - name: Generate Coverage Badge
+        uses: jpb06/coverage-badges-action@latest
+        with:
+          # This looks for the json-summary generated in step 1
+          coverage-summary-path: ./coverage/coverage-summary.json
+          # Commit the badge to the 'main' branch
+          branches: main
+

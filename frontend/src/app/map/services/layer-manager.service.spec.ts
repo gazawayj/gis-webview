@@ -1,49 +1,32 @@
 /**
- * layer-manager.service.spec.ts
- * 
- * This suite tests the LayerManagerService, the "Source of Truth" for all 
- * map layers in the application. It handles layer creation, visibility, 
- * z-index ordering, and OpenLayers object management.
- * 
- * TESTING STRATEGY:
- * 1. OpenLayers Integration: Use a custom 'createMockMap' helper to prevent 
- *    tests from trying to render a real HTML5 Canvas, which would crash in JSDOM.
- * 2. Service Dependencies: Mock the StyleService and HttpClient to isolate 
- *    layer logic from visual rendering and network requests.
- * 3. State Registry: Verify that the internal private 'registry' (Map) 
- *    correctly tracks layers as they are added or removed.
+ * Unit tests for LayerManagerService, the "Source of Truth" for all map layers.
+ * Handles creation, visibility, z-index ordering, and OpenLayers object management.
+ *
+ * Testing strategy:
+ * 1. Mock OpenLayers map to avoid rendering in JSDOM.
+ * 2. Replace StyleService and HttpClient with mocks to isolate logic.
+ * 3. Verify private layer registry via bracket notation.
  */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TestBed } from '@angular/core/testing';
+import '../../../test-setup'; 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LayerManagerService } from './layer-manager.service';
 import { StyleService } from './style.service';
 import { HttpClient } from '@angular/common/http';
 import { createMockMap } from '../testing/mock-map';
-import { of } from 'rxjs';
-import Feature from 'ol/Feature';
+import { Feature } from 'ol';
 import Point from 'ol/geom/Point';
-
-/**
- * MOCK: HttpClient
- * Simulates network responses for GeoJSON or CSV file loading.
- */
-class MockHttp {
-  get() {
-    return of('{}');
-  }
-}
+import { of } from 'rxjs';
+import { createService, MockHttpClient } from '../testing/test-harness';
 
 /**
  * MOCK: StyleService
- * Prevents complex OpenLayers style calculations from running during unit tests.
- * Returns simplified color/shape objects instead.
+ * Simplifies color/shape allocation and prevents complex OL style logic.
  */
 class MockStyleService {
   allocateLayerStyle() {
     return { color: '#ff0000', shape: 'circle' };
   }
-  brightenHex() {
+  brightenHex(hex: string) {
     return '#ffffff';
   }
   getLayerStyle() {
@@ -54,33 +37,27 @@ class MockStyleService {
 describe('LayerManagerService', () => {
   let service: LayerManagerService;
 
+  /**
+   * beforeEach:
+   * Uses the test harness createService() function to inject the service
+   * with mocked dependencies. Attaches a fake OpenLayers map for safe testing.
+   */
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [
-        LayerManagerService,
-        { provide: StyleService, useClass: MockStyleService },
-        { provide: HttpClient, useClass: MockHttp }
-      ]
-    });
+    service = createService(LayerManagerService, [
+      { provide: StyleService, useClass: MockStyleService },
+      { provide: HttpClient, useClass: MockHttpClient }
+    ]);
 
-    service = TestBed.inject(LayerManagerService);
-    
-    /**
-     * ATTACH MOCK MAP:
-     * Most LayerManager methods interact with an 'ol/Map' instance.
-     * Attach a mock map here so that methods like .addLayer() find a valid target.
-     */
+    // Provide a fake OpenLayers map instance so layer methods can run
     service.attachMap(createMockMap());
   });
 
   /**
-   * Test: Layer Creation
-   * Verifies that passing raw data (Planet, Name, Features) results in a 
-   * valid LayerConfig object with a processed OpenLayers layer inside.
+   * TEST: Layer Creation
+   * Verifies that createLayer() returns a valid LayerConfig with a processed OL layer.
    */
   it('should create a layer', () => {
     const feature = new Feature(new Point([0, 0]));
-
     const layer = service.createLayer({
       planet: 'mars',
       name: 'TestLayer',
@@ -89,13 +66,12 @@ describe('LayerManagerService', () => {
 
     expect(layer.name).toBe('TestLayer');
     expect(layer.features?.length).toBe(1);
-    // Ensure an actual OpenLayers VectorLayer was generated
-    expect(layer.olLayer).toBeDefined();
+    expect(layer.olLayer).toBeDefined(); // OL VectorLayer generated
   });
 
   /**
-   * Test: Visibility Toggle
-   * Verifies the boolean logic for hiding/showing layers on the map.
+   * TEST: Visibility Toggle
+   * Checks that toggling a layer updates its boolean visibility.
    */
   it('should toggle layer visibility', () => {
     const feature = new Feature(new Point([0, 0]));
@@ -107,14 +83,12 @@ describe('LayerManagerService', () => {
 
     const initialStatus = layer.visible;
     service.toggle(layer);
-
     expect(layer.visible).toBe(!initialStatus);
   });
 
   /**
-   * Test: Layer Removal
-   * Ensures that deleting a layer removes it from both the OpenLayers map
-   * and the internal registry to prevent memory leaks.
+   * TEST: Layer Removal
+   * Ensures a layer is removed from the registry and OL map.
    */
   it('should remove layer', () => {
     const feature = new Feature(new Point([0, 0]));
@@ -126,17 +100,13 @@ describe('LayerManagerService', () => {
 
     service.remove(layer);
 
-    /** 
-     * Use bracket notation service['registry'] to access the private 
-     * property for verification without TypeScript complaining.
-     */
+    // Access private 'registry' safely with bracket notation
     expect(service['registry'].has(layer.id)).toBe(false);
   });
 
   /**
-   * Test: Z-Index Ordering
-   * Verifies that when a user reorders layers in the sidebar, the 
-   * service updates the OpenLayers Z-Index to ensure the correct visual stacking.
+   * TEST: Z-Index Ordering
+   * Verifies that reorderLayers updates OL layer z-index for proper stacking.
    */
   it('should reorder layers', () => {
     const f1 = new Feature(new Point([0, 0]));
@@ -145,10 +115,7 @@ describe('LayerManagerService', () => {
     const l1 = service.createLayer({ planet: 'mars', name: 'A', features: [f1] });
     const l2 = service.createLayer({ planet: 'mars', name: 'B', features: [f2] });
 
-    /**
-     * When reordering, the service should iterate through the array 
-     * and call setZIndex on the internal olLayer objects.
-     */
+    // Reorder triggers setZIndex on each OL layer
     service.reorderLayers([l1, l2]);
 
     expect(l1.olLayer.setZIndex).toHaveBeenCalled();

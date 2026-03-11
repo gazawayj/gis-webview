@@ -1,16 +1,14 @@
 /**
- * This file provides reusable factory functions and common mocks to reduce 
- * boilerplate in service tests. By standardizing how services are created 
- * and how HttpClient is mocked, ensure consistent test behavior across the app.
+ * test-harness.ts
  * 
- * CORE TESTING CONCEPTS:
- * 1. Dependency Injection (DI) Mocking: Replace the real Angular HttpClient 
- *    with a mock to prevent actual network requests during unit tests.
- * 2. Generic Factory Pattern: The 'createService' function uses TypeScript 
- *    Generics to provide a type-safe way to initialize any Angular service 
- *    within the TestBed environment.
+ * Provides reusable factory functions and mocks for Angular service tests.
+ * Designed to be independent of Vitest/Jasmine globals (no beforeEach/it here).
+ * 
+ * CORE CONCEPTS:
+ * 1. MockHttpClient: Prevents real HTTP calls and allows spying.
+ * 2. createService<T>: Type-safe factory to create any Angular service with optional extra providers.
  */
-
+import '../../../test-setup'; 
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
@@ -19,49 +17,51 @@ import { vi } from 'vitest';
 /**
  * CLASS: MockHttpClient
  * 
- * A reusable mock for Angular's HttpClient. 
- * Instead of making real XHR/Fetch calls, it returns an Observable of an 
- * empty JSON object string.
- * 
- * Use 'vi.fn()' so that tests can spy on requests:
- * expect(httpMock.get).toHaveBeenCalledWith('api/data');
+ * A reusable mock for Angular's HttpClient.
+ * Returns a simple Observable of an empty JSON string.
+ * Can be spied on in tests using Vitest's vi.fn().
  */
 export class MockHttpClient {
-  /** 
-   * Simulates an HTTP GET request.
-   * Returns 'of("{}")' which is an RxJS Observable that emits immediately.
-   */
+  /** Simulates HttpClient.get */
   get = vi.fn(() => of('{}'));
+
+  /** Simulates HttpClient.post */
+  post = vi.fn(() => of('{}'));
+
+  /** Simulates HttpClient.put */
+  put = vi.fn(() => of('{}'));
+
+  /** Simulates HttpClient.delete */
+  delete = vi.fn(() => of('{}'));
 }
 
 /**
  * FUNCTION: createService<T>
  * 
- * A helper function to bootstrap the Angular TestBed for Service testing.
- * It automatically handles the injection of the MockHttpClient.
+ * Initializes Angular TestBed for a service test.
+ * Automatically provides MockHttpClient and optional additional providers.
  * 
- * @param service - The class of the service to be tested (e.g., LayerManagerService).
- * @param providers - Optional array of extra mocks or providers specific to that test.
- * @returns The injected instance of the service.
+ * @param service - The class of the service to test.
+ * @param providers - Optional array of additional Angular providers/mocks.
+ * @returns Injected instance of the service.
  * 
- * USAGE: 
+ * USAGE:
  * const service = createService(LayerManagerService, [{ provide: MapFacade, useValue: mock }]);
  */
-export function createService<T>(service: new (...args: any[]) => T, providers: any[] = []): T {
+export function createService<T>(
+  service: new (...args: any[]) => T,
+  providers: any[] = []
+): T {
+  // Reset TestBed to prevent duplicate module errors in multiple tests
+  TestBed.resetTestingModule();
+
   TestBed.configureTestingModule({
     providers: [
-      /** The service under test itself */
       service,
-      /** Defaulting HttpClient to mock class for all services */
       { provide: HttpClient, useClass: MockHttpClient },
-      /** Spread operator to include any test-specific providers passed in */
-      ...providers
-    ]
+      ...providers,
+    ],
   });
 
-  /** 
-   * Returns the resolved instance of the service from the TestBed. 
-   * This is equivalent to calling 'TestBed.inject(Service)'.
-   */
   return TestBed.inject(service);
 }

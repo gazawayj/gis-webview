@@ -6,7 +6,7 @@
  * nested structure (Map -> View -> Viewport) so the services can 
  * 'attach' to them without a real browser.
  */
-
+import '../../../test-setup';
 import { vi } from 'vitest';
 
 /**

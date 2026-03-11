@@ -4,9 +4,17 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'node',
     include: ['src/**/*.spec.ts'],
-    exclude: ['src/app/app.spec.ts'],
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./src/test-setup.ts'], 
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      thresholds: {
+        lines: 20, 
+      },
+      clean: true,
+    },
+    testTimeout: 5000,
   },
 });
