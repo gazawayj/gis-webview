@@ -126,7 +126,7 @@ if (typeof (global as any).URL === 'function') {
   (global as any).URL.revokeObjectURL = vi.fn();
 } else {
   (global as any).URL = class {
-    constructor(public url: string) {}
+    constructor(public url: string) { }
     static createObjectURL = vi.fn(() => 'mock-url');
     static revokeObjectURL = vi.fn();
   } as any;
@@ -136,13 +136,12 @@ if (typeof (global as any).URL === 'function') {
 // Node getRootNode Polyfill
 // -----------------------------
 if (!(global as any).Node.prototype.getRootNode) {
-  // FIX: Added 'this' parameter type and used variable name that doesn't trigger aliasing errors
-  (global as any).Node.prototype.getRootNode = function (this: Node) {
-    let root: Node = this;
-    while (root.parentNode) {
-      root = root.parentNode;
+  (global as any).Node.prototype.getRootNode = function (this: any) {
+    let node = this;
+    while (node && node.parentNode) {
+      node = node.parentNode;
     }
-    return root;
+    return node;
   };
 }
 
