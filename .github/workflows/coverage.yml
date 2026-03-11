@@ -1,5 +1,4 @@
-name: Backend Test
-
+name: Coverage
 on:
   push:
     branches: [ main ]
