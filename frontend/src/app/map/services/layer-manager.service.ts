@@ -453,7 +453,10 @@ export class LayerManagerService {
       if (fType === 'line') return [this.styleService.getLayerStyle({ type: 'line', baseColor })];
       return [this.styleService.getLayerStyle({ type: 'point', baseColor, shape: layer.shape })];
     });
-    vectorLayer.changed();
+    // Allows tests to run without mocking .changed() call
+    if (typeof vectorLayer.changed === 'function') {
+      vectorLayer.changed();
+    }
   }
 
   /**

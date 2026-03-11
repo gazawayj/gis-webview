@@ -95,9 +95,9 @@ export class MapComponent implements AfterViewInit {
   loadingMessage = 'Loading...';
   pluginLayerName = '';
 
-  private aiModalRef?: OverlayRef;
+  aiModalRef?: OverlayRef;
   private modalRef?: OverlayRef;
-  private pluginModalRef?: OverlayRef;
+  pluginModalRef?: OverlayRef;
   private previousHoverFeature: FeatureLike | null = null;
 
   private layerContextMenuRef?: OverlayRef;
