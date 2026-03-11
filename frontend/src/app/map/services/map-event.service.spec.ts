@@ -9,7 +9,8 @@
  * 2. Simulate map events via a fully mocked map object.
  * 3. Verify RxJS subjects emit expected pointer and hover states.
  */
-import '../../../test-setup'; 
+
+import '../../../test-setup';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MapEventService, PointerState } from './map-event.service';
 import { createService } from '../testing/test-harness';
@@ -46,13 +47,22 @@ describe('MapEventService', () => {
     service.attachMap(mockMap);
     let emittedState: PointerState | undefined;
 
-    service.pointerState$.subscribe(state => emittedState = state);
+    service.pointerState$.subscribe(state => {
+      emittedState = state;
+    });
 
-    // Locate the registered pointermove callback
-    const moveCall = mockMap.on.mock.calls.find((call: [string, Function]) => call[0] === 'pointermove');
+    /**
+     * Locate the registered pointermove callback.
+     */
+    const moveCall = mockMap.on.mock.calls.find(
+      (call: [string, (evt: unknown) => void]) => call[0] === 'pointermove'
+    );
+
     const moveCallback = moveCall![1] as (evt: any) => void;
 
-    // Simulate pointermove event
+    /**
+     * Simulate pointermove event.
+     */
     moveCallback({
       coordinate: [123.456, 78.91],
       pixel: [10, 10],
@@ -65,30 +75,53 @@ describe('MapEventService', () => {
 
   it('should emit the feature under pointer', () => {
     service.attachMap(mockMap);
+
     const mockFeature = { id: 'feature1' };
     mockMap.forEachFeatureAtPixel.mockReturnValue(mockFeature);
 
     let detectedFeature: unknown;
-    service.hoverFeature$.subscribe(f => detectedFeature = f);
 
-    // Trigger pointermove
-    const moveCall = mockMap.on.mock.calls.find((call: [string, Function]) => call[0] === 'pointermove');
+    service.hoverFeature$.subscribe(feature => {
+      detectedFeature = feature;
+    });
+
+    /**
+     * Trigger pointermove event.
+     */
+    const moveCall = mockMap.on.mock.calls.find(
+      (call: [string, (evt: unknown) => void]) => call[0] === 'pointermove'
+    );
+
     const moveCallback = moveCall![1] as (evt: any) => void;
-    moveCallback({ coordinate: [0, 0], pixel: [5, 5] });
+
+    moveCallback({
+      coordinate: [0, 0],
+      pixel: [5, 5]
+    });
 
     expect(detectedFeature).toBe(mockFeature);
   });
 
   it('should call registered context menu handler on right-click', () => {
     const handlerSpy = vi.fn();
+
     service.attachMap(mockMap);
     service.registerContextMenuHandler(handlerSpy);
 
     const viewport = mockMap.getViewport();
-    const contextCall = viewport.addEventListener.mock.calls.find((call: [string, Function]) => call[0] === 'contextmenu');
+
+    /**
+     * Locate contextmenu listener.
+     */
+    const contextCall = viewport.addEventListener.mock.calls.find(
+      (call: [string, (evt: unknown) => void]) => call[0] === 'contextmenu'
+    );
+
     const contextMenuListener = contextCall![1] as (evt: any) => void;
 
-    contextMenuListener({ preventDefault: vi.fn() });
+    contextMenuListener({
+      preventDefault: vi.fn()
+    });
 
     expect(handlerSpy).toHaveBeenCalled();
   });
