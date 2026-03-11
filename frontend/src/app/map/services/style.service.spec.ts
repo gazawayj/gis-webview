@@ -3,9 +3,9 @@
  * 
  * TESTING REASONING:
  * 1. Method Signatures: The getLayerStyle method uses an 'options' object pattern. 
- *    We must pass a single object { type, baseColor, ... } to match the service.
+ *    Must pass a single object { type, baseColor, ... } to match the service.
  * 2. Color Math: Because the service uses multiplication (* factor), pure black 
- *    multiplied by any number is still 0. Our test now expects this behavior.
+ *    multiplied by any number is still 0.
  * 3. State Isolation: Each test calls resetPlanet to ensure color/shape usage 
  *    from one test doesn't leak into the next.
  */
@@ -38,7 +38,6 @@ describe('StyleService', () => {
     expect(service.brightenHex('#ffffff', 1.5)).toBe('#ffffff');
 
     // Boundary Case: Black (0 * factor = 0)
-    // This is where your previous test failed; it correctly returns #000000
     expect(service.brightenHex('#000000', 1.5)).toBe('#000000');
   });
 
@@ -72,10 +71,8 @@ describe('StyleService', () => {
 
   /**
    * TEST: OpenLayers Style Generation
-   * FIX: This method now passes a single options object to match the Service signature.
    */
   it('should generate a valid OpenLayers style object', () => {
-    // Corrected call: One argument (the options object)
     const olStyle = service.getLayerStyle({
       type: 'point',
       baseColor: '#ff0000',
