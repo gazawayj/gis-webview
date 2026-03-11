@@ -1,35 +1,36 @@
-name: Test Coverage Badge
+name: Backend Test
+
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  coverage:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Essential for the action to push badge files
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: './backend/package-lock.json'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
-        working-directory: ./backend
 
-      - name: Run Tests & Coverage
-        # Ensures the json-summary report needed for badges is generated
-        run: npm test -- --coverage --coverageReporters=json-summary
-        working-directory: ./backend
+      - name: Run tests with coverage
+        # Configure Vitest to generate JSON summary report
+        run: npx vitest run --coverage 
+        env:
+          CI: true
 
-      - name: Generate Coverage Badge
-        uses: jpb06/coverage-badges-action@latest
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
         with:
-          coverage-summary-path: ./backend/coverage/coverage-summary.json
-          branches: main
-          target-branch: main # Commits the badges directly to your main branch
+          name: coverage-report
+          path: coverage/coverage-summary.json
