@@ -1,12 +1,10 @@
 /**
- * testing-utils.ts
- * 
  * This file provides reusable factory functions and common mocks to reduce 
  * boilerplate in service tests. By standardizing how services are created 
- * and how HttpClient is mocked, we ensure consistent test behavior across the app.
+ * and how HttpClient is mocked, ensure consistent test behavior across the app.
  * 
  * CORE TESTING CONCEPTS:
- * 1. Dependency Injection (DI) Mocking: We replace the real Angular HttpClient 
+ * 1. Dependency Injection (DI) Mocking: Replace the real Angular HttpClient 
  *    with a mock to prevent actual network requests during unit tests.
  * 2. Generic Factory Pattern: The 'createService' function uses TypeScript 
  *    Generics to provide a type-safe way to initialize any Angular service 
@@ -25,7 +23,7 @@ import { vi } from 'vitest';
  * Instead of making real XHR/Fetch calls, it returns an Observable of an 
  * empty JSON object string.
  * 
- * We use 'vi.fn()' so that tests can spy on requests:
+ * Use 'vi.fn()' so that tests can spy on requests:
  * expect(httpMock.get).toHaveBeenCalledWith('api/data');
  */
 export class MockHttpClient {
@@ -54,7 +52,7 @@ export function createService<T>(service: new (...args: any[]) => T, providers: 
     providers: [
       /** The service under test itself */
       service,
-      /** Defaulting HttpClient to our mock class for all services */
+      /** Defaulting HttpClient to mock class for all services */
       { provide: HttpClient, useClass: MockHttpClient },
       /** Spread operator to include any test-specific providers passed in */
       ...providers
