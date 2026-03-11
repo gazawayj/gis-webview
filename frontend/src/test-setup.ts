@@ -136,11 +136,11 @@ if (typeof (global as any).URL === 'function') {
 // Node getRootNode Polyfill
 // -----------------------------
 if (!(global as any).Node.prototype.getRootNode) {
-  (global as any).Node.prototype.getRootNode = function () {
-    // FIX: Using for-loop head to navigate up the tree without direct variable aliasing
-    let root = this;
-    for (; root.parentNode; root = root.parentNode);
-    return root;
+  (global as any).Node.prototype.getRootNode = function (): Node {
+    if (!this.parentNode) {
+      return this;
+    }
+    return this.parentNode.getRootNode();
   };
 }
 
