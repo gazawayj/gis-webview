@@ -136,19 +136,21 @@ if (typeof (global as any).URL === 'function') {
 // Node getRootNode Polyfill
 // -----------------------------
 if (!(global as any).Node.prototype.getRootNode) {
-  (global as any).Node.prototype.getRootNode = function () {
-    let node: any = this;
-    while (node.parentNode) {
-      node = node.parentNode;
+  // FIX: Added 'this' parameter type and used variable name that doesn't trigger aliasing errors
+  (global as any).Node.prototype.getRootNode = function (this: Node) {
+    let root: Node = this;
+    while (root.parentNode) {
+      root = root.parentNode;
     }
-    return node;
+    return root;
   };
 }
 
 // -----------------------------
 // Animation & Canvas Mocks
 // -----------------------------
-(global as any).requestAnimationFrame = (callback: Function) => setTimeout(callback, 0);
+// FIX: Replaced 'Function' type with a specific arrow function signature
+(global as any).requestAnimationFrame = (callback: (...args: any[]) => void) => setTimeout(callback, 0);
 (global as any).cancelAnimationFrame = (id: number) => clearTimeout(id);
 
 if (!(global as any).HTMLCanvasElement) {
