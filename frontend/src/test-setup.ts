@@ -126,7 +126,7 @@ if (typeof (global as any).URL === 'function') {
   (global as any).URL.revokeObjectURL = vi.fn();
 } else {
   (global as any).URL = class {
-    constructor(public url: string) { }
+    constructor(public url: string) {}
     static createObjectURL = vi.fn(() => 'mock-url');
     static revokeObjectURL = vi.fn();
   } as any;
@@ -136,19 +136,18 @@ if (typeof (global as any).URL === 'function') {
 // Node getRootNode Polyfill
 // -----------------------------
 if (!(global as any).Node.prototype.getRootNode) {
-  (global as any).Node.prototype.getRootNode = function (this: any) {
-    let node = this;
-    while (node && node.parentNode) {
-      node = node.parentNode;
-    }
-    return node;
+  (global as any).Node.prototype.getRootNode = function () {
+    // FIX: Using for-loop head to navigate up the tree without direct variable aliasing
+    let root = this;
+    for (; root.parentNode; root = root.parentNode);
+    return root;
   };
 }
 
 // -----------------------------
 // Animation & Canvas Mocks
 // -----------------------------
-// FIX: Replaced 'Function' type with a specific arrow function signature
+// FIX: Using explicit function signature instead of the 'Function' type
 (global as any).requestAnimationFrame = (callback: (...args: any[]) => void) => setTimeout(callback, 0);
 (global as any).cancelAnimationFrame = (id: number) => clearTimeout(id);
 
