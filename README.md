@@ -50,7 +50,7 @@ This platform is intended to be a foundation for professional GIS development.
 Frontend  → Angular + OpenLayers web client
 Backend   → Node.js GIS services and API
 Data      → GeoJSON, CSV, XYZ tiles, planetary datasets
-CI/CD     → GitHub Actions: build, lint, tests
+CI/CD     → GitHub Actions: build, lint, tests, coverage
 ```
 
 The frontend handles visualization and interaction, while the backend serves GIS-friendly formats and map tiles.
