@@ -19,17 +19,38 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests with coverage
-        # Configure Vitest to generate JSON summary report
-        run: npx vitest run --coverage 
+      # --- RUN BOTH TESTS ---
+      - name: Frontend Tests
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npx vitest run --coverage
         env:
           CI: true
 
-      - name: Upload coverage report
+      - name: Backend Tests
+        working-directory: ./backend
+        run: |
+          npm ci
+          npx vitest run --coverage
+        env:
+          CI: true
+
+      # --- GENERATE ALL BADGES ---
+      - name: Generate Coverage Badges
+        uses: jpb06/coverage-badges-action@latest
+        with:
+          # Use a multi-line string to target both folders
+          coverage-summary-path: |
+            ./frontend/coverage/coverage-summary.json
+            ./backend/coverage/coverage-summary.json
+          badges-icon: vitest
+
+      # --- ARTIFACTS ---
+      - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage/coverage-summary.json
+          name: coverage-reports
+          path: |
+            frontend/coverage/coverage-summary.json
+            backend/coverage/coverage-summary.json

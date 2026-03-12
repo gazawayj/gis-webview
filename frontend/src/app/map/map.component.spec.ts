@@ -30,7 +30,6 @@ describe('MapComponent', () => {
 
   beforeEach(async () => {
     /**
-     * FIX: Reset the Testing Module
      * Prevents "Cannot configure the test module when the test module has already been instantiated"
      */
     TestBed.resetTestingModule();
