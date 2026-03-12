@@ -2,6 +2,8 @@ name: Coverage
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**/tiles/**/*.png'
   pull_request:
     branches: [ main ]
 
@@ -11,6 +13,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,7 +29,7 @@ jobs:
         working-directory: ./frontend
         run: |
           npm install --legacy-peer-deps
-          npm install @vitest/coverage-v8
+          npm install @vitest/coverage-v8 # Explicitly ensure coverage provider is there
           npx vitest run --coverage
         env:
           CI: true
@@ -37,8 +40,7 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitest/coverage-v8
-          # We manually point to the specs in src
-          npx vitest run src/*.spec.ts --coverage --reporter=json-summary
+          npx vitest run --coverage
         env:
           CI: true
 
@@ -46,8 +48,9 @@ jobs:
       - name: Generate Coverage Badges
         uses: jpb06/coverage-badges-action@latest
         with:
+          # This triggers the folder-based badge creation
           coverage-summary-path: |
-            ./coverage/coverage-summary.json
+            ./frontend/coverage/coverage-summary.json
             ./backend/coverage/coverage-summary.json
           badges-icon: vitest
 
@@ -57,5 +60,5 @@ jobs:
         with:
           name: coverage-reports
           path: |
-            coverage/coverage-summary.json
+            frontend/coverage/coverage-summary.json
             backend/coverage/coverage-summary.json
