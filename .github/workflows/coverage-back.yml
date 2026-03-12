@@ -45,7 +45,9 @@ jobs:
 
       - name: Install Dependencies (cache miss)
         if: steps.node-cache.outputs.cache-hit != 'true'
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
+          npm install @vitest/coverage-v8 --no-save
 
       - name: Run Backend Tests With Coverage
         run: npx vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text
