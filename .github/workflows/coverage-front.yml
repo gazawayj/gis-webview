@@ -1,56 +1,42 @@
 name: Coverage Frontend
-
 on:
   push:
-    branches: [main]
-    paths:
-      - "frontend/**"
+    branches: [ main ]
+    paths: [ 'frontend/**' ]
   pull_request:
-    branches: [main]
-    paths:
-      - "frontend/**"
+    branches: [ main ]
+    paths: [ 'frontend/**' ]
 
 permissions:
   contents: write
 
-concurrency:
-  group: coverage-front-${{ github.ref }}
-  cancel-in-progress: true
+concurrency: 
+  group: git-push-lock
+  cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./frontend
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-cache
-        with:
-          path: frontend/node_modules
-          key: frontend-node-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
-      - name: Install dependencies (cache miss)
-        if: steps.node-cache.outputs.cache-hit != 'true'
+      - name: Frontend Tests
+        working-directory: ./frontend
         run: |
           npm install --legacy-peer-deps
-          npm install @vitest/coverage-v8 --no-save
-
-      - name: Run Frontend Tests With Coverage
-        run: npx vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text
+          # Using -D ensures it's available to the local vitest instance
+          npm install -D @vitest/coverage-v8
+          npm exec vitest -- run --coverage --coverage.reporter=json-summary --coverage.reporter=text
         env:
           CI: true
 
