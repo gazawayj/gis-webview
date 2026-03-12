@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency: 
+  group: coverage-back-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,11 +35,10 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitest/coverage-v8
-          npx vitest run --coverage
+          npx vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text
         env:
           CI: true
 
-      # This creates separate badges in a 'backend' subfolder
       - name: Generate Backend Badges
         uses: jpb06/coverage-badges-action@latest
         with:

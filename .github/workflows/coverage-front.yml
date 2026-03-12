@@ -12,6 +12,11 @@ on:
 permissions:
   contents: write
 
+# Prevent simultaneous commits from multiple workflow runs
+concurrency: 
+  group: coverage-front-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,13 +36,15 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitest/coverage-v8
-          npx vitest run --coverage
+          # Force json-summary via CLI to ensure it exists
+          npx vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text
         env:
           CI: true
 
       - name: Generate Frontend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
+          # Points to the file created in the frontend/coverage folder
           coverage-summary-path: ./frontend/coverage/coverage-summary.json
           badges-icon: vitest
           output-folder: ./badges/frontend
