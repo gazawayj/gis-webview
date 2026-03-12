@@ -36,7 +36,6 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitest/coverage-v8
-          # Force json-summary via CLI to ensure it exists
           npx vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text
         env:
           CI: true
@@ -44,13 +43,8 @@ jobs:
       - name: Generate Frontend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
-          # Points to the file created in the frontend/coverage folder
-          coverage-summary-path: ./.github/coverage/coverage-summary.json
+          # This must include the subfolder name
+          coverage-summary-path: ./frontend/coverage/coverage-summary.json
           badges-icon: vitest
-          output-folder: ./coverage/badges/frontend
+          output-folder: ./badges/frontend
 
-      - name: Upload Frontend Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-frontend
-          path: coverage/coverage-summary.json

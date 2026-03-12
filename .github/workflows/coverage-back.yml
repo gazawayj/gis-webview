@@ -42,12 +42,7 @@ jobs:
       - name: Generate Backend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
-          coverage-summary-path: ./coverage/coverage-summary.json
+          # This must include the subfolder name
+          coverage-summary-path: ./backend/coverage/coverage-summary.json
           badges-icon: vitest
-          output-folder: ./coverage/badges/backend
-
-      - name: Upload Backend Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-backend
-          path: coverage/coverage-summary.json
+          output-folder: ./badges/backend
