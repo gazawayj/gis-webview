@@ -1,95 +1,158 @@
 /**
  * highres-selection.plugin.spec.ts
  *
- * Fixed mocks and tests for HighResSelectionPlugin.
+ * Unit tests for HighResSelectionPlugin.
+ * 
+ * Note: These tests use a real OpenLayers Map with mocked interactions.
+ * Mocks must implement setMap, getMap, and getActive to satisfy 
+ * OpenLayers' internal interaction validation.
  */
+
 import '../../../test-setup';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HighResSelectionPlugin } from './highres-selection.plugin';
 import Map from 'ol/Map';
-import { Draw, Modify, Translate } from 'ol/interaction';
+import View from 'ol/View';
+import VectorSource from 'ol/source/Vector';
+
+/** 
+ * Shared registry to capture event listeners attached to mocks 
+ * during plugin activation.
+ */
+let drawEvents: Record<string, Function> = {};
+
+/**
+ * Creates a base mock object that satisfies the ol/interaction/Interaction interface.
+ * Required because ol/Map calls .setMap() and checks .getActive() internally.
+ */
+const createBaseMockInteraction = () => ({
+  on: vi.fn((event, cb) => { 
+    if (event === 'drawend' || event === 'drawstart') drawEvents[event] = cb; 
+  }),
+  setActive: vi.fn(),
+  setMap: vi.fn(),
+  getMap: vi.fn(),
+  getActive: vi.fn(() => true),
+  dispatchEvent: vi.fn()
+});
 
 // ----------------------
-// MOCK OpenLayers
+// MOCK Draw
 // ----------------------
-const mockDrawOn = vi.fn();
-const mockDrawSetActive = vi.fn();
-const mockModifySetActive = vi.fn();
-const mockTranslateSetActive = vi.fn();
+vi.mock('ol/interaction/Draw', () => {
+  return {
+    default: class {
+      constructor() { 
+        Object.assign(this, createBaseMockInteraction()); 
+      }
+      on(event: string, cb: Function) { 
+        drawEvents[event] = cb; 
+      }
+    },
+    createBox: vi.fn(() => vi.fn())
+  };
+});
 
-vi.mock('ol/interaction', () => ({
-  Draw: vi.fn().mockImplementation(() => ({
-    on: mockDrawOn,
-    setActive: mockDrawSetActive,
-  })),
-  Modify: vi.fn().mockImplementation(() => ({
-    setActive: mockModifySetActive,
-  })),
-  Translate: vi.fn().mockImplementation(() => ({
-    setActive: mockTranslateSetActive,
-  })),
+// ----------------------
+// MOCK Modify
+// ----------------------
+vi.mock('ol/interaction/Modify', () => ({
+  default: class { 
+    constructor() { Object.assign(this, createBaseMockInteraction()); } 
+  }
 }));
 
-vi.mock('ol/layer/Vector', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    setSource: vi.fn(),
-    getSource: vi.fn().mockReturnValue({ addFeature: vi.fn(), removeFeature: vi.fn() }),
-  })),
-}));
-
-vi.mock('ol/source/Vector', () => ({
-  default: vi.fn().mockImplementation(() => ({})),
-}));
-
 // ----------------------
-// MOCK jsdom document
+// MOCK Translate
 // ----------------------
-if (typeof document === 'undefined') {
-  global.document = {
-    createElement: () => ({ style: {}, appendChild: vi.fn() }),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  } as any;
-}
+vi.mock('ol/interaction/Translate', () => ({
+  default: class { 
+    constructor() { Object.assign(this, createBaseMockInteraction()); } 
+  }
+}));
 
 describe('HighResSelectionPlugin', () => {
   let plugin: HighResSelectionPlugin;
   let map: Map;
+  let layerManager: any;
 
   beforeEach(() => {
-    // Reset mocks
     vi.clearAllMocks();
-    plugin = new HighResSelectionPlugin();
-    map = new Map();
+    drawEvents = {};
+
+    map = new Map({
+      target: document.createElement('div'),
+      view: new View({ center: [0, 0], zoom: 2 })
+    });
+
+    layerManager = {
+      currentPlanet: 'mars',
+      startExternalLoad: vi.fn(),
+      endExternalLoad: vi.fn(),
+      styleService: {
+        allocateLayerStyle: vi.fn(() => ({ shape: 'circle', color: '#ff0000' })),
+        getLayerStyle: vi.fn(() => [])
+      },
+      createLayer: vi.fn(() => ({
+        olLayer: { getSource: () => new VectorSource() },
+        color: '#ff0000',
+        shape: 'circle'
+      })),
+      remove: vi.fn()
+    };
+
+    plugin = new HighResSelectionPlugin(layerManager);
+
+    // Mock the source and include the specific method the plugin calls
+    const mockSource = new VectorSource();
+    (mockSource as any).getFeaturesCollection = vi.fn(() => null);
+
     (plugin as any).map = map;
+    (plugin as any).tempSource = mockSource;
   });
 
+  /**
+   * Test: Activation
+   */
   it('should activate without errors and register draw interaction', () => {
-    expect(() => plugin.onActivate()).not.toThrow();
-    expect(Draw).toHaveBeenCalled();
-    expect(mockDrawOn).toHaveBeenCalled();
+    expect(() => (plugin as any).onActivate()).not.toThrow();
+    expect((plugin as any).drawInteraction).toBeDefined();
+    expect(drawEvents['drawend']).toBeDefined();
   });
 
+  /**
+   * Test: Transition to Editing
+   */
   it('should enable modify and translate on draw end', () => {
-    plugin.onActivate();
+    (plugin as any).onActivate();
+    
+    (plugin as any).selectionFeature = {
+      getGeometry: () => ({ 
+        getExtent: () => [0, 0, 10, 10]
+      }),
+      set: vi.fn()
+    };
 
-    // Simulate drawend callback
-    const drawCallback = mockDrawOn.mock.calls.find(([event]) => event === 'drawend')?.[1];
-    expect(drawCallback).toBeDefined();
-    drawCallback({ feature: {} });
+    // Trigger the drawend callback
+    drawEvents['drawend']({ 
+      feature: (plugin as any).selectionFeature 
+    });
 
-    expect(Modify).toHaveBeenCalled();
-    expect(Translate).toHaveBeenCalled();
+    expect((plugin as any).modifyInteraction).toBeDefined();
+    expect((plugin as any).translateInteraction).toBeDefined();
   });
 
+  /**
+   * Test: User Cancellation
+   */
   it('should cancel on Escape key', () => {
-    plugin.onActivate();
-    (plugin as any).drawInteraction = { setActive: mockDrawSetActive };
+    const cancelSpy = vi.spyOn(plugin, 'cancel');
+
+    (plugin as any).onActivate();
 
     const event = new KeyboardEvent('keydown', { key: 'Escape' });
-    document.dispatchEvent(event);
+    window.dispatchEvent(event);
 
-    expect(mockDrawSetActive).toHaveBeenCalledWith(false);
+    expect(cancelSpy).toHaveBeenCalled();
   });
 });
