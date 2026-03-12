@@ -4,35 +4,47 @@ on:
   push:
     branches: ["main"]
     paths-ignore:
-      - 'README.md'
-      - '**/README.md'
-      - '**/tiles/**/*.png'
+      - "README.md"
+      - "**/README.md"
+      - "**/tiles/**/*.png"
   pull_request:
     branches: ["main"]
     paths-ignore:
-      - 'README.md'
-      - '**/README.md'
-      - '**/tiles/**/*.png'
+      - "README.md"
+      - "**/README.md"
+      - "**/tiles/**/*.png"
+
+concurrency:
+  group: lint-front-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   eslint:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          node-version: "22"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: frontend/node_modules
+          key: frontend-node-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install dependencies (cache miss)
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm install --legacy-peer-deps
 
       - name: Run lint
         run: npx eslint . --ext .ts,.tsx,.js,.jsx

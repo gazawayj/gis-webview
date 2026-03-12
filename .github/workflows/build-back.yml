@@ -2,15 +2,19 @@ name: Build Back
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'frontend/**'
+      - "public/tiles/**/*.png"
+      - "frontend/**"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'frontend/**'
+      - "public/tiles/**/*.png"
+      - "frontend/**"
+
+concurrency:
+  group: build-back-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-backend:
@@ -24,18 +28,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: './backend/package-lock.json'
+          node-version: "22"
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: backend/node_modules
+          key: backend-node-${{ runner.os }}-${{ hashFiles('backend/package-lock.json') }}
+
+      - name: Install Dependencies (cache miss)
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm install --legacy-peer-deps
 
       - name: Package Backend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-dist
-          path: ./ # or specific build output folder if you have one
+          path: ./backend

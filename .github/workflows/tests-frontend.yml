@@ -1,16 +1,20 @@
 name: Test Front
 
-on: 
+on:
   push:
     branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - "public/tiles/**/*.png"
+      - "backend/tiles/**/*.png"
   pull_request:
     branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'backend/tiles/**/*.png'
+      - "public/tiles/**/*.png"
+      - "backend/tiles/**/*.png"
+
+concurrency:
+  group: test-front-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -24,14 +28,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          node-version: "22"
 
-      - name: Install frontend dependencies
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: frontend/node_modules
+          key: frontend-node-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install dependencies (cache miss)
+        if: steps.node-cache.outputs.cache-hit != 'true'
         run: npm install --legacy-peer-deps
 
       - name: Run frontend unit tests

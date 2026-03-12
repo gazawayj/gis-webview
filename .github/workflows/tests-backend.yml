@@ -4,13 +4,17 @@ on:
   push:
     branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'frontend/tiles/**/*.png'
+      - "public/tiles/**/*.png"
+      - "frontend/tiles/**/*.png"
   pull_request:
     branches: ["main"]
     paths-ignore:
-      - 'public/tiles/**/*.png'
-      - 'frontend/tiles/**/*.png'
+      - "public/tiles/**/*.png"
+      - "frontend/tiles/**/*.png"
+
+concurrency:
+  group: test-back-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-backend:
@@ -24,15 +28,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          node-version: "22"
 
-      - name: Install backend dependencies
-        run: npm ci --include=dev
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: backend/node_modules
+          key: backend-node-${{ runner.os }}-${{ hashFiles('backend/package-lock.json') }}
+
+      - name: Install backend dependencies (cache miss)
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm install --legacy-peer-deps
 
       - name: Run Backend Tests
         run: npx vitest run --passWithNoTests
