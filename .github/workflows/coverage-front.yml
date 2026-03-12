@@ -11,9 +11,9 @@ on:
 permissions:
   contents: write
 
-concurrency: 
-  group: git-push-lock
-  cancel-in-progress: false
+concurrency:
+  group: coverage-front-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
