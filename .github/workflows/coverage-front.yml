@@ -41,10 +41,23 @@ jobs:
         env:
           CI: true
 
-      - name: Generate Frontend Badges
-        uses: jpb06/coverage-badges-action@latest
-        with:
-          coverage-summary-path: ./frontend/coverage/coverage-summary.json
-          badges-icon: vitest
-          output-folder: ./.github/badges/frontend
-          commit-message: "docs: update frontend coverage badges [skip ci]"
+      - name: Generate and Push Frontend Badges
+        run: |
+          # Generate badges
+          npx coverage-badges --coverage-summary ./frontend/coverage/coverage-summary.json --output ./.github/badges/frontend --commit-message "docs: update frontend coverage badges [skip ci]"
+          
+          # Configure git
+          git config user.name "gazawayj"
+          git config user.email "gazawayj@users.noreply.github.com"
+          
+          # Ensure branch is up to date
+          git checkout main
+          git pull --rebase origin main
+          
+          # Add badges
+          git add ./.github/badges/frontend
+          # Commit if changes exist
+          git diff --cached --quiet || git commit -m "docs: update frontend coverage badges [skip ci]"
+          
+          # Push changes
+          git push origin main
