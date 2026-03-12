@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: build-back-${{ github.ref }}
+  group: build-back-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

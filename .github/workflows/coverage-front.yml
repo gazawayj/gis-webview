@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: coverage-front-${{ github.ref }}
+  group: coverage-front-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

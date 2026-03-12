@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: lint-front-${{ github.ref }}
+  group: lint-front-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
