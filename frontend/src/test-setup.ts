@@ -1,4 +1,3 @@
-// frontend/src/test-setup.ts
 // -----------------------------
 // Angular + OpenLayers + Vitest Test Setup (Domino)
 // -----------------------------
@@ -126,7 +125,7 @@ if (typeof (global as any).URL === 'function') {
   (global as any).URL.revokeObjectURL = vi.fn();
 } else {
   (global as any).URL = class {
-    constructor(public url: string) {}
+    constructor(public url: string) { }
     static createObjectURL = vi.fn(() => 'mock-url');
     static revokeObjectURL = vi.fn();
   } as any;
@@ -242,6 +241,33 @@ vi.mock('ol/source/Vector', () => {
       on = vi.fn();
     },
   };
+});
+
+// -----------------------------
+// Suppress stdout/stderr for cleaner test logs
+// -----------------------------
+const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
+
+vi.stubGlobal('process', {
+  ...process,
+  stdout: {
+    write: (chunk: string | Uint8Array, encoding?: any, cb?: any) => {
+      // only show chunks containing "ERROR" or test failure messages
+      if (typeof chunk === 'string' && chunk.includes('FAIL')) {
+        return originalStdoutWrite(chunk, encoding, cb);
+      }
+      return true;
+    }
+  },
+  stderr: {
+    write: (chunk: string | Uint8Array, encoding?: any, cb?: any) => {
+      if (typeof chunk === 'string' && chunk.includes('Error')) {
+        return originalStderrWrite(chunk, encoding, cb);
+      }
+      return true;
+    }
+  }
 });
 
 // -----------------------------
