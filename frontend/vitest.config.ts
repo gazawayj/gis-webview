@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'], 
     coverage: {
       provider: 'v8',
+      reportsDirectory: './coverage',
       reporter: ['text', 'html', 'json-summary'],
       thresholds: {
         lines: 20, 
