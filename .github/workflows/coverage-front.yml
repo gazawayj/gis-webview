@@ -47,10 +47,10 @@ jobs:
           # Points to the file created in the frontend/coverage folder
           coverage-summary-path: ./.github/coverage/coverage-summary.json
           badges-icon: vitest
-          output-folder: ./.github/badges/frontend
+          output-folder: ./coverage/badges/frontend
 
       - name: Upload Frontend Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-frontend
-          path: .github/coverage/coverage-summary.json
+          path: coverage/coverage-summary.json
