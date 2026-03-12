@@ -2,17 +2,14 @@ name: Coverage Backend
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'backend/**'
+    paths: [ 'backend/**' ]
   pull_request:
     branches: [ main ]
-    paths:
-      - 'backend/**'
+    paths: [ 'backend/**' ]
 
 permissions:
   contents: write
 
-# Same group name as Frontend so they queue up behind each other
 concurrency: 
   group: git-push-lock
   cancel-in-progress: false
@@ -47,11 +44,6 @@ jobs:
         with:
           coverage-summary-path: ./backend/coverage/coverage-summary.json
           badges-icon: vitest
-          output-folder: ./badges/backend
+          # Moved inside the .github folder to hide from root
+          output-folder: ./.github/badges/backend
           commit-message: "docs: update backend coverage badges [skip ci]"
-
-      - name: Upload Backend Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-backend
-          path: backend/coverage/coverage-summary.json

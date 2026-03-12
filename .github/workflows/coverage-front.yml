@@ -2,17 +2,14 @@ name: Coverage Frontend
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'frontend/**'
+    paths: [ 'frontend/**' ]
   pull_request:
     branches: [ main ]
-    paths:
-      - 'frontend/**'
+    paths: [ 'frontend/**' ]
 
 permissions:
   contents: write
 
-# This "lock" ensures only one workflow pushes to the repo at a time
 concurrency: 
   group: git-push-lock
   cancel-in-progress: false
@@ -24,7 +21,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Fetch all history so the push has a better chance of succeeding
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -46,16 +42,8 @@ jobs:
       - name: Generate Frontend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
-          # Points to where Vitest created the file
           coverage-summary-path: ./frontend/coverage/coverage-summary.json
           badges-icon: vitest
-          # Output directly to this folder
-          output-folder: ./badges/frontend
-          # [skip ci] prevents an infinite loop of actions
+          # Moved inside the .github folder to hide from root
+          output-folder: ./.github/badges/frontend
           commit-message: "docs: update frontend coverage badges [skip ci]"
-
-      - name: Upload Frontend Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-frontend
-          path: frontend/coverage/coverage-summary.json
