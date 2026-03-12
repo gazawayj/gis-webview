@@ -12,10 +12,10 @@ on:
 permissions:
   contents: write
 
-# Prevent simultaneous commits from multiple workflow runs
+# This "lock" ensures only one workflow pushes to the repo at a time
 concurrency: 
-  group: coverage-front-${{ github.ref }}
-  cancel-in-progress: true
+  group: git-push-lock
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -23,6 +23,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Fetch all history so the push has a better chance of succeeding
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,8 +46,16 @@ jobs:
       - name: Generate Frontend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
-          # This must include the subfolder name
+          # Points to where Vitest created the file
           coverage-summary-path: ./frontend/coverage/coverage-summary.json
           badges-icon: vitest
+          # Output directly to this folder
           output-folder: ./badges/frontend
+          # [skip ci] prevents an infinite loop of actions
+          commit-message: "docs: update frontend coverage badges [skip ci]"
 
+      - name: Upload Frontend Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-frontend
+          path: frontend/coverage/coverage-summary.json
