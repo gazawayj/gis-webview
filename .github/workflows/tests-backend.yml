@@ -11,6 +11,7 @@ on:
     paths-ignore:
       - "public/tiles/**/*.png"
       - "frontend/tiles/**/*.png"
+  workflow_dispatch:
 
 concurrency:
   group: test-back-${{ github.ref }}

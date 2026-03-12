@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     // Ensure this covers your source files so Vitest has something to calculate!
     include: ['src/**/*.spec.ts'], 
     // Remove or update this if backend doesn't have a test-setup.ts

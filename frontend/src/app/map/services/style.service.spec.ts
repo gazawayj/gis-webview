@@ -1,101 +1,111 @@
 /**
- * style.service.spec.ts
- *
- * Unit tests for StyleService, responsible for color and shape management
- * for map layers in the GIS system.
- *
- * TESTING STRATEGY:
- * 1. Method Signatures: getLayerStyle expects a single options object:
- *    { type, baseColor, shape, ... }.
- * 2. Color Math: brightening uses multiplication; black (#000000) remains black.
- * 3. State Isolation: resetPlanet is called to ensure previous test state
- *    does not leak into subsequent tests.
+ * @file style.service.spec.ts
+ * @description Unit tests for StyleService.
  */
 import '../../../test-setup'; 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { StyleService } from './style.service';
-import { createService } from '../testing/test-harness';
 import { ShapeType } from '../constants/symbol-constants';
+import { Style, Fill, Text } from 'ol/style';
 
 describe('StyleService', () => {
   let service: StyleService;
 
   beforeEach(() => {
-    service = createService(StyleService);
+    service = new StyleService();
   });
 
   /**
-   * TEST: Hex Color Brightening
-   * Validates multiplication-based brightening logic and boundary conditions.
+   * TEST: Hex Color Math
    */
   it('should correctly brighten a hex color', () => {
-    const midGrey = '#808080';
-    const brightened = service.brightenHex(midGrey, 1.2);
+    // Standard mid-grey brightening
+    expect(service.brightenHex('#808080', 1.5)).toBe('#c0c0c0');
 
-    expect(brightened).not.toBe(midGrey);
-    expect(brightened.startsWith('#')).toBe(true);
+    // 3-digit hex expansion (#f00 -> #ff0000)
+    expect(service.brightenHex('#f00', 1.0)).toBe('#ff0000');
 
-    // White remains white when brightened
-    expect(service.brightenHex('#ffffff', 1.5)).toBe('#ffffff');
+    // Clamping at white (255)
+    expect(service.brightenHex('#ffffff', 2.0)).toBe('#ffffff');
 
-    // Black remains black when brightened
-    expect(service.brightenHex('#000000', 1.5)).toBe('#000000');
+    // Black stays black with multiplication
+    expect(service.brightenHex('#000000', 5.0)).toBe('#000000');
   });
 
   /**
-   * TEST: Color Allocation for Layers
-   * Ensures that each new layer gets a unique color within a planet.
+   * TEST: Style Allocation
    */
-  it('should allocate unique colors for Mars layers', () => {
+  it('should allocate unique colors and shapes for a planet', () => {
     service.resetPlanet('mars');
 
     const style1 = service.allocateLayerStyle('mars');
     const style2 = service.allocateLayerStyle('mars');
 
     expect(style1.color).not.toBe(style2.color);
-    expect(style1.color).toMatch(/^#[0-9A-F]{6}$/i);
-    expect(style2.color).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(style1.shape).not.toBe(style2.shape);
+    expect(style1.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  });
+
+  it('should reset usage tracking when resetPlanet is called', () => {
+    service.allocateLayerStyle('earth');
+    service.resetPlanet('earth');
+    
+    // Using private access to verify state reset
+    expect((service as any).planetColorUsage['earth'].size).toBe(0);
+    expect((service as any).planetShapeUsage['earth'].size).toBe(0);
   });
 
   /**
-   * TEST: Layer Shape Persistence
-   * Verifies that setLayerShape stores the shape and getLayerStyle reflects it.
+   * TEST: Style Generation
    */
-  it('should store and retrieve layer shapes correctly', () => {
-    const layerId = 'layer-abc';
-    const shape: ShapeType = 'star';
-
-    service.setLayerShape(layerId, shape);
-
-    expect(service['layerShapeCache'].get(layerId)).toBe(shape);
-  });
-
-  /**
-   * TEST: OpenLayers Style Object Generation
-   * Ensures getLayerStyle returns a valid OL Style object for points.
-   */
-  it('should generate a valid OpenLayers style object for points', () => {
+  it('should generate a valid Style object for points with specific shapes', () => {
     const olStyle = service.getLayerStyle({
       type: 'point',
-      baseColor: '#ff0000',
-      shape: 'triangle'
+      baseColor: '#00ff00',
+      shape: 'star'
     });
 
-    expect(olStyle).toBeDefined();
-    expect(olStyle.getImage()).toBeTruthy();
+    expect(olStyle).toBeInstanceOf(Style);
+    const image = olStyle.getImage();
+    expect(image).toBeDefined();
+    // RegularShape is used for stars
+    expect(image?.constructor.name).toBe('RegularShape');
   });
 
-  /**
-   * TEST: Polygon Fill Opacity
-   * Verifies that polygon styles append the correct alpha (88) to baseColor.
-   */
-  it('should add opacity suffix to polygon fill colors', () => {
+  it('should handle label visibility logic for black text', () => {
+    const olStyle = service.getLayerStyle({
+      type: 'label',
+      baseColor: '#000000',
+      text: 'Invisible?'
+    });
+
+    const textStyle = olStyle.getText();
+    expect(textStyle).toBeDefined();
+    // Logic: if color is #000000, use #ffffff for fill
+    const fill = textStyle?.getFill() as Fill;
+    expect(fill.getColor()).toBe('#ffffff');
+  });
+
+  it('should apply 50% opacity (88) to polygon fill colors', () => {
+    const baseColor = '#ff0000';
     const olStyle = service.getLayerStyle({
       type: 'polygon',
-      baseColor: '#ff0000'
+      baseColor
     });
 
     const fill = olStyle.getFill();
     expect(fill?.getColor()).toBe('#ff000088');
+    
+    // Verify border is brightened
+    const stroke = olStyle.getStroke();
+    expect(stroke?.getColor()).toBe(service.brightenHex(baseColor, 0.6));
+  });
+
+  it('should provide a default circle style for unknown types', () => {
+    const olStyle = (service as any).getLayerStyle({
+      type: 'invalid-type'
+    });
+
+    expect(olStyle.getImage()?.constructor.name).toBe('CircleStyle');
   });
 });

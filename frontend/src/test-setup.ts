@@ -31,7 +31,7 @@ const win = domino.createWindow(template);
 (global as any).self = win;
 
 /**
- * FIX: Navigator (Read-only property)
+ * Navigator (Read-only property)
  * Defines navigator as configurable to bypass the Node.js "getter only" error.
  */
 Object.defineProperty(global, 'navigator', {
@@ -49,7 +49,7 @@ Object.defineProperty(global, 'navigator', {
 (global as any).Event = (win as any).Event;
 
 /**
- * FIX: KeyboardEvent Constructor Fallback
+ * KeyboardEvent Constructor Fallback
  * Domino sometimes provides KeyboardEvent as an object rather than a constructor.
  * This fallback ensures 'new KeyboardEvent()' works in Vitest.
  */
@@ -69,7 +69,7 @@ try {
 (global as any).HTMLAnchorElement = (win as any).HTMLAnchorElement || class { href = ''; click = vi.fn(); };
 
 /**
- * FIX: DataTransfer Polyfill
+ * DataTransfer Polyfill
  * Required for Angular CDK Drag-and-Drop tests.
  */
 (global as any).DataTransfer = class {
@@ -84,7 +84,7 @@ try {
 };
 
 /**
- * FIX: getComputedStyle Polyfill
+ * getComputedStyle Polyfill
  * Required by OpenLayers to determine map container dimensions and visibility.
  */
 (global as any).getComputedStyle = (el: HTMLElement) => {
@@ -118,7 +118,7 @@ if (typeof (global as any).ShadowRoot === 'undefined') {
 }
 
 /**
- * FIX: URL Polyfill
+ * URL Polyfill
  * Ensures URL is a valid constructor while adding missing Blob methods for GIS assets.
  */
 if (typeof (global as any).URL === 'function') {
@@ -147,7 +147,6 @@ if (!(global as any).Node.prototype.getRootNode) {
 // -----------------------------
 // Animation & Canvas Mocks
 // -----------------------------
-// FIX: Using explicit function signature instead of the 'Function' type
 (global as any).requestAnimationFrame = (callback: (...args: any[]) => void) => setTimeout(callback, 0);
 (global as any).cancelAnimationFrame = (id: number) => clearTimeout(id);
 
@@ -188,45 +187,62 @@ TestBed.initTestEnvironment(
 );
 
 // -----------------------------
-// OpenLayers Hard Mocks
+// OpenLayers Hard Mocks (Stateful)
 // -----------------------------
-vi.mock('ol/layer/Vector', () => ({
-  default: class {
-    setVisible = vi.fn();
-    setZIndex = vi.fn();
-    setStyle = vi.fn();
-    changed = vi.fn();
-    getSource = vi.fn(() => ({
-      addFeature: vi.fn(),
-      removeFeature: vi.fn(),
-      getFeatures: vi.fn(() => []),
-    }));
-  },
-}));
+vi.mock('ol/layer/Vector', () => {
+  return {
+    default: class {
+      private options: any;
+      constructor(options: any = {}) { this.options = options; }
+      setVisible = vi.fn();
+      setZIndex = vi.fn();
+      setStyle = vi.fn((style) => this.options.style = style);
+      getStyle = vi.fn(() => this.options.style);
+      getSource = vi.fn(() => this.options.source || {
+        addFeature: vi.fn(),
+        addFeatures: vi.fn(),
+        removeFeature: vi.fn(),
+        getFeatures: vi.fn(() => []),
+      });
+      changed = vi.fn();
+    },
+  };
+});
 
-vi.mock('ol/layer/VectorImage', () => ({
-  default: class {
-    setVisible = vi.fn();
-    setZIndex = vi.fn();
-    setStyle = vi.fn();
-    changed = vi.fn();
-    getSource = vi.fn(() => ({
-      addFeature: vi.fn(),
-      removeFeature: vi.fn(),
-      getFeatures: vi.fn(() => []),
-    }));
-  },
-}));
+vi.mock('ol/layer/VectorImage', () => {
+  return {
+    default: class {
+      private options: any;
+      constructor(options: any = {}) { this.options = options; }
+      setVisible = vi.fn();
+      setZIndex = vi.fn();
+      setStyle = vi.fn((style) => this.options.style = style);
+      getStyle = vi.fn(() => this.options.style);
+      getSource = vi.fn(() => this.options.source || {
+        addFeature: vi.fn(),
+        addFeatures: vi.fn(),
+        removeFeature: vi.fn(),
+        getFeatures: vi.fn(() => []),
+      });
+      changed = vi.fn();
+    },
+  };
+});
 
-vi.mock('ol/source/Vector', () => ({
-  default: class {
-    addFeature = vi.fn();
-    removeFeature = vi.fn();
-    getFeatures = vi.fn(() => []);
-    clear = vi.fn();
-    on = vi.fn();
-  },
-}));
+vi.mock('ol/source/Vector', () => {
+  return {
+    default: class {
+      private options: any;
+      constructor(options: any = {}) { this.options = options; }
+      addFeature = vi.fn();
+      addFeatures = vi.fn();
+      removeFeature = vi.fn();
+      getFeatures = vi.fn(() => this.options.features || []);
+      clear = vi.fn();
+      on = vi.fn();
+    },
+  };
+});
 
 // -----------------------------
 // OpenLayers Soft Mocks (Prototypes)
