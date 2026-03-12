@@ -35,29 +35,15 @@ jobs:
         working-directory: ./frontend
         run: |
           npm install --legacy-peer-deps
-          # Using -D ensures it's available to the local vitest instance
           npm install -D @vitest/coverage-v8
           npm exec vitest -- run --coverage --coverage.reporter=json-summary --coverage.reporter=text
         env:
           CI: true
 
-      - name: Generate and Push Frontend Badges
-        run: |
-          # Generate badges
-          npx coverage-badges --coverage-summary ./frontend/coverage/coverage-summary.json --output ./.github/badges/frontend --commit-message "docs: update frontend coverage badges [skip ci]"
-          
-          # Configure git
-          git config user.name "gazawayj"
-          git config user.email "gazawayj@users.noreply.github.com"
-          
-          # Ensure branch is up to date
-          git checkout main
-          git pull --rebase origin main
-          
-          # Add badges
-          git add ./.github/badges/frontend
-          # Commit if changes exist
-          git diff --cached --quiet || git commit -m "docs: update frontend coverage badges [skip ci]"
-          
-          # Push changes
-          git push origin main
+      - name: Generate Frontend Badges
+        uses: jpb06/coverage-badges-action@latest
+        with:
+          coverage-summary-path: ./frontend/coverage/coverage-summary.json
+          badges-icon: vitest
+          output-folder: ./.github/badges/frontend
+          commit-message: "docs: update frontend coverage badges [skip ci]"
