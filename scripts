@@ -1,11 +1,10 @@
 coverage: npm run test:coverage
+test: npx vitest run
 
 from frontend:
   build: npm build
   serve: npm serve
-  test: npx vitest run
   
 from backend:
   build: node server.js
   serve: node server.js
-  test: npx vitest run
