@@ -19,14 +19,14 @@ import VectorSource from 'ol/source/Vector';
  * Shared registry to capture event listeners attached to mocks 
  * during plugin activation.
  */
-let drawEvents: Record<string, Function> = {};
+let drawEvents: Record<string, (event?: any) => void> = {};
 
 /**
  * Creates a base mock object that satisfies the ol/interaction/Interaction interface.
  * Required because ol/Map calls .setMap() and checks .getActive() internally.
  */
 const createBaseMockInteraction = () => ({
-  on: vi.fn((event, cb) => { 
+  on: vi.fn((event: string, cb: (event?: any) => void) => { 
     if (event === 'drawend' || event === 'drawstart') drawEvents[event] = cb; 
   }),
   setActive: vi.fn(),
@@ -45,7 +45,7 @@ vi.mock('ol/interaction/Draw', () => {
       constructor() { 
         Object.assign(this, createBaseMockInteraction()); 
       }
-      on(event: string, cb: Function) { 
+      on(event: string, cb: (event?: any) => void) { 
         drawEvents[event] = cb; 
       }
     },
@@ -134,7 +134,7 @@ describe('HighResSelectionPlugin', () => {
     };
 
     // Trigger the drawend callback
-    drawEvents['drawend']({ 
+    drawEvents['drawend']!({ 
       feature: (plugin as any).selectionFeature 
     });
 
