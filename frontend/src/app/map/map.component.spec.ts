@@ -178,3 +178,4 @@ describe('MapComponent', () => {
     expect(modalFactoryMock.close).toHaveBeenCalled();
   });
 });
+

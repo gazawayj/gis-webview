@@ -69,3 +69,5 @@ describe('Backend API Endpoints', () => {
     expect(res.text).toContain('latitude,longitude,brightness'); // CSV header
   });
 });
+
+
