@@ -40,7 +40,13 @@ jobs:
         env:
           CI: true
 
-      - name: Generate Frontend Badges
+      - name: Prepare Git for Coverage Badges
+        run: |
+          # Discard local changes that could block pushing badges
+          git reset --hard
+          git clean -fd
+
+      - name: Generate and Push Frontend Badges
         uses: jpb06/coverage-badges-action@latest
         with:
           coverage-summary-path: ./frontend/coverage/coverage-summary.json
