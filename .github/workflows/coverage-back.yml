@@ -1,0 +1,50 @@
+name: Coverage Backend
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ./backend/package-lock.json
+
+      - name: Backend Tests
+        working-directory: ./backend
+        run: |
+          npm install --legacy-peer-deps
+          npm install @vitest/coverage-v8
+          npx vitest run --coverage
+        env:
+          CI: true
+
+      # This creates separate badges in a 'backend' subfolder
+      - name: Generate Backend Badges
+        uses: jpb06/coverage-badges-action@latest
+        with:
+          coverage-summary-path: ./backend/coverage/coverage-summary.json
+          badges-icon: vitest
+          output-folder: ./badges/backend
+
+      - name: Upload Backend Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-backend
+          path: backend/coverage/coverage-summary.json
